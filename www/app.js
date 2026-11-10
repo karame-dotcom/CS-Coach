@@ -709,7 +709,7 @@
 
 
   // ---------- Install on phone ----------
-  const IN = window.CSInstall;
+  const IN = (window.claude && typeof window.claude.use === "function") ? null : window.CSInstall;   // not offered inside claude.ai
   function installHtml(compact) {
     if (!IN || IN.isStandalone()) return compact ? "" : `<div class="panel install-panel"><b>📲 ${t("installTitle")}</b><p class="muted small" style="margin:6px 0 0">${t("installDone")}</p></div>`;
     let body;
