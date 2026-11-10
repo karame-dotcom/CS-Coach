@@ -1,0 +1,9 @@
+{
+  "name": "CS Coach – Civil Service Exam Reviewer",
+  "short_name": "CS Coach",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f7a4a",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
