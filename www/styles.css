@@ -756,3 +756,16 @@ select.input { background: var(--white); }
 /* the chat tab replaces the floating chat button; keep the button only during a quiz when the buddy is at home */
 .coach-fab { display: none !important; }
 body.no-pet:not(.has-tabbar) .coach-fab { display: flex !important; }
+
+/* ===== v18: similar question in Help, subject tips card ===== */
+.sim-q { font-weight: 600; margin: 4px 0 8px !important; }
+.coach-block .sim-a { background: var(--white); }
+.sim-rule { display: none; margin: 8px 0 0 !important; }
+.sim-rule.show { display: block; }
+.tips-card { background: #fffbeb; border: 2px solid #fcd34d; border-radius: var(--radius); padding: 0 14px; margin: 0 0 14px; }
+.tips-card > summary { list-style: none; display: flex; align-items: center; gap: 8px; padding: 12px 0; cursor: pointer; }
+.tips-card > summary::-webkit-details-marker { display: none; }
+.tips-card > summary b { flex: 1; }
+.tips-card[open] .sec-chev { transform: rotate(180deg); }
+.tips-card ul { margin: 0 0 12px; padding-left: 20px; line-height: 1.55; font-size: .92rem; }
+.tips-card li { margin-bottom: 6px; }

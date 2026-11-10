@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.17.0";
+  const APP_VERSION = "1.18.0";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -844,6 +844,10 @@
     app.innerHTML = `
       <h2>${s.icon} ${esc(tr.name)}</h2>
       <p class="sub">${esc(tr.desc)}</p>
+      <details class="tips-card" open>
+        <summary>💡 <b>${t("tipsTricks", { s: esc(tr.name) })}</b><span class="sec-chev">▾</span></summary>
+        <ul>${tr.tips.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+      </details>
       <p class="syllabus-note">📋 ${t("syllabusNote")}</p>
       <p class="muted small" style="margin:0 0 14px">${t("impNote")}${sid !== "filipino" && t("lessonsLangNote") ? " " + t("lessonsLangNote") : ""}</p>
       <div class="set-list">
@@ -1591,21 +1595,57 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     if (e.key === "ArrowLeft") goTo(session.idx - 1);
   });
 
+  // A similar worked example for the Help button: the lesson rule that best matches
+  // this question, and the example under it that is closest to the question.
+  const wordsOf = x => (String(x || "").toLowerCase().match(/[a-zà-ÿñ']{3,}/g) || []);
+  function similarExample(q) {
+    const l = q.lid && lessonById.get(q.lid);
+    const ex = l && window.LESSON_EXAMPLES && LESSON_EXAMPLES[l.id];
+    const qw = new Set(wordsOf(q.q + " " + (q.e || "") + " " + (q.h || "")));
+    const score = txt => wordsOf(txt).filter(w => qw.has(w)).length;
+    // never show an example whose answer is this question's answer (that would give it away)
+    const norm = x => String(x || "").toLowerCase().replace(/[^a-z0-9à-ÿñ%₱.\s]/g, " ").replace(/\s+/g, " ").trim();
+    const correct = norm(cText(q, q.a));
+    const has = (hay, needle) => needle && new RegExp("(^|\\s)" + needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(\\s|$)").test(hay);
+    const givesAway = ans => { const a = norm(ans), core = norm(String(ans).split(/[:(→·]/)[0]); return has(a, correct) || (core.length > 2 && has(correct, core)); };
+    if (ex) {
+      let best = null, bs = -1;
+      l.points.forEach((pt, i) => (ex[i] || []).forEach(([eq, ea]) => {
+        if (eq.trim() === q.q.trim() || givesAway(ea)) return;
+        const sc = score(pt) * 2 + score(eq);
+        if (sc > bs) { bs = sc; best = { q: eq, a: ea, rule: pt }; }
+      }));
+      if (best) return best;
+    }
+    // fallback: another question from the same topic, with its answer and explanation
+    const pool = (l ? lessonQs(l.sid, l) : subjectOf(q).questions).filter(x => x.id !== q.id && !errParts(x) && !givesAway(x.c[x.a]));
+    if (!pool.length) return null;
+    const o = pool.map(x => [score(x.q), x]).sort((a, b) => b[0] - a[0])[0][1];
+    return { q: o.q, a: o.c[o.a] + " · " + o.e, rule: null };
+  }
+
   function showHelp(q) {
-    const tr = sn(subjectOf(q));
+    const sim = similarExample(q);
     modal(`
       <div class="modal-title">💡 ${t("coach")}</div>
       <div class="coach-block">
         <div class="coach-label">${t("howApproach")}</div>
         <p>${esc(q.h)}</p>
       </div>
+      ${sim ? `
       <div class="coach-block">
-        <div class="coach-label">${t("generalStrategy", { s: esc(tr.name) })}</div>
-        <ul>${tr.tips.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
-      </div>
+        <div class="coach-label">🧩 ${t("similarQ")}</div>
+        <p class="sim-q">${esc(sim.q)}</p>
+        <button class="ex-card sim-a" data-reveal><span class="ex-body"><span class="ex-q muted small">${t("tapReveal")}</span><span class="ex-a">✅ ${esc(sim.a)}</span></span></button>
+        ${sim.rule ? `<p class="muted small sim-rule">📏 ${esc(sim.rule)}</p>` : ""}
+      </div>` : ""}
       <p class="muted small">${t("coachNote")}</p>
       <div class="actions"><button class="btn" data-close>${t("gotIt")}</button></div>
-    `, (w, close) => { w.querySelector("[data-close]").onclick = close; });
+    `, (w, close) => {
+      w.querySelector("[data-close]").onclick = close;
+      const r = w.querySelector("[data-reveal]");
+      if (r) r.onclick = () => { r.classList.add("open"); const rule = w.querySelector(".sim-rule"); if (rule) rule.classList.add("show"); };
+    });
   }
 
   function openSubmit() {

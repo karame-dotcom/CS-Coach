@@ -1,7 +1,7 @@
 // CS Coach service worker: works offline, but always tries the network first so
 // updates arrive right away. It never touches localStorage, so updates can't
 // erase anyone's progress.
-const CACHE = "cs-coach-v18";
+const CACHE = "cs-coach-v19";
 const FILES = ["./", "index.html", "styles.css", "app.js", "i18n.js", "lessons.js", "questions.js", "questions-more.js",
   "questions-syllabus.js", "lesson-examples.js", "glossary.js", "config.js", "ai.js", "install.js", "pet.js", "coach.js", "icon.svg", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-64.png"];

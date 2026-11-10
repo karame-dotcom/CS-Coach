@@ -457,6 +457,9 @@
     petModeStillDesc: ["Sits quietly in the corner and only reacts to your answers.", "Tahimik sa sulok at sumasagot lang sa iyong mga sagot.", "Tahimik lang sa corner at nagre-react lang sa answers mo."],
     petModeWalk: ["🚶 Walk around", "🚶 Naglalakad", "🚶 Walk around"],
     petModeWalkDesc: ["Wanders around. Always stops while you study.", "Naglalakad-lakad. Laging tumitigil habang nag-aaral ka.", "Naglalakad-lakad. Laging humihinto habang nag-aaral ka."],
+    // v18: help shows a similar question; tips per subject
+    similarQ: ["A similar question", "Katulad na tanong", "Similar na question"],
+    tipsTricks: ["Tips & tricks for {s}", "Mga tip at teknik sa {s}", "Tips & tricks sa {s}"],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 
