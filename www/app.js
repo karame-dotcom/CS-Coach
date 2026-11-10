@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.19.0";
+  const APP_VERSION = "1.21.0";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -144,11 +144,11 @@
 
   // Rotation: a question you answered won't come back for COOLDOWN_DAYS.
   // Fresh questions are ordered: never seen first (high-yield topics first),
-  // then old mistakes, then the rest. If there aren't enough fresh ones,
-  // the ones seen longest ago fill the round.
+  // then old mistakes, then the rest. Rounds use ONLY fresh questions; older
+  // ones come back only when the student explicitly chooses "Review older".
   const isFresh = q => { const st = stats[q.id]; return !st || !st.t || Date.now() - st.t >= COOLDOWN_DAYS * DAY; };
   let lastRecycled = 0;
-  function smartPick(qs, n) {
+  function smartPick(qs, n, allowRepeat) {
     const rank = q => {
       const st = stats[q.id], imp = impOf(q) * 0.15;
       if (!st) return Math.random() - imp;
@@ -158,7 +158,7 @@
     const fresh = qs.filter(isFresh).map(q => [rank(q), q]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
     const picked = fresh.slice(0, n);
     lastRecycled = 0;
-    if (picked.length < n) {
+    if (allowRepeat && picked.length < n) {
       const old = qs.filter(q => !isFresh(q)).sort((a, b) => (stats[a.id].t || 0) - (stats[b.id].t || 0));
       const fill = old.slice(0, n - picked.length);
       lastRecycled = fill.length;
@@ -990,8 +990,10 @@
     if (ex) ex.addEventListener("click", () => { ex.remove(); document.getElementById("exAns").classList.remove("hidden"); pet().hop(); });
     const pt = document.getElementById("practiceTopic");
     if (pt) pt.addEventListener("click", () => {
+      const exit = () => renderLesson(sid, i, steps.length - 1);
       const picked = smartPick(qs, 10);
-      startSession("lesson:" + l.id, l.title, picked, () => renderLesson(sid, i, steps.length - 1));
+      if (!picked.length) return caughtUp({ name: l.title, pool: qs, key: "lesson:" + l.id, title: l.title, exit, sid, lesson: l, n: 10 });
+      startSession("lesson:" + l.id, l.title, picked, exit);
     });
     const at = document.getElementById("aiTopic");
     if (at) at.addEventListener("click", () => generateAI(sid, l, 5, () => renderLesson(sid, i, steps.length - 1)));
@@ -1058,15 +1060,52 @@
     window.scrollTo(0, 0);
   }
 
-  function notifyRecycled() { if (lastRecycled) setTimeout(() => toast(t("recycled")), 300); }
-  function startMock() {
-    // one fresh question per subject in turn, so the mock stays balanced
+  // Fill a short round with new AI questions when an AI is connected
+  async function topUp(sid, picked, n) {
+    if (!sampleFn || picked.length >= n) return picked;
+    const s = SUBJECTS.find(x => x.id === sid), lesson = weakestLesson(sid);
+    const close = modal(`<div class="ai-loading"><div class="spinner"></div><b>${t("aiTopUp")}</b><span class="muted small">${esc(sn(s).name)} · ${esc(lesson.title)}</span></div>`, () => {});
+    try { picked = picked.concat(await genQuestions(sid, lesson, n - picked.length)); } catch (_) {}
+    close();
+    return picked;
+  }
+  // Shown when every question in a set was answered in the last 30 days
+  function caughtUp(o) {
+    const ts = o.pool.map(q => stats[q.id] && stats[q.id].t).filter(Boolean);
+    const next = ts.length ? new Date(Math.min(...ts) + COOLDOWN_DAYS * DAY) : new Date();
+    const aiSid = o.sid || SUBJECTS.map(x => x.id).sort((x, y) => freshCount(SUBJECTS.find(z => z.id === x).questions) - freshCount(SUBJECTS.find(z => z.id === y).questions))[0];
+    modal(`
+      <div class="caught">
+        <div class="caught-ico">🎉</div>
+        <div class="modal-title">${t("caughtTitle")}</div>
+        <p class="modal-text">${t("caughtText", { s: esc(o.name), d: next.toLocaleDateString(I.lang === "en" ? "en-US" : "fil-PH", { month: "long", day: "numeric" }) })}</p>
+        <div class="actions col">
+          <button class="btn" data-ai>${sampleFn ? t("caughtAI") : t("caughtConnect")}</button>
+          <button class="btn secondary" data-older>${t("caughtReview")}</button>
+          ${reviewQs().length ? `<button class="btn secondary" data-rev>${t("reviewBtn", { n: reviewQs().length })}</button>` : ""}
+          <button class="link" data-x>${t("cancel")}</button>
+        </div>
+      </div>`, (w, close) => {
+      w.querySelector("[data-x]").onclick = close;
+      w.querySelector("[data-ai]").onclick = () => {
+        close();
+        if (sampleFn) return generateAI(aiSid, o.lesson || weakestLesson(aiSid), 10, o.exit);
+        openSecs.add("ai"); renderSettings(false);
+      };
+      w.querySelector("[data-older]").onclick = () => { close(); startSession(o.key + ":retry", o.title + " (" + t("reviewOlder") + ")", smartPick(o.pool, o.n || ROUND_SIZE, true), o.exit); };
+      const rv = w.querySelector("[data-rev]"); if (rv) rv.onclick = () => { close(); startReview(o.exit); };
+    });
+  }
+  async function startMock() {
+    const exit = () => openTab("practice");
+    // balanced: an equal share of fresh questions from each subject
     const per = Math.ceil(MOCK_SIZE / SUBJECTS.length);
-    const picked = []; let rec = 0;
-    SUBJECTS.forEach(s => { picked.push(...smartPick(s.questions, per)); rec += lastRecycled; });
-    lastRecycled = rec;
-    startSession("mock", t("mockTitle"), shuffle(picked).slice(0, MOCK_SIZE), () => openTab("practice"));
-    notifyRecycled();
+    let picked = [];
+    for (const s of SUBJECTS) picked.push(...await topUp(s.id, smartPick(s.questions, per), sampleFn ? per : 0));
+    picked = shuffle(picked).slice(0, MOCK_SIZE);
+    if (picked.length < 10) return caughtUp({ name: t("mockTitle"), pool: allQuestions(), key: "mock", title: t("mockTitle"), exit, n: MOCK_SIZE });
+    startSession("mock", t("mockTitle"), picked, exit);
+    if (picked.length < MOCK_SIZE) setTimeout(() => toast(t("onlyFresh", { n: picked.length })), 300);
   }
   function startStarred() { if (starred.size) startSession("starred", t("starredTitle"), [...starred].map(i => byId.get(i)).filter(Boolean), () => openTab("practice")); }
   function startReview(exit) {
@@ -1074,10 +1113,12 @@
     if (!qs.length) return toast(t("reviewEmpty"));
     startSession("review", t("reviewTitle"), qs.slice(0, 30), exit || (() => openTab(tab)));
   }
-  function startSubject(id) {
-    const s = SUBJECTS.find(x => x.id === id);
-    startSession(s.id, sn(s).name, smartPick(s.questions, ROUND_SIZE), () => openTab("practice"));
-    notifyRecycled();
+  async function startSubject(id) {
+    const s = SUBJECTS.find(x => x.id === id), exit = () => openTab("practice");
+    const picked = await topUp(id, smartPick(s.questions, ROUND_SIZE), ROUND_SIZE);
+    if (!picked.length) return caughtUp({ name: sn(s).name, pool: s.questions, key: s.id, title: sn(s).name, exit, sid: id });
+    startSession(s.id, sn(s).name, picked, exit);
+    if (picked.length < ROUND_SIZE) setTimeout(() => toast(t("onlyFresh", { n: picked.length })), 300);
   }
 
   function toast(msg) {
@@ -1116,6 +1157,17 @@
     if (!sampleFn) return toast(t("aiUnavailable"));
     const s = SUBJECTS.find(x => x.id === sid);
     const close = modal(`<div class="ai-loading"><div class="spinner"></div><b>${t("aiGenerating")}</b><span class="muted small">${esc(sn(s).name)} · ${esc(lesson.title)}</span></div>`, () => {});
+    try {
+      const valid = await genQuestions(sid, lesson, n);
+      close();
+      if (!valid.length) return toast(t("aiFail"));
+      startSession("ai:" + sid, "✨ " + lesson.title, valid, exitTo || (() => openTab("practice")), true);
+    } catch (e) { close(); toast(t("aiFail")); }
+  }
+
+  // Creates n new questions with the connected AI, saves them, and returns them
+  async function genQuestions(sid, lesson, n) {
+    const s = SUBJECTS.find(x => x.id === sid);
     const examples = lessonQs(sid, lesson).filter(q => !q.ai).slice(0, 3).map(q => ({ q: q.q, c: q.c, a: q.a, e: q.e, h: q.h }));
     const avoid = s.questions.filter(q => q.lid === lesson.id).map(q => q.q.slice(0, 90));
     const explainLang = { en: "English", tl: "Tagalog (Filipino)", tg: "Taglish (casual mix of Tagalog and English)" }[I.lang];
@@ -1133,22 +1185,17 @@ Rules:
 - Do not copy or closely paraphrase these existing questions: ${JSON.stringify(avoid)}
 Style examples: ${JSON.stringify(examples)}
 Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"e":"...","h":"..."}]}`;
-    try {
+    {
       const out = await sampleFn.json(prompt, { modelTier: "default", cache: false });
       const list = (out && out.questions) || [];
       const now = Date.now();
       const valid = list.filter(q => q && typeof q.q === "string" && Array.isArray(q.c) && q.c.length === 4 && q.c.every(c => typeof c === "string" && c.trim())
         && new Set(q.c).size === 4 && Number.isInteger(q.a) && q.a >= 0 && q.a < 4 && typeof q.e === "string")
         .map((q, k) => ({ id: `ai-${sid}-${now}-${k}`, sid, lid: lesson.id, ai: true, created: now, q: q.q.trim(), c: q.c.map(c => c.trim()), a: q.a, e: q.e, h: q.h || lesson.remember }));
-      close();
-      if (!valid.length) return toast(t("aiFail"));
-      aiBank = aiBank.concat(valid).slice(-300);
+      aiBank = aiBank.concat(valid).slice(-600);
       store.set("cscoach.aiq", aiBank);
       valid.forEach(addToBank);
-      startSession("ai:" + sid, "✨ " + lesson.title, valid, exitTo || (() => openTab("practice")), true);
-    } catch (e) {
-      close();
-      toast(t("aiFail"));
+      return valid;
     }
   }
 
@@ -1609,33 +1656,56 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   // this question, and the example under it that is closest to the question.
   const wordsOf = x => (String(x || "").toLowerCase().match(/[a-zà-ÿñ']{3,}/g) || []);
   function similarExample(q) {
-    const l = q.lid && lessonById.get(q.lid);
-    const ex = l && window.LESSON_EXAMPLES && LESSON_EXAMPLES[l.id];
-    const qw = new Set(wordsOf(q.q + " " + (q.e || "") + " " + (q.h || "")));
-    const score = txt => wordsOf(txt).filter(w => qw.has(w)).length;
-    // never show an example whose answer is this question's answer (that would give it away)
-    const norm = x => String(x || "").toLowerCase().replace(/[^a-z0-9à-ÿñ%₱.\s]/g, " ").replace(/\s+/g, " ").trim();
-    const correct = norm(cText(q, q.a));
-    const has = (hay, needle) => needle && new RegExp("(^|\\s)" + needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(\\s|$)").test(hay);
-    const givesAway = ans => { const a = norm(ans), core = norm(String(ans).split(/[:(→·]/)[0]); return has(a, correct) || (core.length > 2 && has(correct, core)); };
+    const givesAway = givesAwayFor(q);
+    // 1) Best: another question of the SAME TYPE (same wording pattern, same kind of choices)
+    // wording pattern: lower-case words incl. short ones; numbers → "#", % → "percent";
+    // ALL-CAPS target words (the word being asked about) are ignored
+    const stem = x => String(x.q).replace(/\b[A-Z][A-Z'’-]{2,}\b/g, " ").replace(/%/g, " percent ").replace(/[\d.,]+/g, " # ")
+      .toLowerCase().replace(/["“”'‘’]/g, " ").match(/[a-zà-ÿñ#]{1,}/g)?.filter(w => w.length > 1 || w === "#").slice(0, 9) || [];
+    const STOP = new Set("the what which and for with that this are was were from under known following choose word words meaning means mean following question answer true false best most into each than then they their there your about when where will would should could also only just very more less philippines philippine filipino constitution republic act article section known government public law laws year many much how number total every again after before both other same together one two three four five first second each some none these those make made have has had can its twice times half equal".split(" "));
+    const content = x => new Set(wordsOf(x.q + " " + (x.e || "")).filter(w => !STOP.has(w)));
+    const kind = x => errParts(x) ? "err" : numParts(x) ? "num-order" : /::/.test(x.q) ? (/\d/.test(x.q) ? "analogy-num" : "analogy")
+      : x.c.every(c => /^[\d₱%.,:\/\s°−+×÷()=-]+$/.test(c) || /^[\d.,]+\s*(km|h|days?|hours?|minutes?|cm²?|L|°)?$/.test(c)) ? "numeric" : "words";
+    const qs = new Set(stem(q)), qk = kind(q), qc = content(q), factual = q.sid === "geninfo";
+    const qw = new Set(wordsOf(q.q + " " + (q.e || "")));
+    let best = null, bs = 0;
+    subjectOf(q).questions.forEach(x => {
+      if (x.id === q.id || kind(x) !== qk || givesAway(x.c[x.a])) return;
+      const st = stem(x), shared = st.filter(w => qs.has(w)).length;
+      const pattern = qk.startsWith("analogy") ? 10 : shared / Math.max(3, Math.min(qs.size, st.length)) * 10;
+      let overlap = 0; content(x).forEach(w => { if (qc.has(w)) overlap++; });
+      if (factual && overlap < 2) return;          // facts: only when the topic itself matches
+      if (qk === "numeric" && q.q.length > 60 && overlap < 1) return;   // word problems: same real-world topic
+      const sc = pattern + (x.lid && x.lid === q.lid ? 3 : 0) + Math.min(3, overlap * 0.75) + (isFresh(x) ? 0 : 0.5);
+      if (sc > bs) { bs = sc; best = x; }
+    });
+    if (best && bs >= 7) return { q: best, a: LETTERS[best.a] + ". " + cText(best, best.a), why: best.e, html: true };
+    // 2) Otherwise a worked example from the matching lesson rule, only if clearly related
+    const l = q.lid && lessonById.get(q.lid), ex = l && window.LESSON_EXAMPLES && LESSON_EXAMPLES[l.id];
     if (ex) {
-      let best = null, bs = -1;
+      let pick = null, ps = 0;
       l.points.forEach((pt, i) => (ex[i] || []).forEach(([eq, ea]) => {
         if (eq.trim() === q.q.trim() || givesAway(ea)) return;
-        const sc = score(pt) * 2 + score(eq);
-        if (sc > bs) { bs = sc; best = { q: eq, a: ea, rule: pt }; }
+        const sc = wordsOf(pt + " " + eq).filter(w => qw.has(w)).length;
+        if (sc > ps) { ps = sc; pick = { q: eq, a: ea, why: pt }; }
       }));
-      if (best) return best;
+      if (pick && ps >= 3) return pick;
     }
-    // fallback: another question from the same topic, with its answer and explanation
-    const pool = (l ? lessonQs(l.sid, l) : subjectOf(q).questions).filter(x => x.id !== q.id && !errParts(x) && !givesAway(x.c[x.a]));
-    if (!pool.length) return null;
-    const o = pool.map(x => [score(x.q), x]).sort((a, b) => b[0] - a[0])[0][1];
-    return { q: o.q, a: o.c[o.a] + " · " + o.e, rule: null };
+    return null;   // nothing close enough: better to show nothing than something unrelated
+  }
+  const norm = x => String(x || "").toLowerCase().replace(/[^a-z0-9à-ÿñ%₱.\s]/g, " ").replace(/\s+/g, " ").trim();
+  function givesAwayFor(q) {
+    const correct = norm(cText(q, q.a));
+    const has = (hay, needle) => needle && new RegExp("(^|\\s)" + needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(\\s|$)").test(hay);
+    return ans => { const a = norm(ans), core = norm(String(ans).split(/[:(→·]/)[0]); return has(a, correct) || (core.length > 2 && has(correct, core)); };
   }
 
   function showHelp(q) {
     const sim = similarExample(q);
+    const simHtml = !sim ? "" : sim.html ? `
+        <div class="sim-q qtext">${qHtml(sim.q)}</div>
+        <ol class="sim-choices" type="A">${sim.q.c.map((c, i) => `<li>${esc(cText(sim.q, i))}</li>`).join("")}</ol>`
+      : `<p class="sim-q">${esc(sim.q)}</p>`;
     modal(`
       <div class="modal-title">💡 ${t("coach")}</div>
       <div class="coach-block">
@@ -1645,16 +1715,19 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
       ${sim ? `
       <div class="coach-block">
         <div class="coach-label">🧩 ${t("similarQ")}</div>
-        <p class="sim-q">${esc(sim.q)}</p>
+        ${simHtml}
         <button class="ex-card sim-a" data-reveal><span class="ex-body"><span class="ex-q muted small">${t("tapReveal")}</span><span class="ex-a">✅ ${esc(sim.a)}</span></span></button>
-        ${sim.rule ? `<p class="muted small sim-rule">📏 ${esc(sim.rule)}</p>` : ""}
+        ${sim.why ? `<p class="small sim-rule">💡 ${esc(sim.why)}</p>` : ""}
       </div>` : ""}
+      ${sampleFn ? `<button class="btn secondary sim-ask" data-ask>🪜 ${t("askExplain")}</button>` : ""}
       <p class="muted small">${t("coachNote")}</p>
       <div class="actions"><button class="btn" data-close>${t("gotIt")}</button></div>
     `, (w, close) => {
       w.querySelector("[data-close]").onclick = close;
       const r = w.querySelector("[data-reveal]");
       if (r) r.onclick = () => { r.classList.add("open"); const rule = w.querySelector(".sim-rule"); if (rule) rule.classList.add("show"); };
+      const ask = w.querySelector("[data-ask]");
+      if (ask) ask.onclick = () => { close(); const c = window.CSApp.current(); if (c && window.CoachUI) window.CoachUI.explain(c); };
     });
   }
 
@@ -1909,6 +1982,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     subjName: id => sn(SUBJECTS.find(s => s.id === id)),
     profile: () => profile,
     startSubject, startMock, startStarred, startReview,
+    _similar(id) { const q = byId.get(id), r = q && similarExample(q); return r ? (r.html ? r.q.q : r.q) : null; },
     openLesson(lid) { const l = lessonById.get(lid); if (!l) return; session = null; tab = "learn"; paintTabbar(); showTabbar(true); renderLesson(l.sid, LESSONS[l.sid].indexOf(l), 0); },
     // Current question for the coach. The answer key is included only after it's revealed.
     current: () => {

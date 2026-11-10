@@ -803,3 +803,7 @@ body.no-pet:not(.has-tabbar) .coach-fab { display: flex !important; }
 .cel-text { margin: 0 0 6px; line-height: 1.5; }
 @media (prefers-reduced-motion: reduce) { .cel-kiko .kiko-mini, .cel-bg .modal { animation: none !important; } }
 .cel-num { white-space: nowrap; }
+.caught { text-align: center; }
+.caught-ico { font-size: 2.6rem; }
+.sim-choices { margin: 4px 0 10px; padding-left: 22px; font-size: .9rem; line-height: 1.5; }
+.sim-ask { width: 100%; margin: 4px 0 8px; }

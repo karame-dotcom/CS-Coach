@@ -469,6 +469,15 @@
     celLowText: ["You're trying to learn, and that's what matters. Keep it up: you'll get it!", "Sinusubukan mong matuto, at iyon ang mahalaga. Tuloy lang: makukuha mo rin!", "Sinusubukan mong matuto, at 'yon ang importante. Keep it up: makukuha mo rin!"],
     celCorrect: ["{c} of {n} correct", "{c} sa {n} ang tama", "{c} of {n} tama"],
     celSee: ["See my answers", "Tingnan ang aking mga sagot", "Tingnan ang answers ko"],
+    // v20: strict rotation
+    caughtTitle: ["All caught up! 🎉", "Tapos mo na lahat! 🎉", "All caught up! 🎉"],
+    caughtText: ["You've answered every {s} question in the last 30 days, so there's nothing new to repeat. Older ones unlock again starting {d}.", "Nasagutan mo na ang lahat ng tanong sa {s} sa nakaraang 30 araw. Babalik ang mga luma simula {d}.", "Nasagutan mo na lahat ng {s} questions in the last 30 days. Babalik ang mga luma starting {d}."],
+    caughtAI: ["✨ Get new AI questions", "✨ Kumuha ng bagong AI na tanong", "✨ Kumuha ng new AI questions"],
+    caughtConnect: ["✨ Connect a free AI key for new questions", "✨ Ikonekta ang libreng AI key para sa bagong tanong", "✨ I-connect ang free AI key para sa new questions"],
+    caughtReview: ["🔁 Review older questions anyway", "🔁 Balikan pa rin ang mga lumang tanong", "🔁 I-review pa rin ang older questions"],
+    reviewOlder: ["review", "balik-aral", "review"],
+    onlyFresh: ["Only {n} new questions left here this month, so this round is shorter.", "{n} bagong tanong na lang ang natitira ngayong buwan, kaya mas maikli ang round.", "{n} new questions na lang this month, kaya mas maikli ang round."],
+    aiTopUp: ["Adding fresh AI questions…", "Nagdaragdag ng bagong AI na tanong…", "Nagdadagdag ng fresh AI questions…"],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 
