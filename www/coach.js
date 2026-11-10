@@ -33,16 +33,20 @@
   const transcript = []; // { role, text }
 
   let sample = null;
+  let focus = null;   // a specific question the student asked about (e.g. from the review list)
+  const ctxQ = () => focus || (A() && A().current());
   function paintLabels() {
     fab.setAttribute("aria-label", t("coachTitle"));
     fab.innerHTML = `<span class="fab-ico">💬</span><span class="fab-label">Kiko</span>`;
     panel.querySelector("#coachTitle").textContent = t("coachTitle");
+    if (window.Pet && window.Pet.avatar) panel.querySelector(".coach-avatar").innerHTML = window.Pet.avatar();
     panel.querySelector("#coachSub").textContent = sample ? t("coachSubAI") : t("coachSub");
     input.placeholder = t("askPh");
     renderChips();
   }
   paintLabels();
   document.addEventListener("cscoach:lang", () => { paintLabels(); msgs.innerHTML = ""; transcript.length = 0; });
+  document.addEventListener("cscoach:pet", paintLabels);
 
   if (window.claude && typeof window.claude.use === "function") {
     window.claude.use("sample").then(s => { sample = s; paintLabels(); }).catch(() => {});
@@ -57,11 +61,19 @@
     if (kind) { addMsg("user", esc(chipLabel(kind)), chipLabel(kind)); reply(builtIn(kind)); }
     else setTimeout(() => input.focus(), 50);
   }
-  function close() { panel.classList.add("hidden"); fab.classList.remove("open"); if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(false); }
+  function close() { focus = null; panel.classList.add("hidden"); fab.classList.remove("open"); if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(false); }
   const toggle = () => panel.classList.contains("hidden") ? open() : close();
   fab.addEventListener("click", toggle);
   panel.querySelector(".coach-x").addEventListener("click", close);
-  window.CoachUI = { open, close, toggle };
+  // Explain a specific question (from the review list) step by step
+  function explain(ctx) {
+    focus = ctx;
+    open();
+    const label = t("chipExplain");
+    addMsg("user", esc(label) + `<br><small>“${esc(ctx.question.length > 90 ? ctx.question.slice(0, 90) + "…" : ctx.question)}”</small>`, label + ": " + ctx.question);
+    if (sample) askAI(label + ": " + ctx.question, true); else reply(builtIn("explain"));
+  }
+  window.CoachUI = { open, close, toggle, explain };
 
   function addMsg(role, html, text) {
     const div = document.createElement("div");
@@ -80,16 +92,18 @@
     else if (a.startsWith("s:")) A().startSubject(a.slice(2));
   }
   const btn = (act, label) => `<button class="cbtn" data-act="${act}">${label}</button>`;
-  function chipLabel(k) { return t({ analyze: "chipAnalyze", plan: "chipPlan", focus: "chipFocus", hint: "chipHint", tips: "chipTips", motivate: "chipMotivate" }[k]); }
+  function chipLabel(k) { return t({ analyze: "chipAnalyze", plan: "chipPlan", focus: "chipFocus", hint: "chipHint", tips: "chipTips", motivate: "chipMotivate", explain: "chipExplain", notgets: "chipNotGets" }[k]); }
 
   function renderChips() {
     if (!A()) return;
-    const inQuiz = !!A().current();
-    const list = ["analyze", "plan", "focus", inQuiz ? "hint" : "tips", "motivate"];
+    const hasQ = !!ctxQ();
+    const list = hasQ ? ["explain", "notgets", "hint", "analyze", "plan", "focus", "motivate"] : ["analyze", "plan", "focus", "tips", "motivate"];
     chips.innerHTML = list.map(k => `<button class="chip-q" data-k="${k}">${chipLabel(k)}</button>`).join("");
     chips.querySelectorAll(".chip-q").forEach(b => b.addEventListener("click", () => {
       addMsg("user", esc(b.textContent), b.textContent);
-      reply(builtIn(b.dataset.k));
+      const k = b.dataset.k;
+      if ((k === "explain" || k === "notgets") && sample) askAI(b.textContent, true);
+      else reply(builtIn(k === "notgets" ? "explain" : k));
     }));
   }
   function reply(html) {
@@ -165,6 +179,22 @@
         ${c.revealed ? `<br><br><b>${t("whyAnswer", { a: esc(c.answer) })}</b> ${esc(c.explanation)}` : `<br><br><span class="muted">${t("wontReveal")}</span>`}`;
     }
 
+    if (kind === "explain") {
+      const c = ctxQ();
+      if (!c) return t("openFirst");
+      const L = "ABCD";
+      return `<div class="ex-sec"><b>${t("exBreak")}</b>
+          <div><i>${t("exAsks")}:</i> ${esc(c.question)}</div>
+          <div><i>${t("exChoices")}:</i> ${c.choices.map((x, i) => `<span class="ex-choice">${L[i]}. ${esc(x)}</span>`).join(" ")}</div></div>
+        <div class="ex-sec"><b>${t("exSteps")}</b><ol>
+          <li>${t("exStep1", { s: esc(c.topic || c.subject) })}</li>
+          <li>${t("exStep2", { h: esc(c.hint) })}</li>
+          <li>${t("exStep3")}</li>
+          <li>${c.revealed ? t("exStep4Revealed", { e: esc(c.explanation) }) : t("exStep4Hidden")}</li></ol>
+          ${c.revealed ? `<div class="ex-answer">${t("exAnswer", { a: esc(c.answerLetter + ". " + c.answer) })}</div>` : ""}</div>
+        <div class="ex-sec trick"><b>${t("exTrick")}</b><div>${esc(c.trick)}</div></div>`;
+    }
+
     if (kind === "tips") return `<b>${t("tipsTitle")}</b><ul>${t("examTips").map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
 
     if (kind === "motivate") {
@@ -175,6 +205,7 @@
 
     // keyword routing for typed questions (English and Filipino keywords)
     const q = (text || "").toLowerCase();
+    if (ctxQ() && /explain|hindi ko (ma)?gets|di ko gets|hindi ko maintindihan|di ko maintindihan|ipaliwanag|paliwanag|bakit|paano|why|how|confus|gulo|step by step/.test(q)) return builtIn("explain");
     if (/analy|perform|score|stat|progress|how am i|result|resulta|kumusta ako/.test(q)) return builtIn("analyze");
     if (/plan|strateg|schedule|routine|study|araw-araw|daily|week|linggo/.test(q)) return builtIn("plan");
     if (/weak|focus|improve|mahina|what should|ano dapat|pagtuunan/.test(q)) return builtIn("focus");
@@ -192,18 +223,20 @@
       .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
       .replace(/^#{1,3} (.+)$/gm, "<b>$1</b>")
       .replace(/^\s*[-•*] (.+)$/gm, "<li>$1</li>")
+      .replace(/^\s*\d+[.)] (.+)$/gm, "<li>$1</li>")
       .replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, "<ul>$1</ul>")
       .replace(/\n/g, "<br>").replace(/<\/li><br>/g, "</li>").replace(/<ul><br>/g, "<ul>");
   }
 
-  async function askAI(text) {
-    const a = A().analytics(), cur = A().current();
+  async function askAI(text, wantExplain) {
+    const a = A().analytics(), cur = ctxQ();
     const context = {
       student: a,
       subjects: A().subjects.map(s => ({ id: s.id, name: NAME(s.id).name, tips: NAME(s.id).tips })),
       currentQuestion: cur ? {
         subject: cur.subject, question: cur.question, choices: cur.choices, coachHint: cur.hint,
-        answerRevealed: cur.revealed, answer: cur.answer, explanation: cur.explanation
+        answerRevealed: cur.revealed, answer: cur.answer, explanation: cur.explanation,
+        studentAnswer: cur.studentAnswer, topic: cur.topic, keyTrickFromLesson: cur.trick
       } : null,
       today: new Date().toDateString()
     };
@@ -211,6 +244,11 @@
 LANGUAGE: ${t("aiLang")}
 Be warm, encouraging and specific. Use the student's analytics below: name their weak and strong subjects and weak topics with numbers, and give concrete daily targets (e.g., "5 Numerical questions a day"). If an exam date is set, plan around the days left and the student's daily goal. Prioritize high-yield topics (importance 3) the student is weak in, and mention the "Mistakes & Starred" review set when they have mistakes. The app has tabs: Learn (step-by-step lessons), Practice, Calendar, Analytics. Keep replies short (under 150 words), with short bullet lists and **bold** for key points.
 IMPORTANT: if currentQuestion.answerRevealed is false, NEVER reveal or hint at which choice is correct. Only coach the method. If it is true, you may explain the answer.
+EXPLAIN FORMAT: when the student asks you to explain, says they don't get it (e.g. "hindi ko gets", "di ko maintindihan", "bakit", "paano", "explain further"), or asks about currentQuestion, answer in exactly three short sections with these headings:
+**🔍 Breaking down the question**: what is being asked, the key words/given information, and what kind of question it is.
+**🪜 How to arrive at the answer**: numbered steps (1., 2., 3., …) that a student can follow, showing the work. Use the student's own choice if they answered wrong to show where the reasoning went off. If answerRevealed is false, stop right before naming the correct choice.
+**💡 Key trick to remember**: one memorable pattern, rule, mnemonic or shortcut that works for similar questions.
+In this format you may go up to 220 words.
 Do not claim the app's questions are actual past CSC exam questions; they are practice items.
 
 APP DATA (JSON):
@@ -224,6 +262,7 @@ ${JSON.stringify(context)}`;
     const merged = [];
     messages.forEach(m => { const l = merged[merged.length - 1]; if (l && l.role === m.role) l.content += "\n" + m.content; else merged.push({ ...m }); });
 
+    if (wantExplain && merged.length) merged[merged.length - 1].content += "\n(Please use the EXPLAIN FORMAT for currentQuestion.)";
     const bubble = addMsg("bot", `<span class="typing"><i></i><i></i><i></i></span>`);
     try {
       const res = await sample(merged, { cache: false, onText: ({ text }) => { bubble.innerHTML = mdLite(text); msgs.scrollTop = msgs.scrollHeight; } });
@@ -240,11 +279,13 @@ ${JSON.stringify(context)}`;
   }
 
   panel.querySelector("#coachForm").addEventListener("submit", e => {
+    // explanations requested by typing also use the three-part format
     e.preventDefault();
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
     addMsg("user", esc(text), text);
-    if (sample) askAI(text); else reply(builtIn("text", text));
+    const wants = !!ctxQ() && /explain|gets|maintindihan|paliwanag|bakit|paano|why|how|confus|gulo|step/i.test(text);
+    if (sample) askAI(text, wants); else reply(builtIn("text", text));
   });
 })();

@@ -1,52 +1,69 @@
-// Kiko: CS Coach's animated study buddy (original character).
+// Kiko: CS Coach's animated study buddy (original characters; the name and look are customizable).
 // API: Pet.cheer(msg), Pet.cry(msg), Pet.say(msg, ms), Pet.hop(), Pet.setVisible(bool), Pet.setChatOpen(bool), Pet.avatar()
 // Tapping Kiko opens the tutor chat (coach.js).
 (function () {
   "use strict";
-  const SVG = `
-  <svg viewBox="0 0 120 120" class="kiko" aria-hidden="true">
-    <defs>
-      <linearGradient id="kikoBody" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#3b82f6"/>
-      </linearGradient>
-    </defs>
+  // Five original buddy characters share one body; colors and "top" differ.
+  const CHARS = {
+    sprout: { body: ["#34d399", "#3b82f6"], limb: "#2563eb", arm: ["#22c58b", "#3b82f6"],
+      top: `<g class="k-top sway"><path d="M60 35 Q59 26 61 18" stroke="#16a34a" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <ellipse cx="51" cy="19" rx="10" ry="5.5" fill="#22c55e" transform="rotate(-25 51 19)"/>
+        <ellipse cx="70" cy="16" rx="10" ry="5.5" fill="#4ade80" transform="rotate(20 70 16)"/></g>` },
+    kitty: { body: ["#fdba74", "#fb923c"], limb: "#ea580c", arm: ["#fb923c", "#f97316"],
+      top: `<g class="k-top wiggle"><path d="M26 50 L30 22 L50 38 Z" fill="#fb923c"/><path d="M31 44 L33 29 L44 38 Z" fill="#fecdd3"/>
+        <path d="M94 50 L90 22 L70 38 Z" fill="#f97316"/><path d="M89 44 L87 29 L76 38 Z" fill="#fecdd3"/></g>`,
+      extra: `<g stroke="#9a3412" stroke-width="1.6" stroke-linecap="round" opacity=".7"><path d="M24 70 L36 72"/><path d="M24 77 L36 76"/><path d="M96 70 L84 72"/><path d="M96 77 L84 76"/></g>` },
+    bunny: { body: ["#c4b5fd", "#93c5fd"], limb: "#7c3aed", arm: ["#a78bfa", "#93c5fd"],
+      top: `<g class="k-top wiggle"><ellipse cx="44" cy="20" rx="8" ry="22" fill="#c4b5fd" transform="rotate(-12 44 20)"/><ellipse cx="44" cy="22" rx="4" ry="15" fill="#fbcfe8" transform="rotate(-12 44 22)"/>
+        <ellipse cx="76" cy="20" rx="8" ry="22" fill="#a5b4fc" transform="rotate(12 76 20)"/><ellipse cx="76" cy="22" rx="4" ry="15" fill="#fbcfe8" transform="rotate(12 76 22)"/></g>` },
+    puppy: { body: ["#d6a77a", "#b07a4f"], limb: "#7c4a26", arm: ["#c08a5c", "#a86f45"],
+      top: `<g class="k-top flop"><ellipse cx="25" cy="58" rx="11" ry="22" fill="#7c4a26" transform="rotate(18 25 58)"/>
+        <ellipse cx="95" cy="58" rx="11" ry="22" fill="#7c4a26" transform="rotate(-18 95 58)"/></g>`,
+      extra: `<ellipse cx="60" cy="69" rx="4.5" ry="3.2" fill="#3b2314"/>` },
+    chick: { body: ["#fde047", "#facc15"], limb: "#f97316", arm: ["#fde047", "#fbbf24"],
+      top: `<g class="k-top sway"><path d="M60 36 Q55 22 60 16" stroke="#eab308" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M60 36 Q66 24 70 20" stroke="#facc15" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M60 36 Q50 26 48 22" stroke="#facc15" stroke-width="4" fill="none" stroke-linecap="round"/></g>`,
+      extra: `<path d="M55 69 L65 69 L60 75 Z" fill="#f97316"/>` }
+  };
+  let current = "sprout";
+  function svgFor(key, uid, cls) {
+    const c = CHARS[key] || CHARS.sprout, g = "kg" + uid;
+    return `
+  <svg viewBox="0 0 120 120" class="${cls || "kiko"}" aria-hidden="true">
+    <defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c.body[0]}"/><stop offset="1" stop-color="${c.body[1]}"/></linearGradient></defs>
     <ellipse class="k-shadow" cx="60" cy="112" rx="30" ry="5" fill="#0f2a3d" opacity=".15"/>
     <g class="k-bod">
-      <ellipse cx="44" cy="104" rx="10" ry="6" fill="#2563eb"/>
-      <ellipse cx="76" cy="104" rx="10" ry="6" fill="#2563eb"/>
-      <g class="k-arm k-arm-l"><ellipse cx="22" cy="74" rx="8" ry="12" fill="#22c58b"/></g>
-      <g class="k-arm k-arm-r"><ellipse cx="98" cy="74" rx="8" ry="12" fill="#3b82f6"/></g>
-      <ellipse cx="60" cy="70" rx="40" ry="36" fill="url(#kikoBody)"/>
+      <ellipse cx="44" cy="104" rx="10" ry="6" fill="${c.limb}"/>
+      <ellipse cx="76" cy="104" rx="10" ry="6" fill="${c.limb}"/>
+      <g class="k-arm k-arm-l"><ellipse cx="22" cy="74" rx="8" ry="12" fill="${c.arm[0]}"/></g>
+      <g class="k-arm k-arm-r"><ellipse cx="98" cy="74" rx="8" ry="12" fill="${c.arm[1]}"/></g>
+      ${key === "puppy" ? c.top : ""}
+      <ellipse cx="60" cy="70" rx="40" ry="36" fill="url(#${g})"/>
       <ellipse cx="60" cy="84" rx="24" ry="17" fill="#fff" opacity=".92"/>
-      <g class="k-sprout">
-        <path d="M60 35 Q59 26 61 18" stroke="#16a34a" stroke-width="4" fill="none" stroke-linecap="round"/>
-        <ellipse cx="51" cy="19" rx="10" ry="5.5" fill="#22c55e" transform="rotate(-25 51 19)"/>
-        <ellipse cx="70" cy="16" rx="10" ry="5.5" fill="#4ade80" transform="rotate(20 70 16)"/>
-      </g>
+      ${key === "puppy" ? "" : c.top}
       <ellipse cx="36" cy="74" rx="6" ry="3.5" fill="#fb7185" opacity=".55"/>
       <ellipse cx="84" cy="74" rx="6" ry="3.5" fill="#fb7185" opacity=".55"/>
-      <!-- idle -->
+      ${c.extra || ""}
       <g class="m-idle">
         <g class="k-eyes">
           <ellipse cx="46" cy="62" rx="5" ry="6.5" fill="#0f2a3d"/><circle cx="47.8" cy="59.5" r="1.8" fill="#fff"/>
           <ellipse cx="74" cy="62" rx="5" ry="6.5" fill="#0f2a3d"/><circle cx="75.8" cy="59.5" r="1.8" fill="#fff"/>
         </g>
-        <path d="M54 74 Q60 79 66 74" stroke="#0f2a3d" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        <path d="M54 76 Q60 81 66 76" stroke="#0f2a3d" stroke-width="2.6" fill="none" stroke-linecap="round"/>
       </g>
-      <!-- happy -->
       <g class="m-happy">
         <path d="M40 64 Q46 55 52 64" stroke="#0f2a3d" stroke-width="3.2" fill="none" stroke-linecap="round"/>
         <path d="M68 64 Q74 55 80 64" stroke="#0f2a3d" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-        <path d="M51 72 Q60 72 69 72 Q67 84 60 84 Q53 84 51 72 Z" fill="#0f2a3d"/>
-        <ellipse cx="60" cy="80" rx="5" ry="3" fill="#fb7185"/>
+        <path d="M51 74 Q60 74 69 74 Q67 86 60 86 Q53 86 51 74 Z" fill="#0f2a3d"/>
+        <ellipse cx="60" cy="82" rx="5" ry="3" fill="#fb7185"/>
       </g>
-      <!-- sad -->
       <g class="m-sad">
         <path d="M39 55 L51 59" stroke="#0f2a3d" stroke-width="2.4" stroke-linecap="round"/>
         <path d="M81 55 L69 59" stroke="#0f2a3d" stroke-width="2.4" stroke-linecap="round"/>
         <path d="M41 66 Q46 62 51 66" stroke="#0f2a3d" stroke-width="3" fill="none" stroke-linecap="round"/>
         <path d="M69 66 Q74 62 79 66" stroke="#0f2a3d" stroke-width="3" fill="none" stroke-linecap="round"/>
-        <path d="M53 80 Q60 73 67 80" stroke="#0f2a3d" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        <path d="M53 82 Q60 75 67 82" stroke="#0f2a3d" stroke-width="2.6" fill="none" stroke-linecap="round"/>
         <path class="k-tear t1" d="M45 68 Q42 74 45 76 Q48 74 45 68 Z" fill="#60a5fa"/>
         <path class="k-tear t2" d="M75 68 Q72 74 75 76 Q78 74 75 68 Z" fill="#60a5fa"/>
       </g>
@@ -57,6 +74,9 @@
       <path d="M106 58 l2 4.5 4.5 2 -4.5 2 -2 4.5 -2 -4.5 -4.5 -2 4.5 -2z" fill="#3b82f6"/>
     </g>
   </svg>`;
+  }
+  let uidN = 0;
+  try { const p = JSON.parse(localStorage.getItem("cscoach.profile")); if (p && CHARS[p.petChar]) current = p.petChar; } catch (_) {}
 
   const MSG = {
     en: {
@@ -79,7 +99,7 @@
 
   const root = document.createElement("div");
   root.className = "pet-wrap";
-  root.innerHTML = `<div class="pet-bubble hidden"></div><div class="pet idle" role="button" tabindex="0" aria-label="Kiko: tap to ask your tutor buddy">${SVG}</div><div class="pet-hearts"></div>`;
+  root.innerHTML = `<div class="pet-bubble hidden"></div><div class="pet idle" role="button" tabindex="0" aria-label="Tap to ask your tutor buddy">${svgFor(current, "main")}</div><div class="pet-hearts"></div>`;
   document.body.appendChild(root);
   const pet = root.querySelector(".pet");
   const bubble = root.querySelector(".pet-bubble");
@@ -158,6 +178,14 @@
     setVisible(v) { root.classList.toggle("hidden", !v); document.body.classList.toggle("no-pet", !v); },
     setChatOpen(v) { chatOpen = v; root.classList.toggle("chatting", v); if (v) { bubble.classList.add("hidden"); setMood("happy", 900); } },
     // small static Kiko for the chat header (unique gradient id)
-    avatar() { return SVG.replace(/kikoBody/g, "kikoMini").replace('class="kiko"', 'class="kiko-mini"'); }
+    avatar() { return svgFor(current, "av" + (uidN++), "kiko-mini"); },
+    preview(key) { return svgFor(key, "pv" + (uidN++), "kiko-mini"); },
+    characters: Object.keys(CHARS),
+    setCharacter(key) {
+      if (!CHARS[key]) return;
+      current = key;
+      pet.innerHTML = svgFor(current, "main" + (uidN++));
+      document.dispatchEvent(new CustomEvent("cscoach:pet"));
+    }
   };
 })();

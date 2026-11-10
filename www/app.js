@@ -29,6 +29,7 @@
   const saveStars = () => store.set("cscoach.starred", [...starred]);
   const pet = () => window.Pet || { cheer() {}, cry() {}, say() {}, hop() {}, setVisible() {} };
   if (profile && profile.lang) I.setLang(profile.lang);
+  if (profile && profile.petName) I.petName = profile.petName;
 
   // ---------- helpers ----------
   const esc = s => String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -155,6 +156,7 @@
   backBtn.addEventListener("click", () => onBack && onBack());
   settingsBtn.addEventListener("click", () => {
     if (session && !session.done) return confirmBox(t("leaveForSettings"), t("leave"), () => { session = null; renderSettings(false); });
+    if (settingsDirty()) return guardLeave(() => renderSettings(false));   // already in Settings with edits
     renderSettings(false);
   });
   function showTabbar(on) {
@@ -169,6 +171,7 @@
   }
   tabbar.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => openTab(b.dataset.tab)));
   function openTab(name) {
+    settingsDirty = () => false;
     tab = name || tab;
     session = null;
     paintTabbar(); showTabbar(true);
@@ -198,12 +201,41 @@
   }
 
   // ---------- setup / settings ----------
+  let settingsDirty = () => false, saveSettingsNow = () => {};
+  function restoreSaved() {
+    // undo live previews (language, character, name) when changes are discarded
+    I.setLang((profile && profile.lang) || "en");
+    I.petName = (profile && profile.petName) || "Kiko";
+    if (window.Pet && Pet.setCharacter) Pet.setCharacter((profile && profile.petChar) || "sprout");
+  }
+  function guardLeave(next) {
+    if (!settingsDirty()) { settingsDirty = () => false; restoreSaved(); return next(); }
+    modal(`
+      <div class="modal-title">💾 ${t("unsavedTitle")}</div>
+      <p class="modal-text">${t("unsavedText")}</p>
+      <div class="actions">
+        <button class="btn secondary" data-discard>${t("discard")}</button>
+        <button class="btn" data-save>${t("saveChanges")}</button>
+      </div>
+      <div class="center" style="margin-top:8px"><button class="link" data-cancel>${t("cancel")}</button></div>
+    `, (w, close) => {
+      w.querySelector("[data-save]").onclick = () => { close(); saveSettingsNow(); toast(t("settingsSaved")); next(); };
+      w.querySelector("[data-discard]").onclick = () => { close(); settingsDirty = () => false; restoreSaved(); next(); };
+      w.querySelector("[data-cancel]").onclick = close;
+    });
+  }
+  const CHAR_KEYS = { sprout: "charSprout", kitty: "charKitty", bunny: "charBunny", puppy: "charPuppy", chick: "charChick" };
+  const settingsSnap = p => JSON.stringify({ name: p.name || "", instant: !!p.instant, examDate: p.examDate || "", pet: p.pet !== false, lang: p.lang || "en", dailyGoal: +p.dailyGoal || 20, petChar: p.petChar || "sprout", petName: p.petName || "Kiko" });
+
   function renderSettings(firstRun, draft) {
-    setBack(firstRun ? null : goHome);
+    // Leaving with unsaved changes asks first
+    setBack(firstRun ? null : () => guardLeave(goHome));
     showTabbar(false);
     settingsBtn.classList.toggle("hidden", !!firstRun);
-    const p = draft || profile || { name: "", instant: false, examDate: "", pet: true, lang: "en", dailyGoal: 20 };
+    const p = draft || profile || { name: "", instant: false, examDate: "", pet: true, lang: "en", dailyGoal: 20, petChar: "sprout", petName: "Kiko" };
     I.setLang(p.lang || "en");
+    I.petName = (p.petName || "Kiko").trim() || "Kiko";
+    if (window.Pet && Pet.setCharacter) Pet.setCharacter(p.petChar || "sprout");
     const langOpt = (v, flag, label, sample) => `
       <label class="lang-opt">
         <input type="radio" name="lang" value="${v}" ${(p.lang || "en") === v ? "checked" : ""} />
@@ -243,9 +275,21 @@
         <label class="field-label" for="dailyGoal" style="margin-top:18px">${t("dailyGoal")}</label>
         <input id="dailyGoal" class="input" type="number" min="5" max="200" step="5" value="${esc(p.dailyGoal || 20)}" />
 
+        <div class="field-label" style="margin-top:22px">🐾 ${t("buddySection")}</div>
+        <div class="muted small" style="margin-bottom:8px">${t("buddyChar")}</div>
+        <div class="char-row">
+          ${Object.keys(CHAR_KEYS).map(k => `
+            <label class="char-opt">
+              <input type="radio" name="petChar" value="${k}" ${(p.petChar || "sprout") === k ? "checked" : ""} />
+              ${window.Pet && Pet.preview ? Pet.preview(k) : ""}
+              <span>${t(CHAR_KEYS[k])}</span>
+            </label>`).join("")}
+        </div>
+        <label class="field-label" for="petName" style="margin-top:12px">${t("buddyName")}</label>
+        <input id="petName" class="input" type="text" maxlength="16" placeholder="Kiko" value="${esc(p.petName || "Kiko")}" />
         <label class="check-row"><input type="checkbox" id="petOn" ${p.pet !== false ? "checked" : ""} /> ${t("showPet")}</label>
 
-        <div class="actions"><button class="btn" type="submit">${firstRun ? t("startReviewing") : t("saveSettings")}</button></div>
+        <div class="actions save-row"><span class="unsaved-badge hidden" id="unsavedBadge">● ${t("unsavedBadge")}</span><button class="btn" type="submit">${firstRun ? t("startReviewing") : t("saveSettings")}</button></div>
       </form>
       ${firstRun ? "" : `
         <div class="panel danger-zone">
@@ -262,19 +306,35 @@
       pet: document.getElementById("petOn").checked,
       lang: app.querySelector("input[name=lang]:checked").value,
       dailyGoal: Math.max(5, Math.min(200, +document.getElementById("dailyGoal").value || 20)),
+      petChar: (app.querySelector("input[name=petChar]:checked") || {}).value || "sprout",
+      petName: document.getElementById("petName").value.trim().slice(0, 16) || "Kiko",
       created: (profile && profile.created) || (draft && draft.created) || Date.now()
     });
-    // Re-render immediately in the chosen language
-    app.querySelectorAll("input[name=lang]").forEach(r => r.addEventListener("change", () => renderSettings(firstRun, read())));
+    // Re-render immediately in the chosen language / character (live preview)
+    app.querySelectorAll("input[name=lang], input[name=petChar]").forEach(r => r.addEventListener("change", () => { const y = window.scrollY; renderSettings(firstRun, read()); window.scrollTo(0, y); }));
+    // Track unsaved changes
+    const saved = settingsSnap(profile || {});
+    const badge = document.getElementById("unsavedBadge");
+    settingsDirty = () => !firstRun && settingsSnap(read()) !== saved;
+    const paintDirty = () => badge.classList.toggle("hidden", !settingsDirty());
+    app.querySelector("#setupForm").addEventListener("input", paintDirty);
+    app.querySelector("#setupForm").addEventListener("change", paintDirty);
+    paintDirty();
+    saveSettingsNow = () => {
+      profile = read();
+      I.setLang(profile.lang); I.petName = profile.petName;
+      pet().setVisible(profile.pet);
+      if (window.Pet && Pet.setCharacter) Pet.setCharacter(profile.petChar);
+      store.set("cscoach.profile", profile);
+      settingsDirty = () => false;
+      document.dispatchEvent(new CustomEvent("cscoach:lang"));
+    };
     document.getElementById("setupForm").addEventListener("submit", e => {
       e.preventDefault();
-      profile = read();
-      I.setLang(profile.lang);
-      pet().setVisible(profile.pet);
-      store.set("cscoach.profile", profile);
-      document.dispatchEvent(new CustomEvent("cscoach:lang"));
+      saveSettingsNow();
       openTab(firstRun ? "learn" : tab);
       if (firstRun) setTimeout(() => pet().say(t("petHi", { name: profile.name ? " " + profile.name : "" }), 3200), 400);
+      else toast(t("settingsSaved"));
     });
     const reset = document.getElementById("resetBtn");
     if (reset) reset.addEventListener("click", () => confirmBox(t("resetConfirm"), t("reset"), () => {
@@ -667,13 +727,22 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
       ${exam ? `
         <div class="countdown">
           <div class="cd-num">${Math.max(0, daysLeft)}</div>
-          <div class="cd-info"><b>${t("daysToGo")}</b><span>${t("examOn", { d: exam.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }) })}</span></div>
+          <div class="cd-info"><b>${t("daysToGo")}</b><span>${t("examOn", { d: exam.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }) })}</span>
+            <button class="cd-change" id="changeExam">✏️ ${t("changeDate")}</button></div>
         </div>
+        <form class="panel exam-form hidden" id="examForm">
+          <label class="field-label" for="calExam">🎯 ${t("examDateL")}</label>
+          <div class="date-row"><input id="calExam" class="input" type="date" value="${esc(profile.examDate || "")}" required /><button class="btn" type="submit">${t("saveDate")}</button></div>
+        </form>
         <div class="panel">
           <div class="prep-row"><b>${t("prepDay", { i: Math.max(1, dayNum), n: totalDays })}</b><span class="muted small">${t("prepPct", { p: Math.min(100, Math.round(dayNum / totalDays * 100)) })}</span></div>
           <div class="progress big"><div style="width:${Math.min(100, Math.round(dayNum / totalDays * 100))}%"></div></div>
         </div>` : `
-        <button class="panel set-exam" id="setExam"><b>🎯 ${t("setExamDate")}</b><span class="muted small">${t("setExamDateNote")}</span></button>`}
+        <form class="panel set-exam" id="examForm">
+          <label class="field-label" for="calExam">🎯 ${t("setExamDate")}</label>
+          <span class="muted small">${t("setExamDateNote")}</span>
+          <div class="date-row"><input id="calExam" class="input" type="date" required /><button class="btn" type="submit">${t("saveDate")}</button></div>
+        </form>`}
 
       <div class="panel goal-panel">
         <div class="prep-row"><b>${t("todayGoal")}</b><span>${todayN >= g ? t("goalMet") : t("todayCount", { a: todayN, g })}</span></div>
@@ -709,7 +778,17 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     document.getElementById("calPrev").onclick = () => { calMonth = new Date(y, mo - 1, 1); renderCalendar(); };
     document.getElementById("calNext").onclick = () => { calMonth = new Date(y, mo + 1, 1); renderCalendar(); };
     app.querySelectorAll("[data-day]").forEach(b => b.addEventListener("click", () => { calSel = calSel === b.dataset.day ? null : b.dataset.day; const yy = window.scrollY; renderCalendar(); window.scrollTo(0, yy); }));
-    const se = document.getElementById("setExam"); if (se) se.onclick = () => renderSettings(false);
+    const ef = document.getElementById("examForm");
+    ef.addEventListener("submit", e => {
+      e.preventDefault();
+      const v = document.getElementById("calExam").value;
+      if (!v) return;
+      profile.examDate = v; store.set("cscoach.profile", profile);
+      toast(t("dateSaved")); pet().cheer("🎯 " + new Date(v + "T00:00:00").toLocaleDateString());
+      renderCalendar();
+    });
+    const ce = document.getElementById("changeExam");
+    if (ce) ce.onclick = () => { ef.classList.toggle("hidden"); if (!ef.classList.contains("hidden")) document.getElementById("calExam").focus(); };
     const gs = document.getElementById("goalStart");
     if (gs) gs.onclick = () => { const a = analytics(); const w = a.subjects.slice().sort((p, q) => (p.acc == null ? -1 : p.acc) - (q.acc == null ? -1 : q.acc))[0]; startSubject(w.id); session.exitTo = () => openTab("calendar"); };
   }
@@ -1182,6 +1261,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
             : `<div class="row yours">${t("yourAnswer")}: ${r.ans === null ? t("noAnswer") : LETTERS[r.ans] + ". " + esc(r.q.c[r.ans])}</div>
                <div class="row right">${t("correctAnswer")}: ${LETTERS[r.q.a]}. ${esc(r.q.c[r.q.a])}</div>`}
           <div class="why">💡 ${esc(r.q.e)}</div>
+          <button class="link explain-link" data-explain="${r.i}">${t("askExplain")}</button>
         </div>`).join("") : `<div class="perfect">${t("nothingHere")}</div>`}
     `;
 
@@ -1192,6 +1272,10 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     app.querySelectorAll("[data-star]").forEach(b => b.addEventListener("click", () => {
       const id = b.dataset.star; starred.has(id) ? starred.delete(id) : starred.add(id); saveStars();
       const y = window.scrollY; renderResults(filter); window.scrollTo(0, y);
+    }));
+    app.querySelectorAll("[data-explain]").forEach(b => b.addEventListener("click", () => {
+      const r = rows[+b.dataset.explain];
+      if (window.CoachUI) window.CoachUI.explain(qContext(r.q, true, r.ans));
     }));
     document.getElementById("exit").addEventListener("click", () => { const ex = S.exitTo || goHome; session = null; showTabbar(true); ex(); });
     document.getElementById("again").addEventListener("click", () => {
@@ -1213,6 +1297,16 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch (_) {}
   }
 
+  function qContext(q, revealed, ans) {
+    const l = q.lid && lessonById.get(q.lid), tr = sn(subjectOf(q));
+    return {
+      subject: tr.name, sid: q.sid, topic: l ? l.title : null, question: q.q, choices: q.c, hint: q.h, revealed,
+      answer: revealed ? q.c[q.a] : null, answerLetter: revealed ? LETTERS[q.a] : null,
+      studentAnswer: ans != null ? q.c[ans] : null, explanation: revealed ? q.e : null,
+      trick: l ? l.remember : tr.tips[0], tips: tr.tips
+    };
+  }
+
   // Shared with coach.js (AI chat) and pet.js
   window.CSApp = {
     analytics, subjects: SUBJECTS, passing: PASSING,
@@ -1223,8 +1317,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     current: () => {
       if (!session || session.done) return null;
       const q = session.items[session.idx], ans = session.answers[session.idx];
-      const revealed = session.instant && ans !== null;
-      return { subject: sn(subjectOf(q)).name, sid: q.sid, question: q.q, choices: q.c, hint: q.h, revealed, answer: revealed ? q.c[q.a] : null, explanation: revealed ? q.e : null };
+      return qContext(q, session.instant && ans !== null, ans);
     }
   };
 

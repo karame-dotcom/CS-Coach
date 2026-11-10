@@ -308,6 +308,39 @@
     dayDetail: ["{n} questions answered · {p}% correct", "{n} tanong nasagot · {p}% tama", "{n} questions nasagot · {p}% tama"],
     noActivity: ["No practice on this day.", "Walang pagsasanay sa araw na ito.", "Walang practice sa araw na ito."],
     weekdays: [["S", "M", "T", "W", "T", "F", "S"], ["L", "L", "M", "M", "H", "B", "S"], ["S", "M", "T", "W", "T", "F", "S"]],
+    // v7: unsaved settings, calendar exam date, buddy customization, step-by-step explanations
+    unsavedTitle: ["Save your changes?", "I-save ang mga pagbabago?", "I-save ang changes mo?"],
+    unsavedText: ["You changed some settings but haven't saved them yet.", "May binago ka sa mga setting pero hindi mo pa nai-save.", "May binago ka sa settings pero hindi mo pa na-save."],
+    saveChanges: ["Save", "I-save", "Save"],
+    discard: ["Don't save", "Huwag i-save", "'Wag i-save"],
+    settingsSaved: ["Settings saved ✓", "Na-save ang mga setting ✓", "Na-save ang settings ✓"],
+    unsavedBadge: ["Unsaved changes", "May hindi pa nai-save", "May unsaved changes"],
+    examDateL: ["Exam date", "Petsa ng eksamen", "Exam date"],
+    saveDate: ["Save date", "I-save ang petsa", "I-save ang date"],
+    changeDate: ["Change date", "Palitan ang petsa", "Palitan ang date"],
+    dateSaved: ["Exam date saved ✓", "Na-save ang petsa ng eksamen ✓", "Na-save ang exam date ✓"],
+    buddySection: ["Your study buddy", "Ang iyong study buddy", "Study buddy mo"],
+    buddyChar: ["Choose a character", "Pumili ng karakter", "Pumili ng character"],
+    buddyName: ["Buddy's name", "Pangalan ng buddy", "Name ng buddy"],
+    charSprout: ["Sprout", "Usbong", "Sprout"],
+    charKitty: ["Kitty", "Muning", "Kitty"],
+    charBunny: ["Bunny", "Kuneho", "Bunny"],
+    charPuppy: ["Puppy", "Tuta", "Puppy"],
+    charChick: ["Chick", "Sisiw", "Chick"],
+    chipExplain: ["🪜 Explain step by step", "🪜 Ipaliwanag nang hakbang-hakbang", "🪜 Explain step by step"],
+    chipNotGets: ["😅 I don't get it", "😅 Hindi ko maintindihan", "😅 Hindi ko gets"],
+    exBreak: ["🔍 Breaking down the question", "🔍 Himayin muna ang tanong", "🔍 I-breakdown muna natin ang question"],
+    exAsks: ["What it's asking", "Ano ang hinihingi", "Ano ang tinatanong"],
+    exChoices: ["Your choices", "Mga pagpipilian", "Mga choices"],
+    exSteps: ["🪜 How to arrive at the answer", "🪜 Paano makarating sa sagot", "🪜 Paano makuha ang sagot"],
+    exStep1: ["Identify the topic: {s}.", "Tukuyin ang paksa: {s}.", "I-identify ang topic: {s}."],
+    exStep2: ["Apply the approach: {h}", "Gamitin ang paraan: {h}", "I-apply ang approach: {h}"],
+    exStep3: ["Eliminate choices that clearly don't fit, then compare what's left.", "Alisin ang mga pagpipiliang malinaw na hindi tugma, saka ihambing ang natira.", "I-eliminate ang mga choices na obviously mali, tapos i-compare ang natira."],
+    exStep4Revealed: ["Check: {e}", "Suriin: {e}", "Check: {e}"],
+    exStep4Hidden: ["Now pick the choice that passes this check. You've got it! (I'll keep the answer hidden in Exam mode.)", "Ngayon, piliin ang sagot na pumapasa sa pagsusuring ito. Kaya mo 'yan! (Nakatago ang sagot sa Exam mode.)", "Ngayon, piliin mo ang choice na pumapasa dito. Kaya mo 'yan! (Hidden ang sagot sa Exam mode.)"],
+    exAnswer: ["✅ So the answer is: {a}", "✅ Kaya ang sagot ay: {a}", "✅ Kaya ang sagot ay: {a}"],
+    exTrick: ["💡 Key trick to remember", "💡 Tandaan ang trick na ito", "💡 Key trick na dapat tandaan"],
+    askExplain: ["🪜 Ask Kiko to explain", "🪜 Ipaliwanag, Kiko", "🪜 Ask si Kiko to explain"],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 
@@ -343,8 +376,11 @@
     geninfo: ["General Info", "Pangkalahatan", "General Info"]
   };
   const IDX = { en: 0, tl: 1, tg: 2 };
+  // The buddy can be renamed: replace "Kiko" in every string (also inside arrays)
+  const swapName = (v, n) => typeof v === "string" ? v.split("Kiko").join(n) : Array.isArray(v) ? v.map(x => swapName(x, n)) : v;
   const I18N = {
     lang: "en",
+    petName: "Kiko",
     names: { en: "English", tl: "Tagalog", tg: "Taglish" },
     setLang(l) { this.lang = IDX[l] != null ? l : "en"; document.documentElement.lang = this.lang === "en" ? "en" : "fil"; },
     t(key, vars) {
@@ -353,10 +389,11 @@
       let s = row[IDX[this.lang]];
       if (s == null) s = row[0];
       if (vars && typeof s === "string") for (const k in vars) s = s.split("{" + k + "}").join(vars[k]);
+      if (this.petName && this.petName !== "Kiko") s = swapName(s, this.petName);
       return s;
     },
     subj(s) { const tr = SUBJ[s.id] && SUBJ[s.id][this.lang]; return { short: (SHORT[s.id] || [])[IDX[this.lang]] || s.name, name: (tr && tr.name) || s.name, desc: (tr && tr.desc) || s.desc, tips: (tr && tr.tips) || s.tips }; }
   };
-  try { const p = JSON.parse(localStorage.getItem("cscoach.profile")); if (p && p.lang) I18N.setLang(p.lang); } catch (_) {}
+  try { const p = JSON.parse(localStorage.getItem("cscoach.profile")); if (p && p.lang) I18N.setLang(p.lang); if (p && p.petName) I18N.petName = p.petName; } catch (_) {}
   window.I18N = I18N;
 })();
