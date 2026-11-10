@@ -769,3 +769,6 @@ body.no-pet:not(.has-tabbar) .coach-fab { display: flex !important; }
 .tips-card[open] .sec-chev { transform: rotate(180deg); }
 .tips-card ul { margin: 0 0 12px; padding-left: 20px; line-height: 1.55; font-size: .92rem; }
 .tips-card li { margin-bottom: 6px; }
+.num-list { display: flex; flex-direction: column; gap: 8px; }
+.num-item { display: flex; gap: 10px; align-items: baseline; padding: 8px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); line-height: 1.45; }
+.num-item b { flex: none; color: var(--blue); }

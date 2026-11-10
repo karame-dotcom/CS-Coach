@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.18.0";
+  const APP_VERSION = "1.18.1";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -186,7 +186,17 @@
     return { prompt: m[1], parts };
   }
   const isNoError = txt => /^(no error|walang mali)$/i.test(txt.trim());
+  // Paragraph-organization items "(1) … (2) … (3) …" are shown one sentence per line
+  function numParts(q) {
+    const i = q.q.indexOf("(1)");
+    if (i < 0) return null;
+    const items = [...q.q.slice(i).matchAll(/\((\d)\)\s*([^()]+?)(?=\s*\(\d\)|$)/g)].map(m => ({ n: m[1], t: m[2].trim() }));
+    return items.length >= 3 ? { head: q.q.slice(0, i).trim(), items } : null;
+  }
   function qHtml(q) {
+    const np = !errParts(q) && numParts(q);
+    if (np) return `${np.head ? `<span class="err-prompt">${esc(np.head)}</span>` : ""}
+      <span class="num-list">${np.items.map(it => `<span class="num-item"><b>(${it.n})</b><span>${esc(it.t)}</span></span>`).join("")}</span>`;
     const ep = errParts(q);
     if (!ep) return esc(q.q);
     const segs = ep.parts.filter(p => !isNoError(p.text)), none = ep.parts.find(p => isNoError(p.text));
