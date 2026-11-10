@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.15.0";
+  const APP_VERSION = "1.15.1";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -449,7 +449,7 @@
       ${firstRun ? "" : sec("reset", "🗑️", t("resetProgress"), "", `
           <p class="sub" style="margin:0 0 12px">${t("resetDesc")}</p>
           <button class="btn secondary" id="resetBtn">${t("resetProgress")}</button>`)}
-      <p class="note">${t("profileNote")}</p>
+      <p class="note">${t("profileNote")}${firstRun ? "" : ` · CS Coach v${APP_VERSION}`}</p>
     `;
     const read = () => ({
       name: document.getElementById("name").value.trim(),
