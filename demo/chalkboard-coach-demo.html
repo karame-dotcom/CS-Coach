@@ -75,6 +75,7 @@
     mute: ["Mute", "I-mute", "Mute"], unmute: ["Unmute", "Buksan ang tunog", "Unmute"],
     voice: ["Voice", "Boses", "Voice"],
     noFil: ["", "Walang boses na Tagalog sa device na ito, kaya Ingles na boses muna ang gamit. Para sa natural na Tagalog, buksan ito sa Microsoft Edge (boses ni Blessica) o sa Chrome sa Android.", "Walang Tagalog voice sa device na ito, kaya English voice muna. Para sa natural na Tagalog, i-open ito sa Microsoft Edge (Blessica voice) o sa Chrome sa Android."],
+    nums: [["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"], ["isa", "dalawa", "tatlo", "apat", "lima", "anim", "pito", "walo", "siyam", "sampu"], ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]],
     speed: ["Speed", "Bilis", "Speed"], replay: ["Replay", "Ulitin", "Ulitin"]
   };
   const IDX = { en: 0, tl: 1, tg: 2 };
@@ -197,8 +198,19 @@
   .lec-text { font-size: 1.35rem; line-height: 1.35; min-height: 1.4em; text-shadow: 0 0 1px rgba(255,255,255,.7), 0 0 8px rgba(255,255,255,.12); }
   .lec-text.long { font-size: 1.12rem; }
   .lec-text .ln { min-height: 1.35em; }
+  .lec-text .ln.toks { margin: 12px 0 30px; }
   .lec-text .ln.y { color: #fde68a; } .lec-text .ln.g { color: #86efac; } .lec-text .ln.p { color: #fda4af; } .lec-text .ln.b { color: #93c5fd; }
   .lec-text .ln.big { font-size: 1.25em; }
+  .lec-ptr { position: absolute; left: 0; top: 0; width: 20px; height: 28px; transform: translate(-50%, 2px); opacity: 0; pointer-events: none; z-index: 2;
+    transition: left .35s cubic-bezier(.4,1.4,.6,1), top .35s cubic-bezier(.4,1.4,.6,1), opacity .2s; filter: drop-shadow(0 0 3px rgba(253,230,138,.5)); }
+  .lec-ptr.on { opacity: 1; animation: lecNudge .5s ease-in-out infinite alternate; }
+  .lec-ptr svg { width: 100%; height: 100%; display: block; }
+  @keyframes lecNudge { from { margin-top: 4px; } to { margin-top: 0; } }
+  .lec-text .tok { position: relative; border-radius: 8px; transition: color .2s, background .2s; }
+  .lec-text .tok.hit { color: #fde68a; background: rgba(253,230,138,.16); box-shadow: 0 0 0 2px rgba(253,230,138,.55); }
+  .lec-text .tok[data-n]::after { content: attr(data-n); position: absolute; right: -9px; top: -10px; min-width: 17px; height: 17px; border-radius: 50%; background: #fda4af; color: #3b0d17;
+    font-size: 11px; line-height: 17px; text-align: center; font-family: system-ui, sans-serif; font-weight: 800; animation: lecPop .3s ease-out; }
+  @keyframes lecPop { from { transform: scale(0); } to { transform: scale(1); } }
   .lec-cursor { display: inline-block; width: 7px; height: 1em; margin-left: 2px; background: #f4f1e8; vertical-align: -2px; border-radius: 2px; opacity: .8; transform: rotate(18deg); }
   .lec-art { margin-top: 6px; }
   .lec-doodle { width: 100%; max-height: 150px; display: block; }
@@ -260,6 +272,10 @@
       .replace(/\s=\s|=/g, ", equals ").replace(/\s\+\s/g, ", plus ").replace(/≈/g, " about ").replace(/[→…]/g, " ").replace(/\s{2,}/g, " ").trim();
   }
 
+  // Wrap numbers (and the ___ blank) in spans the pointer can aim at.
+  const tokHTML = t => esc(t).replace(/\d+(?:\.\d+)?|_{2,}/g, m => `<span class="tok${m[0] === "_" ? " blank" : ""}">${m}</span>`);
+  const lineHTML = l => l.tok ? tokHTML(l.t) : esc(l.t);
+
   // ---------- build the slides for a question ----------
   function buildSlides(o, tr) {
     const q = o.q, sl = [];
@@ -271,8 +287,8 @@
       const v = nums(q.q).filter(n => n > 0);
       if (v.length >= 2) {
         sl.push({ label: tr("setup"), talk: tr("setupTalk"), lines: [
-          { t: tr("avgS1"), c: "y" }, { t: v.join(" + ") + " = ___" },
-          { t: tr("avgS2"), c: "y" }, { t: tr("avgS2b", { n: v.length }) },
+          { t: tr("avgS1"), c: "y" }, { t: v.join(" + ") + " = ___", tok: true, walk: [...v.map((n, i) => (i ? "plus " : "") + n), "equals blank"] },
+          { t: tr("avgS2"), c: "y" }, { t: tr("avgS2b", { n: v.length }), count: 1 },
           { t: tr("avgS3"), c: "y" }, { t: "Average = ___ ÷ " + v.length }
         ], art: "" });
         sl.push({ label: tr("check"), talk: tr("checkTalk"), lines: [{ t: tr("avgCheck") }, { t: tr("avgCheck2", { a: Math.min(...v), b: Math.max(...v) }), c: "g" }], art: svg(D.rangeCheck(q)), point: true });
@@ -306,6 +322,7 @@
           <div class="lec-text" aria-live="polite"></div>
           <div class="lec-art"></div>
           <div class="lec-tray"></div>
+          <div class="lec-ptr" aria-hidden="true"><svg viewBox="0 0 24 34"><path d="M12 32 V7 M4 16 L12 6 L20 16" fill="none" stroke="#fde68a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <div class="lec-start"><button type="button">${tr("start")}</button></div>
         </div>
         <div class="lec-stage">
@@ -326,7 +343,7 @@
           <p class="lec-note lec-voice-tip hidden">${tr("noFil")}</p></div>` : `<p class="lec-note">${tr("noVoice")}</p>`}
       </div>`;
     const root = host.querySelector(".lec"), $ = s => root.querySelector(s);
-    const textEl = $(".lec-text"), artEl = $(".lec-art"), labelEl = $(".lec-label"), countEl = $(".lec-count"), bubble = $(".lec-bubble");
+    const textEl = $(".lec-text"), artEl = $(".lec-art"), labelEl = $(".lec-label"), countEl = $(".lec-count"), bubble = $(".lec-bubble"), board = $(".lec-board"), ptr = $(".lec-ptr");
     const playBtn = $('[data-a="play"]'), muteBtn = $('[data-a="mute"]'), speedBtn = $('[data-a="speed"]');
 
     let idx = 0, playing = false, muted = !tts, rate = 1, gen = 0, timers = [], typer = null, stopped = false;
@@ -403,9 +420,9 @@
     }
 
     function renderLines(lines, full) {
-      textEl.innerHTML = lines.map(l => `<div class="ln${l.c ? " " + l.c : ""}${l.big ? " big" : ""}"></div>`).join("");
+      textEl.innerHTML = lines.map(l => `<div class="ln${l.tok ? " toks" : ""}${l.c ? " " + l.c : ""}${l.big ? " big" : ""}"></div>`).join("");
       textEl.classList.toggle("long", lines.reduce((a, l) => a + l.t.length, 0) > 150);
-      if (full || reduce) [...textEl.children].forEach((e, i) => e.textContent = lines[i].t);
+      if (full || reduce) [...textEl.children].forEach((e, i) => e.innerHTML = lineHTML(lines[i]));
     }
 
     // Chalk-write one line while Kiko says it.
@@ -418,9 +435,21 @@
         typer = setInterval(() => {
           ci = Math.min(line.t.length, ci + step);
           el.innerHTML = esc(line.t.slice(0, ci)) + '<span class="lec-cursor"></span>';
-          if (ci >= line.t.length) { clearInterval(typer); typer = null; el.textContent = line.t; res(); }
+          if (ci >= line.t.length) { clearInterval(typer); typer = null; el.innerHTML = lineHTML(line); res(); }
         }, 33);
       });
+    }
+
+    // Move the chalk arrow over a token; n adds a count badge that stays.
+    function pointAt(tok, n) {
+      textEl.querySelectorAll(".tok.hit").forEach(t => t.classList.remove("hit"));
+      if (!tok) { ptr.classList.remove("on"); root.classList.remove("counting"); return; }
+      const br = board.getBoundingClientRect(), r = tok.getBoundingClientRect();
+      ptr.style.left = (r.left - br.left + r.width / 2 - board.clientLeft) + "px";
+      ptr.style.top = (r.bottom - br.top - board.clientTop) + "px";
+      ptr.classList.add("on"); root.classList.add("pointing", "counting");
+      tok.classList.add("hit");
+      if (n) tok.dataset.n = n;
     }
 
     function show(i, opts = {}) {
@@ -431,6 +460,7 @@
       countEl.textContent = `${idx + 1}/${slides.length}`;
       bubble.textContent = s.talk;
       artEl.innerHTML = s.art;
+      pointAt(null);
       root.classList.toggle("pointing", !!s.point);
       root.classList.remove("cheer"); void root.offsetWidth; root.classList.toggle("cheer", !!s.cheer);
       root.querySelectorAll(".lec-dots button").forEach((d, j) => { d.classList.toggle("on", j === idx); d.classList.toggle("seen", seen.has(j) && j !== idx); });
@@ -443,8 +473,37 @@
         if (!(await say(s.talk))) return;              // Kiko's intro line
         await wait(550); if (g !== gen) return;        // beat before the board
         for (let k = 0; k < s.lines.length; k++) {
-          const [ok] = await Promise.all([say(s.lines[k].t), writeLine(k, s.lines[k])]);
-          if (!ok || g !== gen) return;
+          const l = s.lines[k];
+          if (l.walk) {
+            // write it, then read it piece by piece with the arrow on each number
+            await writeLine(k, l); if (g !== gen) return;
+            await wait(300); if (g !== gen) return;
+            const toks = [...textEl.children[k].querySelectorAll(".tok")];
+            for (let j = 0; j < l.walk.length; j++) {
+              pointAt(toks[j]);
+              bubble.textContent = l.walk.slice(0, j + 1).join("… ").replace(/\bplus\b/g, "+").replace(/equals blank/, "= ?");
+              if (!(await say(l.walk[j]))) return;
+              await wait(140); if (g !== gen) return;
+            }
+            pointAt(null);
+          } else {
+            if (l.count != null) {
+              // count the numbers one by one before saying the result
+              const toks = [...textEl.children[l.count].querySelectorAll(".tok:not(.blank)")];
+              const said = [];
+              for (let j = 0; j < toks.length; j++) {
+                pointAt(toks[j], j + 1);
+                const w = lang === "tl" ? L.nums[1][j] || String(j + 1) : String(j + 1);
+                said.push(w); bubble.textContent = said.join("… ") + "…";
+                if (!(await say(w))) return;
+                await wait(260); if (g !== gen) return;
+              }
+              pointAt(null);
+              await wait(300); if (g !== gen) return;
+            }
+            const [ok] = await Promise.all([say(l.t), writeLine(k, l)]);
+            if (!ok || g !== gen) return;
+          }
           await wait(480); if (g !== gen) return;      // pause between board lines
         }
         await wait(700); if (g !== gen) return;
@@ -456,7 +515,7 @@
       playing = on;
       playBtn.textContent = on ? "❚❚" : (idx === slides.length - 1 && seen.size > 1 ? "↺" : "▶");
       playBtn.setAttribute("aria-label", on ? tr("pause") : tr("play"));
-      if (!on) { gen++; clearTimers(); if (tts) synth.cancel(); talking(false); renderLines(slides[idx].lines, true); }
+      if (!on) { gen++; clearTimers(); if (tts) synth.cancel(); talking(false); pointAt(null); renderLines(slides[idx].lines, true); }
     }
 
     function act(a) {
