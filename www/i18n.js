@@ -247,7 +247,7 @@
     impHigh: ["🔥 High-yield", "🔥 Madalas lumabas", "🔥 High-yield"],
     impMid: ["⭐ Important", "⭐ Mahalaga", "⭐ Important"],
     impLow: ["📘 Good to know", "📘 Dagdag-kaalaman", "📘 Good to know"],
-    impNote: ["Topics are ordered by how often they tend to appear in the exam (our estimate).", "Nakaayos ang mga paksa ayon sa dalas ng paglabas nito sa eksamen (tantiya namin).", "Naka-order ang topics base sa kung gaano kadalas lumalabas sa exam (estimate namin)."],
+    impNote: ["🔥 / ⭐ / 📘 badges show how often each topic tends to appear in the exam (our estimate).", "Ipinapakita ng 🔥 / ⭐ / 📘 kung gaano kadalas lumalabas ang paksa sa eksamen (tantiya namin).", "Pinapakita ng 🔥 / ⭐ / 📘 kung gaano kadalas lumalabas ang topic sa exam (estimate namin)."],
     startHere: ["Start here", "Dito magsimula", "Start ka dito"],
     recommendedLesson: ["Recommended next lesson", "Inirerekomendang susunod na aralin", "Recommended next lesson"],
     stepOf: ["Step {i} of {n}", "Hakbang {i} sa {n}", "Step {i} of {n}"],
@@ -341,30 +341,58 @@
     exAnswer: ["✅ So the answer is: {a}", "✅ Kaya ang sagot ay: {a}", "✅ Kaya ang sagot ay: {a}"],
     exTrick: ["💡 Key trick to remember", "💡 Tandaan ang trick na ito", "💡 Key trick na dapat tandaan"],
     askExplain: ["🪜 Ask Kiko to explain", "🪜 Ipaliwanag, Kiko", "🪜 Ask si Kiko to explain"],
+    syllabusNote: ["Lessons follow the official CSC Professional exam scope, in order.", "Sinusunod ng mga aralin ang opisyal na saklaw ng CSC Professional exam, ayon sa pagkakasunod.", "Sinusunod ng lessons ang official CSC Professional exam scope, in order."],
+    unitLabel: ["Official topic {n}", "Opisyal na paksa {n}", "Official topic {n}"],
+    // v9: backup & restore
+    backupTitle: ["Backup & restore", "Backup at pagbabalik ng datos", "Backup & restore"],
+    backupDesc: ["Your progress is saved on this device and kept through app updates. The app also makes automatic backups. Download a backup file to keep it safe or move it to another phone.", "Naka-save ang iyong progreso sa device na ito at hindi nawawala kapag may update. Awtomatiko ring nagba-backup ang app. Mag-download ng backup file para mas ligtas o para mailipat sa ibang phone.", "Naka-save ang progress mo sa device na ito at hindi nawawala kapag may update. May automatic backups din. Mag-download ng backup file para safe o para mailipat sa ibang phone."],
+    lastAuto: ["Last automatic backup", "Huling awtomatikong backup", "Last automatic backup"],
+    lastExport: ["Last backup file", "Huling backup file", "Last backup file"],
+    never: ["never", "wala pa", "wala pa"],
+    backupDownload: ["Download backup", "I-download ang backup", "I-download ang backup"],
+    backupCopy: ["Copy backup code", "Kopyahin ang backup code", "I-copy ang backup code"],
+    backupCopied: ["Backup code copied ✓ Paste it somewhere safe (e.g. Notes or email).", "Nakopya ang backup code ✓ I-paste sa ligtas na lugar (hal. Notes o email).", "Na-copy ang backup code ✓ I-paste mo sa safe na lugar (e.g. Notes o email)."],
+    backupManualCopy: ["Select all the text below and copy it to a safe place.", "Piliin ang lahat ng teksto sa ibaba at kopyahin sa ligtas na lugar.", "I-select lahat ng text sa baba at i-copy sa safe na lugar."],
+    backupSaved: ["Backup file downloaded ✓", "Na-download ang backup file ✓", "Na-download ang backup file ✓"],
+    backupUseCopy: ["Download isn't available here. Use “Copy backup code” instead.", "Hindi puwede ang download dito. Gamitin ang “Kopyahin ang backup code”.", "Hindi pwede mag-download dito. Gamitin ang “Copy backup code”."],
+    restoreFile: ["Restore from file", "Ibalik mula sa file", "Restore from file"],
+    restorePaste: ["Restore from code", "Ibalik mula sa code", "Restore from code"],
+    restoreAuto: ["Restore an automatic backup", "Ibalik ang awtomatikong backup", "Restore ng automatic backup"],
+    restoreConfirm: ["Restore the backup from {d} ({n} questions practiced)? Your current progress is backed up first, just in case.", "Ibalik ang backup mula {d} ({n} tanong na nasanay)? Iba-backup muna ang kasalukuyang progreso, para sigurado.", "I-restore ang backup from {d} ({n} questions na-practice)? I-ba-backup muna ang current progress mo, just in case."],
+    restoreBtn: ["Restore", "Ibalik", "Restore"],
+    restored: ["Progress restored ✓", "Naibalik ang progreso ✓", "Na-restore ang progress ✓"],
+    badBackup: ["That doesn't look like a CS Coach backup.", "Mukhang hindi ito backup ng CS Coach.", "Mukhang hindi ito CS Coach backup."],
+    pastePh: ["Paste your backup code here", "I-paste dito ang backup code", "I-paste dito ang backup code"],
+    reasonUpdate: ["Before app update", "Bago ang update ng app", "Bago ang app update"],
+    reasonDaily: ["Daily backup", "Araw-araw na backup", "Daily backup"],
+    reasonManual: ["Manual backup", "Manwal na backup", "Manual backup"],
+    reasonRestore: ["Before a restore", "Bago magbalik ng backup", "Bago mag-restore"],
+    reasonReset: ["Before reset", "Bago ang reset", "Bago ang reset"],
+    backupRemind: ["Psst! Save a backup of your progress in ⚙️ Settings 🛡️", "Psst! Mag-save ng backup ng progreso mo sa ⚙️ Mga Setting 🛡️", "Psst! Mag-save ka ng backup ng progress mo sa ⚙️ Settings 🛡️"],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 
   // Subject names, descriptions and tips per language (English comes from questions.js)
   const SUBJ = {
     verbal: {
-      tl: { name: "Kakayahang Berbal (Ingles)", desc: "Talasalitaan, gramatika, analohiya, idyoma, baybay", tips: ["Basahin ang buong pangungusap: madalas nasa konteksto ang kahulugan ng salita.", "Sa gramatika, hanapin ang tunay na simuno at alamin kung isahan o maramihan.", "Sa analohiya, gawing pangungusap ang ugnayan (\"Ang A ay ginagamit ng B\"), saka subukan sa bawat pagpipilian.", "Alisin muna ang mga pagpipiliang tiyak na mali."] },
-      tg: { name: "Verbal Ability (English)", desc: "Vocabulary, grammar, analogy, idioms at spelling", tips: ["Basahin ang buong sentence: madalas nasa context ang meaning ng word.", "Sa grammar, hanapin ang totoong subject at check kung singular o plural.", "Sa analogy, gawing sentence ang relationship (\"A is used by B\"), tapos i-test sa bawat choice.", "I-eliminate muna ang mga choices na sure kang mali."] }
+      tl: { name: "Kakayahang Berbal (Ingles)", desc: "Kahulugan ng salita, pagbuo ng pangungusap, pagkilala sa mali, kayarian, talata, pag-unawa sa binasa", tips: ["Basahin ang buong pangungusap: madalas nasa konteksto ang kahulugan ng salita.", "Sa gramatika, hanapin ang tunay na simuno at alamin kung isahan o maramihan.", "Sa analohiya, gawing pangungusap ang ugnayan (\"Ang A ay ginagamit ng B\"), saka subukan sa bawat pagpipilian.", "Alisin muna ang mga pagpipiliang tiyak na mali."] },
+      tg: { name: "Verbal Ability (English)", desc: "Word meaning, sentence completion, error recognition, structure, paragraphs at reading", tips: ["Basahin ang buong sentence: madalas nasa context ang meaning ng word.", "Sa grammar, hanapin ang totoong subject at check kung singular o plural.", "Sa analogy, gawing sentence ang relationship (\"A is used by B\"), tapos i-test sa bawat choice.", "I-eliminate muna ang mga choices na sure kang mali."] }
     },
     filipino: {
-      tl: { name: "Kakayahang Berbal (Filipino)", desc: "Talasalitaan, sawikain, wastong gamit ng salita" },
-      tg: { name: "Verbal Ability (Filipino)", desc: "Talasalitaan, sawikain, wastong gamit ng salita" }
+      tl: { name: "Kakayahang Berbal (Filipino)", desc: "Kahulugan ng salita, pagbuo at kayarian ng pangungusap, pagkilala sa mali, talata, pag-unawa sa binasa" },
+      tg: { name: "Verbal Ability (Filipino)", desc: "Kahulugan ng salita, pagbuo at kayarian ng pangungusap, pagkilala sa mali, talata, pag-unawa sa binasa" }
     },
     numerical: {
-      tl: { name: "Kakayahang Numerikal", desc: "Aritmetika, porsiyento, serye ng numero, mga suliranin", tips: ["Isulat ang ibinigay at ang hinihingi bago magkuwenta.", "Tantiyahin muna. Kung malayo ang pagpipilian sa tantiya mo, alisin ito.", "Sa serye, tingnan muna ang diperensiya, saka ang ratio, saka ang salitang pattern.", "Maaari mong isaksak pabalik ang mga pagpipilian sa problema para masuri."] },
-      tg: { name: "Numerical Ability", desc: "Arithmetic, percentage, number series at word problems", tips: ["Isulat muna ang given at ang hinahanap bago mag-compute.", "Mag-estimate muna. Kung malayo ang choice sa estimate mo, i-eliminate.", "Sa series, check muna ang differences, tapos ratios, tapos alternating patterns.", "Pwede mong i-plug back ang choices sa problem para ma-check."] }
+      tl: { name: "Kakayahang Numerikal", desc: "Batayang operasyon, serye ng numero, mga suliranin (word problems)", tips: ["Isulat ang ibinigay at ang hinihingi bago magkuwenta.", "Tantiyahin muna. Kung malayo ang pagpipilian sa tantiya mo, alisin ito.", "Sa serye, tingnan muna ang diperensiya, saka ang ratio, saka ang salitang pattern.", "Maaari mong isaksak pabalik ang mga pagpipilian sa problema para masuri."] },
+      tg: { name: "Numerical Ability", desc: "Basic operations, number sequence at word problems", tips: ["Isulat muna ang given at ang hinahanap bago mag-compute.", "Mag-estimate muna. Kung malayo ang choice sa estimate mo, i-eliminate.", "Sa series, check muna ang differences, tapos ratios, tapos alternating patterns.", "Pwede mong i-plug back ang choices sa problem para ma-check."] }
     },
     analytical: {
-      tl: { name: "Kakayahang Analitikal", desc: "Lohika, pattern, coding, direksiyon, pangangatwiran", tips: ["Sa syllogism, gumuhit ng bilog (Venn diagram). Ang tiyak na totoo lamang ang ipalagay.", "Sa serye ng letra, gawing numero ang mga letra (A=1, B=2…).", "Sa direksiyon, iguhit ang dinaanan sa scratch paper.", "Sa ugnayang pampamilya, gumuhit ng maliit na family tree."] },
-      tg: { name: "Analytical Ability", desc: "Logic, patterns, coding, direction at reasoning", tips: ["Sa syllogism, mag-drawing ng circles (Venn diagram). Ang MUST be true lang ang i-conclude.", "Sa letter series, i-convert ang letters to numbers (A=1, B=2…).", "Sa directions, i-sketch ang path sa scratch paper.", "Sa relationships, mag-drawing ng maliit na family tree."] }
+      tl: { name: "Kakayahang Analitikal", desc: "Analohiya, simbolikong lohika, pagtukoy ng palagay at konklusyon, interpretasyon ng datos", tips: ["Sa syllogism, gumuhit ng bilog (Venn diagram). Ang tiyak na totoo lamang ang ipalagay.", "Sa serye ng letra, gawing numero ang mga letra (A=1, B=2…).", "Sa direksiyon, iguhit ang dinaanan sa scratch paper.", "Sa ugnayang pampamilya, gumuhit ng maliit na family tree."] },
+      tg: { name: "Analytical Ability", desc: "Word analogy, symbolic logic, assumptions at conclusions, data interpretation", tips: ["Sa syllogism, mag-drawing ng circles (Venn diagram). Ang MUST be true lang ang i-conclude.", "Sa letter series, i-convert ang letters to numbers (A=1, B=2…).", "Sa directions, i-sketch ang path sa scratch paper.", "Sa relationships, mag-drawing ng maliit na family tree."] }
     },
     geninfo: {
-      tl: { name: "Pangkalahatang Kaalaman", desc: "Konstitusyon, RA 6713, karapatang pantao, kapaligiran", tips: ["Alamin ang 1987 Konstitusyon ayon sa Artikulo: II (prinsipyo), III (Katipunan ng mga Karapatan), VI (Lehislatibo), VII (Ehekutibo), VIII (Hudikatura), IX (Komisyong Konstitusyonal), XI (Pananagutan), XIII (Katarungang Panlipunan at Karapatang Pantao).", "Kabisaduhin ang termino at edad na kailangan bilang talahanayan.", "Iugnay ang numero ng RA sa paksa at taon: RA 6713 (etika), RA 3019 (anti-graft), RA 9003 (solid waste), RA 8749 (malinis na hangin), RA 9275 (malinis na tubig).", "Kapag hindi sigurado, alisin ang mga pagpipiliang malinaw na kabilang sa ibang batas o ahensiya."] },
-      tg: { name: "General Information", desc: "Constitution, RA 6713, human rights at environment", tips: ["Alamin ang 1987 Constitution per Article: II (principles), III (Bill of Rights), VI (Legislative), VII (Executive), VIII (Judiciary), IX (Constitutional Commissions), XI (Accountability), XIII (Social Justice & Human Rights).", "I-memorize ang terms of office at age requirements as a table.", "I-link ang RA numbers sa topic at year: RA 6713 (ethics), RA 3019 (anti-graft), RA 9003 (solid waste), RA 8749 (clean air), RA 9275 (clean water).", "Kapag hindi sure, i-eliminate ang choices na obviously ibang law o agency."] }
+      tl: { name: "Pangkalahatang Kaalaman", desc: "Konstitusyon, RA 6713, kapayapaan at karapatang pantao, kapaligiran", tips: ["Alamin ang 1987 Konstitusyon ayon sa Artikulo: II (prinsipyo), III (Katipunan ng mga Karapatan), VI (Lehislatibo), VII (Ehekutibo), VIII (Hudikatura), IX (Komisyong Konstitusyonal), XI (Pananagutan), XIII (Katarungang Panlipunan at Karapatang Pantao).", "Kabisaduhin ang termino at edad na kailangan bilang talahanayan.", "Iugnay ang numero ng RA sa paksa at taon: RA 6713 (etika), RA 3019 (anti-graft), RA 9003 (solid waste), RA 8749 (malinis na hangin), RA 9275 (malinis na tubig).", "Kapag hindi sigurado, alisin ang mga pagpipiliang malinaw na kabilang sa ibang batas o ahensiya."] },
+      tg: { name: "General Information", desc: "Constitution, RA 6713, peace at human rights, environment", tips: ["Alamin ang 1987 Constitution per Article: II (principles), III (Bill of Rights), VI (Legislative), VII (Executive), VIII (Judiciary), IX (Constitutional Commissions), XI (Accountability), XIII (Social Justice & Human Rights).", "I-memorize ang terms of office at age requirements as a table.", "I-link ang RA numbers sa topic at year: RA 6713 (ethics), RA 3019 (anti-graft), RA 9003 (solid waste), RA 8749 (clean air), RA 9275 (clean water).", "Kapag hindi sure, i-eliminate ang choices na obviously ibang law o agency."] }
     }
   };
 

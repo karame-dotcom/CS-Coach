@@ -42,10 +42,24 @@
   const subjectOf = q => SUBJECTS.find(s => s.id === q.sid);
   const LESSONS = window.LESSONS || {};
   const lessonById = new Map();
+  // Lessons follow the official CSC scope. A lesson may list a question that lives in
+  // another subject (e.g. word analogies from Verbal belong to Analytical in the
+  // syllabus): that question moves to the lesson's subject but keeps its id (and stats).
   SUBJECTS.forEach(s => (LESSONS[s.id] || []).forEach(l => {
     l.sid = s.id; lessonById.set(l.id, l);
-    l.qs.forEach(i => { const q = byId.get(s.id + "-" + i); if (q) q.lid = l.id; });
+    l.qs.forEach(i => {
+      const q = byId.get(typeof i === "string" ? i : s.id + "-" + i);
+      if (!q) return;
+      if (q.sid !== s.id) {
+        const from = SUBJECTS.find(x => x.id === q.sid);
+        from.questions.splice(from.questions.indexOf(q), 1);
+        s.questions.push(q); q.sid = s.id;
+      }
+      q.lid = l.id;
+    });
   }));
+  const SYL = window.SYLLABUS || {};
+  const unitName = l => (SYL[l.sid] || [])[l.unit - 1] || "";
   const lessonQs = (sid, l) => SUBJECTS.find(x => x.id === sid).questions.filter(q => q.lid === l.id);
   const impOf = q => (q.lid && lessonById.get(q.lid) ? lessonById.get(q.lid).imp : 2);
   const impLabel = imp => t(imp >= 3 ? "impHigh" : imp === 2 ? "impMid" : "impLow");
@@ -58,6 +72,75 @@
     s.questions.push(q); byId.set(q.id, q);
   }
   aiBank.forEach(addToBank);
+
+  // ---------- DATA SAFETY: versions, automatic backups, question remapping ----------
+  // All progress lives in this browser's localStorage under "cscoach.*". Updating the
+  // app's code never clears it. On top of that:
+  //  1. Before a new app version runs for the first time, a full backup is saved.
+  //  2. A daily backup is kept (last 5 backups).
+  //  3. Questions are fingerprinted by their text, so if the question bank is ever
+  //     reordered or reorganized, progress (stats, stars) follows the right question.
+  //  4. Users can export/import a backup file or code (Settings → Backup & restore).
+  const APP_VERSION = "1.9.0";
+  const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
+  function snapshot(reason) {
+    const data = {};
+    DATA_KEYS.forEach(k => { try { const v = localStorage.getItem("cscoach." + k); if (v != null) data[k] = JSON.parse(v); } catch (_) {} });
+    return { app: "cs-coach", version: APP_VERSION, savedAt: Date.now(), reason: reason || "manual", data };
+  }
+  const hasData = () => { try { return !!localStorage.getItem("cscoach.profile"); } catch (_) { return false; } };
+  function autoBackup(reason) {
+    if (!hasData()) return;
+    const list = store.get("cscoach.backups", []);
+    list.push(snapshot(reason));
+    while (list.length > 5) list.shift();
+    try { localStorage.setItem("cscoach.backups", JSON.stringify(list)); }
+    catch (_) { // storage full: keep only the newest backup
+      try { localStorage.setItem("cscoach.backups", JSON.stringify(list.slice(-1))); } catch (__) {}
+    }
+  }
+  function applyBackup(snap) {
+    if (!snap || snap.app !== "cs-coach" || !snap.data || typeof snap.data !== "object") throw new Error("bad");
+    autoBackup("before-restore");
+    DATA_KEYS.forEach(k => {
+      try { if (k in snap.data) localStorage.setItem("cscoach." + k, JSON.stringify(snap.data[k])); else localStorage.removeItem("cscoach." + k); } catch (_) {}
+    });
+  }
+  // 1 + 2: backup on version change and once a day
+  (function () {
+    const last = store.get("cscoach.version", null);
+    if (last && last !== APP_VERSION) autoBackup("update " + last + " → " + APP_VERSION);
+    const backups = store.get("cscoach.backups", []);
+    const newest = backups.length ? backups[backups.length - 1].savedAt : 0;
+    if (Date.now() - newest > DAY) autoBackup("daily");
+    store.set("cscoach.version", APP_VERSION);
+    // ask the browser not to clear our storage under pressure
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (_) {}
+  })();
+  // 3: question fingerprints → remap progress if questions moved
+  (function () {
+    const fp = q => { let h = 5381; const str = q.q + "|" + q.c.join("|"); for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+    const now = {}, byHash = {};
+    byId.forEach((q, id) => { const h = fp(q); now[id] = h; byHash[h] = id; });
+    const old = store.get("cscoach.qmap", null);
+    if (old) {
+      const remap = {};
+      Object.keys(old).forEach(id => {
+        if (now[id] === old[id]) return;               // same question, same place
+        const moved = byHash[old[id]];
+        if (moved && moved !== id) remap[id] = moved;  // question moved to a new id
+        // otherwise: question text was edited (keep id) or removed (keep data, harmless)
+      });
+      if (Object.keys(remap).length) {
+        autoBackup("before-remap");
+        const ns = {};
+        Object.keys(stats).forEach(id => { ns[remap[id] || id] = stats[id]; });
+        stats = ns; store.set("cscoach.stats", stats);
+        starred = new Set([...starred].map(id => remap[id] || id)); store.set("cscoach.starred", [...starred]);
+      }
+    }
+    store.set("cscoach.qmap", now);
+  })();
 
   // Rotation: a question you answered won't come back for COOLDOWN_DAYS.
   // Fresh questions are ordered: never seen first (high-yield topics first),
@@ -147,6 +230,8 @@
     history.push({ t: Date.now(), key: S.key, title: S.title, total: S.items.length, answered, correct, pct: Math.round(correct / S.items.length * 100) });
     history = history.slice(-100);
     store.set("cscoach.stats", stats); store.set("cscoach.history", history);
+    const b = store.get("cscoach.backups", []);
+    if (!b.length || Date.now() - b[b.length - 1].savedAt > DAY) autoBackup("daily");
   }
 
   // ---------- navigation ----------
@@ -291,6 +376,7 @@
 
         <div class="actions save-row"><span class="unsaved-badge hidden" id="unsavedBadge">● ${t("unsavedBadge")}</span><button class="btn" type="submit">${firstRun ? t("startReviewing") : t("saveSettings")}</button></div>
       </form>
+      ${firstRun ? "" : backupPanelHtml()}
       ${firstRun ? "" : `
         <div class="panel danger-zone">
           <b>${t("resetProgress")}</b>
@@ -336,8 +422,10 @@
       if (firstRun) setTimeout(() => pet().say(t("petHi", { name: profile.name ? " " + profile.name : "" }), 3200), 400);
       else toast(t("settingsSaved"));
     });
+    if (!firstRun) bindBackupPanel();
     const reset = document.getElementById("resetBtn");
     if (reset) reset.addEventListener("click", () => confirmBox(t("resetConfirm"), t("reset"), () => {
+      autoBackup("before-reset");
       best = {}; starred = new Set(); stats = {}; history = []; lessonsRead = new Set();
       ["best", "stats", "history"].forEach(k => store.set("cscoach." + k, k === "history" ? [] : {}));
       store.set("cscoach.lessonsRead", []); saveStars(); goHome();
@@ -345,8 +433,98 @@
     window.scrollTo(0, 0);
   }
 
+
+  // ---------- Backup & restore UI ----------
+  const fmtDate = ts => new Date(ts).toLocaleString(I.lang === "en" ? "en-US" : "fil-PH", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+  const reasonLabel = r => (r || "").startsWith("update") ? t("reasonUpdate") : t({ daily: "reasonDaily", manual: "reasonManual", "before-restore": "reasonRestore", "before-reset": "reasonReset", "before-remap": "reasonUpdate" }[r] || "reasonManual");
+  function backupPanelHtml() {
+    const list = store.get("cscoach.backups", []);
+    const lastExport = store.get("cscoach.lastExport", null);
+    return `
+      <div class="panel backup-panel">
+        <b>🛡️ ${t("backupTitle")}</b>
+        <p class="muted small" style="margin:4px 0 10px">${t("backupDesc")}</p>
+        <div class="backup-meta">
+          <span>✅ ${t("lastAuto")}: <b>${list.length ? fmtDate(list[list.length - 1].savedAt) : t("never")}</b></span>
+          <span>💾 ${t("lastExport")}: <b>${lastExport ? fmtDate(lastExport) : t("never")}</b></span>
+        </div>
+        <div class="backup-btns">
+          <button class="btn" id="bkDownload">⬇️ ${t("backupDownload")}</button>
+          <button class="btn secondary" id="bkCopy">📋 ${t("backupCopy")}</button>
+        </div>
+        <div class="backup-btns">
+          <label class="btn secondary file-btn">📂 ${t("restoreFile")}<input type="file" id="bkFile" accept=".json,application/json,text/plain" hidden /></label>
+          <button class="btn secondary" id="bkPaste">📝 ${t("restorePaste")}</button>
+        </div>
+        ${list.length ? `<button class="link" id="bkAuto">↩️ ${t("restoreAuto")} (${list.length})</button>` : ""}
+      </div>`;
+  }
+  function confirmRestore(snap) {
+    const n = snap.data && snap.data.stats ? Object.keys(snap.data.stats).length : 0;
+    confirmBox(t("restoreConfirm", { d: fmtDate(snap.savedAt || Date.now()), n }), t("restoreBtn"), () => {
+      try { applyBackup(snap); toast(t("restored")); setTimeout(() => location.reload(), 700); }
+      catch (_) { toast(t("badBackup")); }
+    });
+  }
+  function parseBackup(text) {
+    try { const s = JSON.parse(text.trim()); if (s && s.app === "cs-coach" && s.data) return s; } catch (_) {}
+    try { const s = JSON.parse(decodeURIComponent(escape(atob(text.trim())))); if (s && s.app === "cs-coach" && s.data) return s; } catch (_) {}
+    return null;
+  }
+  function bindBackupPanel() {
+    const fileName = () => "cs-coach-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.getElementById("bkDownload").onclick = () => {
+      const json = JSON.stringify(snapshot("manual"));
+      let ok = false;
+      try {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+        a.download = fileName(); document.body.appendChild(a); a.click(); a.remove();
+        ok = true;
+      } catch (_) {}
+      store.set("cscoach.lastExport", Date.now());
+      toast(ok ? t("backupSaved") : t("backupUseCopy"));
+      const y = window.scrollY; renderSettings(false); window.scrollTo(0, y);
+    };
+    document.getElementById("bkCopy").onclick = async () => {
+      const code = btoa(unescape(encodeURIComponent(JSON.stringify(snapshot("manual")))));
+      try { await navigator.clipboard.writeText(code); store.set("cscoach.lastExport", Date.now()); toast(t("backupCopied")); }
+      catch (_) {
+        modal(`<div class="modal-title">📋 ${t("backupCopy")}</div><p class="muted small">${t("backupManualCopy")}</p><textarea class="input code-box" readonly>${esc(code)}</textarea><div class="actions"><button class="btn" data-x>${t("gotIt")}</button></div>`,
+          (w, close) => { const ta = w.querySelector("textarea"); ta.focus(); ta.select(); w.querySelector("[data-x]").onclick = () => { store.set("cscoach.lastExport", Date.now()); close(); }; });
+      }
+    };
+    document.getElementById("bkFile").onchange = e => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => { const snap = parseBackup(String(r.result)); snap ? confirmRestore(snap) : toast(t("badBackup")); };
+      r.readAsText(f);
+    };
+    document.getElementById("bkPaste").onclick = () => modal(`
+      <div class="modal-title">📝 ${t("restorePaste")}</div>
+      <textarea class="input code-box" id="pasteBox" placeholder="${t("pastePh")}"></textarea>
+      <div class="actions"><button class="btn secondary" data-x>${t("cancel")}</button><button class="btn" data-go>${t("restoreBtn")}</button></div>`,
+      (w, close) => {
+        w.querySelector("[data-x]").onclick = close;
+        w.querySelector("[data-go]").onclick = () => { const snap = parseBackup(w.querySelector("#pasteBox").value); close(); snap ? confirmRestore(snap) : toast(t("badBackup")); };
+      });
+    const au = document.getElementById("bkAuto");
+    if (au) au.onclick = () => {
+      const list = store.get("cscoach.backups", []).slice().reverse();
+      modal(`
+        <div class="modal-title">↩️ ${t("restoreAuto")}</div>
+        <div class="set-list">${list.map((b, i) => `<button class="set-item" data-b="${i}"><div class="set-num">${list.length - i}</div><div class="set-info"><b>${fmtDate(b.savedAt)}</b><span>${reasonLabel(b.reason)} · v${esc(b.version)} · ${b.data && b.data.stats ? Object.keys(b.data.stats).length : 0} ${t("questions").toLowerCase()}</span></div></button>`).join("")}</div>
+        <div class="actions"><button class="btn secondary" data-x>${t("cancel")}</button></div>`,
+        (w, close) => {
+          w.querySelector("[data-x]").onclick = close;
+          w.querySelectorAll("[data-b]").forEach(b => b.onclick = () => { close(); confirmRestore(list[+b.dataset.b]); });
+        });
+    };
+  }
+
   // ---------- LEARN tab: lectures + questions ----------
-  const sortedLessons = sid => (LESSONS[sid] || []).map((l, i) => ({ l, i })).sort((x, y) => (y.l.imp - x.l.imp) || (x.i - y.i));
+  // Syllabus order: official topic number, then lesson order
+  const sortedLessons = sid => (LESSONS[sid] || []).map((l, i) => ({ l, i })).sort((x, y) => (x.l.unit - y.l.unit) || (x.i - y.i));
   function recommendedLesson() {
     // High-yield first: unread lessons, then lessons below 80%
     const all = SUBJECTS.flatMap(s => sortedLessons(s.id).map(x => x.l));
@@ -398,11 +576,14 @@
     app.innerHTML = `
       <h2>${s.icon} ${esc(tr.name)}</h2>
       <p class="sub">${esc(tr.desc)}</p>
-      <p class="muted small" style="margin:-8px 0 14px">${t("impNote")}${sid !== "filipino" && t("lessonsLangNote") ? " " + t("lessonsLangNote") : ""}</p>
+      <p class="syllabus-note">📋 ${t("syllabusNote")}</p>
+      <p class="muted small" style="margin:0 0 14px">${t("impNote")}${sid !== "filipino" && t("lessonsLangNote") ? " " + t("lessonsLangNote") : ""}</p>
       <div class="set-list">
         ${list.map(({ l, i }, n) => {
           const qs = lessonQs(sid, l), a = accOf(qs), read = lessonsRead.has(l.id);
-          return `
+          const head = n === 0 || list[n - 1].l.unit !== l.unit
+            ? `<div class="unit-head"><span class="unit-num">${l.unit}</span>${esc(unitName(l))}</div>` : "";
+          return `${head}
           <button class="set-item imp-border${l.imp}" data-l="${i}">
             <div class="set-num ${read ? "read" : ""}">${read ? "✓" : n + 1}</div>
             <div class="set-info"><b>${esc(l.title)}</b><span><span class="imp-chip imp${l.imp}">${impLabel(l.imp)}</span> ⏱ ${t("minRead", { n: l.mins })} · ${t("qCount", { n: qs.length })}</span></div>
@@ -499,7 +680,7 @@
     }
 
     app.innerHTML = `
-      <div class="lesson-kicker">${s.icon} ${esc(sn(s).name)}</div>
+      <div class="lesson-kicker">${s.icon} ${esc(sn(s).name)} · ${t("unitLabel", { n: l.unit })}: ${esc(unitName(l))}</div>
       <div class="stepper">
         <div class="step-count">${t("stepOf", { i: step + 1, n: steps.length })}</div>
         <div class="step-dots">${steps.map((_, n) => `<span class="${n < step ? "done" : n === step ? "on" : ""}"></span>`).join("")}</div>
@@ -1325,6 +1506,8 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   else {
     openTab("learn");
     pet().setVisible(profile.pet !== false);
-    setTimeout(() => pet().say(t("petHi", { name: profile.name ? " " + profile.name : "" }), 3200), 700);
+    const lastExport = store.get("cscoach.lastExport", 0);
+    const remind = history.length >= 5 && Date.now() - lastExport > 14 * DAY;
+    setTimeout(() => pet().say(remind ? t("backupRemind") : t("petHi", { name: profile.name ? " " + profile.name : "" }), remind ? 5000 : 3200), 700);
   }
 })();

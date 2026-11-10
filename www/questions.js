@@ -11,7 +11,7 @@ window.SUBJECTS = [
     id: "verbal",
     name: "Verbal Ability (English)",
     icon: "📘",
-    desc: "Vocabulary, grammar, analogies, idioms, spelling",
+    desc: "Word meaning, sentence completion, error recognition, sentence structure, paragraph organization, reading comprehension",
     tips: [
       "Read the whole sentence first: context often reveals a word's meaning.",
       "For grammar items, find the true subject and check if it is singular or plural.",
@@ -55,7 +55,7 @@ window.SUBJECTS = [
     id: "filipino",
     name: "Verbal Ability (Filipino)",
     icon: "📗",
-    desc: "Talasalitaan, sawikain, wastong gamit ng salita",
+    desc: "Kahulugan ng salita, pagbuo at kayarian ng pangungusap, pagkilala sa mali, talata, pag-unawa sa binasa",
     tips: [
       "Basahin ang buong pangungusap: madalas nasa konteksto ang kahulugan.",
       "Sa sawikain, huwag basahin nang literal. Isipin ang matalinghagang kahulugan.",
@@ -99,7 +99,7 @@ window.SUBJECTS = [
     id: "numerical",
     name: "Numerical Ability",
     icon: "🔢",
-    desc: "Arithmetic, percentages, series, word problems",
+    desc: "Basic operations, number sequence, word problems",
     tips: [
       "Write down what is given and what is asked before computing.",
       "Estimate first. If a choice is far from your estimate, eliminate it.",
@@ -143,7 +143,7 @@ window.SUBJECTS = [
     id: "analytical",
     name: "Analytical Ability",
     icon: "🧩",
-    desc: "Logic, patterns, coding, direction, reasoning",
+    desc: "Word analogy, symbolic logic/abstract reasoning, assumptions & conclusions, data interpretation",
     tips: [
       "For syllogisms, draw circles (Venn diagrams). Only conclude what MUST be true.",
       "For letter series, convert letters to numbers (A=1, B=2…).",
@@ -187,7 +187,7 @@ window.SUBJECTS = [
     id: "geninfo",
     name: "General Information",
     icon: "🏛️",
-    desc: "Constitution, RA 6713, human rights, environment",
+    desc: "Philippine Constitution, RA 6713, peace & human rights, environment",
     tips: [
       "Know the 1987 Constitution by Article: II (principles), III (Bill of Rights), VI (Legislative), VII (Executive), VIII (Judiciary), IX (Constitutional Commissions), XI (Accountability), XIII (Social Justice & Human Rights).",
       "Memorize terms of office and age requirements as a table.",

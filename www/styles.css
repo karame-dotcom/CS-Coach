@@ -607,3 +607,17 @@ body.no-pet .coach-fab { display: flex; }
 .ex-answer { margin-top: 6px; font-weight: 700; color: var(--green-dark); }
 .ex-sec.trick { background: #fffbeb; border-left: 3px solid #f59e0b; }
 .cmsg.user small { opacity: .85; }
+
+/* ===== v8: syllabus grouping ===== */
+.syllabus-note { margin: -6px 0 6px; padding: 8px 12px; border-radius: 10px; background: var(--blue-soft); color: var(--blue); font-size: .84rem; font-weight: 600; }
+.unit-head { display: flex; align-items: center; gap: 8px; margin: 12px 0 2px; font-weight: 800; font-size: .92rem; color: var(--ink); }
+.unit-head:first-child { margin-top: 0; }
+.unit-num { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; background: var(--ink); color: #fff; font-size: .78rem; flex: none; }
+
+/* ===== v9: backup ===== */
+.backup-panel > b { display: block; }
+.backup-meta { display: flex; flex-direction: column; gap: 4px; font-size: .84rem; margin-bottom: 12px; }
+.backup-btns { display: flex; gap: 8px; margin-bottom: 8px; }
+.backup-btns .btn { flex: 1; min-width: 0; padding: 12px 8px; font-size: .88rem; }
+.file-btn { display: grid; place-items: center; text-align: center; cursor: pointer; }
+.code-box { min-height: 120px; font-family: ui-monospace, monospace; font-size: .72rem; word-break: break-all; resize: vertical; }

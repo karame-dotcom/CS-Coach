@@ -24,6 +24,26 @@ A study coach for the **Civil Service Exam (Professional level)**. It runs in an
 
 > The CSC does not publish actual exam questions. The bank in `www/questions.js` contains practice items modeled on the official exam coverage. Add more by following the same format: `{ q, c: [choices], a: correctIndex, e: explanation, h: coaching hint }`.
 
+## Lessons follow the official CSC scope
+Lessons are organized by the official CSC Professional exam scope of examination:
+- **General Information:** Philippine Constitution · R.A. 6713 · Peace and Human Rights · Environment Management and Protection
+- **Verbal Ability (English and Filipino):** Word meaning · Sentence completion · Error recognition · Sentence structure · Paragraph organization · Reading comprehension
+- **Analytical Ability:** Word analogy · Symbolic logic/abstract reasoning · Identifying assumptions and drawing conclusions · Data interpretation
+- **Numerical Ability:** Basic operations · Number sequence · Word problems
+
+## Your data is safe across updates
+- Progress is stored on the device (`localStorage`, keys `cscoach.*`). App updates never clear it.
+- A full backup is saved automatically before a new app version first runs, and once a day (last 5 kept).
+- Questions are fingerprinted by their text, so progress follows a question even if the bank is reorganized.
+- Settings → **Backup & restore**: download a backup file, copy a backup code, restore from file/code, or restore an automatic backup.
+- **Rules for developers:** only *append* new questions to a subject's list (never reorder or delete), and never rename lesson `id`s.
+
+## Website (phones: iPhone & Android)
+`.github/workflows/pages.yml` publishes `www/` to GitHub Pages on every push.
+One-time setup: repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+The site will be at `https://karame-dotcom.github.io/CS-Coach/`.
+On a phone, open the link and **Add to Home Screen** (iPhone: Share → Add to Home Screen; Android: ⋮ → Install app). It works offline too.
+
 ## Run the web version
 ```bash
 npm start        # serves www/ at http://localhost:3000
