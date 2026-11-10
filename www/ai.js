@@ -23,48 +23,66 @@ window.CSAI = (function () {
   }
 
   // ---- Google Gemini (free tier with a Google AI Studio key) ----
+  // The key goes in the ?key= query parameter (no custom header), which browsers
+  // can send to Google without a blocked CORS preflight.
   const GEMINI = "https://generativelanguage.googleapis.com/v1beta/";
-  async function geminiModel(key) {
+  const FALLBACK_MODELS = ["models/gemini-2.5-flash", "models/gemini-flash-latest", "models/gemini-2.0-flash", "models/gemini-2.5-flash-lite", "models/gemini-2.0-flash-lite"];
+  async function geminiCandidates(key) {
     const cached = localStorage.getItem("cscoach.geminiModel");
-    if (cached) return cached;
-    let pick = "models/gemini-2.5-flash";
+    let listed = [];
     try {
-      const r = await fetch(GEMINI + "models?pageSize=200", { headers: { "x-goog-api-key": key } });
-      if (r.status === 400 || r.status === 403) throw err("bad_key");
-      const d = await r.json();
-      // newest stable "flash" text model that supports generateContent
-      const ok = (d.models || []).filter(m => (m.supportedGenerationMethods || []).includes("generateContent")
-        && /gemini-[\d.]+-flash$/.test(m.name));
-      const ver = n => parseFloat((n.match(/gemini-([\d.]+)/) || [0, 0])[1]);
-      ok.sort((a, b) => ver(b.name) - ver(a.name));
-      if (ok.length) pick = ok[0].name;
+      const r = await fetch(GEMINI + "models?pageSize=200&key=" + encodeURIComponent(key));
+      const d = await r.json().catch(() => ({}));
+      if (r.status === 400 || r.status === 401 || r.status === 403) throw err("bad_key", d.error && d.error.message);
+      const ver = n => parseFloat((n.match(/gemini-([\d.]+)/) || [0, 0])[1]) || 0;
+      listed = (d.models || [])
+        .filter(m => (m.supportedGenerationMethods || []).includes("generateContent") && /gemini-[\d.]+-flash(-lite)?$|gemini-flash-latest$/.test(m.name))
+        .map(m => m.name)
+        .sort((x, y) => (ver(y) - ver(x)) || (x.includes("lite") - y.includes("lite")));
     } catch (e) { if (e.code === "bad_key") throw e; }
-    try { localStorage.setItem("cscoach.geminiModel", pick); } catch (_) {}
-    return pick;
+    const all = [cached, ...listed, ...FALLBACK_MODELS].filter(Boolean);
+    return [...new Set(all)];
+  }
+  async function geminiOnce(key, model, messages) {
+    let res, d = {};
+    try {
+      res = await fetch(GEMINI + model + ":generateContent?key=" + encodeURIComponent(key), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: messages.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+          generationConfig: { maxOutputTokens: 4096 }
+        })
+      });
+      d = await res.json().catch(() => ({}));
+    } catch (_) { throw err("offline", "Network blocked or offline"); }
+    const msg = d.error && d.error.message;
+    if (res.status === 400 && /api key/i.test(msg || "")) throw err("bad_key", msg);
+    if (res.status === 401 || res.status === 403) throw err("bad_key", msg);
+    if (res.status === 404) throw err("no_model", msg);
+    if (res.status === 429) throw err("rate_limited", msg);
+    if (!res.ok) throw err("error", msg || ("HTTP " + res.status));
+    const c = d.candidates && d.candidates[0];
+    const text = c && c.content && (c.content.parts || []).map(p => p.text || "").join("");
+    if (!text) throw err("refusal", "Empty reply");
+    return text;
   }
   function viaGemini(key) {
     return wrap(async messages => {
-      const model = await geminiModel(key);
-      let res, d = {};
-      try {
-        res = await fetch(GEMINI + model + ":generateContent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-          body: JSON.stringify({
-            contents: messages.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
-            generationConfig: { maxOutputTokens: 4096 }
-          })
-        });
-        d = await res.json().catch(() => ({}));
-      } catch (_) { throw err("offline"); }
-      if (res.status === 429) throw err("rate_limited");
-      if (res.status === 400 || res.status === 401 || res.status === 403) throw err("bad_key", d.error && d.error.message);
-      if (res.status === 404) { try { localStorage.removeItem("cscoach.geminiModel"); } catch (_) {} throw err("error"); }
-      if (!res.ok) throw err("error", d.error && d.error.message);
-      const c = d.candidates && d.candidates[0];
-      const text = c && c.content && (c.content.parts || []).map(p => p.text || "").join("");
-      if (!text) throw err("refusal");
-      return text;
+      const models = await geminiCandidates(key);
+      let last = null;
+      for (const model of models) {
+        try {
+          const text = await geminiOnce(key, model, messages);
+          try { localStorage.setItem("cscoach.geminiModel", model); } catch (_) {}
+          return text;
+        } catch (e) {
+          last = e;
+          if (e.code === "bad_key" || e.code === "offline") throw e;   // same result for every model
+          // model missing, or no free quota for this model: try the next one
+        }
+      }
+      throw last || err("error");
     });
   }
 
@@ -119,8 +137,9 @@ window.CSAI = (function () {
   }
   function setKey(cfg) {
     try {
-      if (cfg && cfg.key) localStorage.setItem("cscoach.aikey", JSON.stringify(cfg)); else localStorage.removeItem("cscoach.aikey");
-      localStorage.removeItem("cscoach.geminiModel");
+      if (cfg && cfg.key) localStorage.setItem("cscoach.aikey", JSON.stringify(cfg));
+      else { localStorage.removeItem("cscoach.aikey"); localStorage.removeItem("cscoach.geminiModel"); }
+      // keep the model that just passed the test; a stale one is skipped automatically
     } catch (_) {}
     ready = null;
     document.dispatchEvent(new CustomEvent("cscoach:ai"));

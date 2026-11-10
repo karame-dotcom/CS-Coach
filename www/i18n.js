@@ -345,7 +345,7 @@
     unitLabel: ["Official topic {n}", "Opisyal na paksa {n}", "Official topic {n}"],
     // v9: backup & restore
     backupTitle: ["Backup & restore", "Backup at pagbabalik ng datos", "Backup & restore"],
-    backupDesc: ["Your progress is saved on this device and kept through app updates. The app also makes automatic backups. Download a backup file to keep it safe or move it to another phone.", "Naka-save ang iyong progreso sa device na ito at hindi nawawala kapag may update. Awtomatiko ring nagba-backup ang app. Mag-download ng backup file para mas ligtas o para mailipat sa ibang phone.", "Naka-save ang progress mo sa device na ito at hindi nawawala kapag may update. May automatic backups din. Mag-download ng backup file para safe o para mailipat sa ibang phone."],
+    backupDesc: ["Your progress is saved on this phone and kept through app updates. Download a backup file to keep it extra safe or move it to another phone; restore it here anytime.", "Naka-save ang iyong progreso sa device na ito at hindi nawawala kapag may update. Awtomatiko ring nagba-backup ang app. Mag-download ng backup file para mas ligtas o para mailipat sa ibang phone.", "Naka-save ang progress mo sa device na ito at hindi nawawala kapag may update. May automatic backups din. Mag-download ng backup file para safe o para mailipat sa ibang phone."],
     lastAuto: ["Last automatic backup", "Huling awtomatikong backup", "Last automatic backup"],
     lastExport: ["Last backup file", "Huling backup file", "Last backup file"],
     never: ["never", "wala pa", "wala pa"],
@@ -354,7 +354,7 @@
     backupCopied: ["Backup code copied ✓ Paste it somewhere safe (e.g. Notes or email).", "Nakopya ang backup code ✓ I-paste sa ligtas na lugar (hal. Notes o email).", "Na-copy ang backup code ✓ I-paste mo sa safe na lugar (e.g. Notes o email)."],
     backupManualCopy: ["Select all the text below and copy it to a safe place.", "Piliin ang lahat ng teksto sa ibaba at kopyahin sa ligtas na lugar.", "I-select lahat ng text sa baba at i-copy sa safe na lugar."],
     backupSaved: ["Backup file downloaded ✓", "Na-download ang backup file ✓", "Na-download ang backup file ✓"],
-    backupUseCopy: ["Download isn't available here. Use “Copy backup code” instead.", "Hindi puwede ang download dito. Gamitin ang “Kopyahin ang backup code”.", "Hindi pwede mag-download dito. Gamitin ang “Copy backup code”."],
+    backupUseCopy: ["Downloads aren't allowed inside claude.ai. Use the website version to download a backup.", "Hindi puwede ang download sa loob ng claude.ai. Gamitin ang website para mag-download ng backup.", "Bawal ang download sa loob ng claude.ai. Gamitin ang website para mag-download ng backup."],
     restoreFile: ["Restore from file", "Ibalik mula sa file", "Restore from file"],
     restorePaste: ["Restore from code", "Ibalik mula sa code", "Restore from code"],
     restoreAuto: ["Restore an automatic backup", "Ibalik ang awtomatikong backup", "Restore ng automatic backup"],
@@ -435,10 +435,19 @@
     aiNotConnected: ["Not connected: Kiko uses the built-in tutor.", "Hindi nakakonekta: built-in na tutor ang gamit ni Kiko.", "Hindi connected: built-in tutor ang gamit ni Kiko."],
     aiBadKey: ["That key didn't work. Check that you copied all of it.", "Hindi gumana ang key. Tiyaking nakopya mo ang buo.", "Hindi gumana ang key. I-check kung nakopya mo lahat."],
     aiTestFail: ["Couldn't reach the AI right now (offline or busy). Try again in a moment.", "Hindi maabot ang AI ngayon (offline o abala). Subukang muli mamaya.", "Hindi ma-reach ang AI ngayon (offline o busy). Try ulit mamaya."],
+    aiQuota: ["This key has reached its free limit for now. Try again later or tomorrow.", "Naabot na ng key ang libreng limitasyon. Subukang muli mamaya o bukas.", "Naabot na ng key ang free limit. Try ulit mamaya o bukas."],
     aiSaved: ["AI connected ✓ Ask Kiko anything!", "Nakakonekta na ang AI ✓ Magtanong kay Kiko!", "Connected na ang AI ✓ Ask si Kiko kahit ano!"],
     aiRemoved: ["Key removed from this phone.", "Naalis ang key sa phone na ito.", "Naalis na ang key sa phone na ito."],
     aiPrivacy: ["🔒 Your key is saved only on this phone (not in backups) and is sent only to the provider you chose.", "🔒 Sa phone na ito lang naka-save ang key mo (wala sa backup) at sa napili mong provider lang ipinapadala.", "🔒 Sa phone na ito lang naka-save ang key mo (wala sa backups) at sa provider lang na pinili mo pinapadala."],
     aiGeminiPrivacy: ["Note: on Gemini's free tier, Google may use what you send to improve its products. Don't type personal information.", "Paalala: sa libreng Gemini, maaaring gamitin ng Google ang ipinapadala mo para pagbutihin ang kanilang produkto. Huwag maglagay ng personal na impormasyon.", "Note: sa free Gemini, pwedeng gamitin ng Google ang sinesend mo para i-improve ang products nila. 'Wag mag-type ng personal info."],
+    // v16: collapsible settings
+    secProfile: ["Profile & language", "Profile at wika", "Profile & language"],
+    secQuiz: ["Quiz & schedule", "Pagsusulit at iskedyul", "Quiz & schedule"],
+    perDay: ["day", "araw", "day"],
+    installShort: ["Install on this phone", "I-install sa phone na ito", "I-install sa phone"],
+    installedShort: ["✅ Installed", "✅ Naka-install", "✅ Installed"],
+    aiBuiltInShort: ["✅ Built in here", "✅ May AI na rito", "✅ Built-in dito"],
+    aiOffShort: ["Not connected", "Hindi nakakonekta", "Hindi connected"],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 

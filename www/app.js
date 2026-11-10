@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.14.0";
+  const APP_VERSION = "1.15.0";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -370,6 +370,16 @@
   const CHAR_KEYS = { sprout: "charSprout", kitty: "charKitty", bunny: "charBunny", puppy: "charPuppy", chick: "charChick" };
   const settingsSnap = p => JSON.stringify({ name: p.name || "", instant: !!p.instant, examDate: p.examDate || "", pet: p.pet !== false, lang: p.lang || "en", dailyGoal: +p.dailyGoal || 20, petChar: p.petChar || "sprout", petName: p.petName || "Kiko" });
 
+  // Settings sections are collapsible (tap the header). Open sections stay open on re-render.
+  const openSecs = new Set();
+  function sec(id, icon, title, summary, body, firstRun) {
+    if (firstRun) return `<div class="setup-sec"><div class="setup-h">${icon} ${title}</div>${body}</div>`;
+    return `<details class="set-sec" data-sec="${id}" ${openSecs.has(id) ? "open" : ""}>
+      <summary><span class="sec-ico">${icon}</span><span class="sec-txt"><b>${title}</b>${summary ? `<small>${summary}</small>` : ""}</span><span class="sec-chev">▾</span></summary>
+      <div class="sec-body">${body}</div>
+    </details>`;
+  }
+
   function renderSettings(firstRun, draft) {
     // Leaving with unsaved changes asks first
     setBack(firstRun ? null : () => guardLeave(goHome));
@@ -387,62 +397,58 @@
     app.innerHTML = `
       <h2>${firstRun ? t("welcome") : t("settings")}</h2>
       <p class="sub">${firstRun ? t("setupSub") : t("settingsSub")}</p>
-      <form id="setupForm" class="panel">
-        <div class="field-label">${t("language")}</div>
-        <div class="lang-row">
-          ${langOpt("en", "🇺🇸", "English", "Let's review!")}
-          ${langOpt("tl", "🇵🇭", "Tagalog", "Magrebyu tayo!")}
-          ${langOpt("tg", "💬", "Taglish", "Review na tayo!")}
-        </div>
-        <p class="muted small" style="margin:6px 0 0">${t("languageNote")}</p>
+      <form id="setupForm" class="${firstRun ? "panel" : "settings-form"}">
+        ${sec("profile", "👤", t("secProfile"), esc((p.name ? p.name + " · " : "") + I.names[p.lang || "en"]), `
+          <div class="field-label">${t("language")}</div>
+          <div class="lang-row">
+            ${langOpt("en", "🇺🇸", "English", "Let's review!")}
+            ${langOpt("tl", "🇵🇭", "Tagalog", "Magrebyu tayo!")}
+            ${langOpt("tg", "💬", "Taglish", "Review na tayo!")}
+          </div>
+          <p class="muted small" style="margin:6px 0 0">${t("languageNote")}</p>
+          <label class="field-label" for="name" style="margin-top:18px">${t("yourName")}</label>
+          <input id="name" class="input" type="text" maxlength="40" placeholder="${t("namePh")}" value="${esc(p.name || "")}" autocomplete="given-name" />`, firstRun)}
 
-        <label class="field-label" for="name" style="margin-top:18px">${t("yourName")}</label>
-        <input id="name" class="input" type="text" maxlength="40" placeholder="${t("namePh")}" value="${esc(p.name || "")}" autocomplete="given-name" />
+        ${sec("quiz", "📝", t("secQuiz"), esc((p.instant ? t("practiceMode") : t("examMode")) + (p.examDate ? " · " + p.examDate : "") + " · " + (p.dailyGoal || 20) + "/" + t("perDay")), `
+          <div class="field-label">${t("revealQ")}</div>
+          <label class="mode-opt">
+            <input type="radio" name="mode" value="exam" ${!p.instant ? "checked" : ""} />
+            <div><b>📝 ${t("examMode")} <span class="badge">${t("recommended")}</span></b>
+            <span>${t("examModeDesc")}</span></div>
+          </label>
+          <label class="mode-opt">
+            <input type="radio" name="mode" value="instant" ${p.instant ? "checked" : ""} />
+            <div><b>⚡ ${t("practiceMode")}</b>
+            <span>${t("practiceModeDesc")}</span></div>
+          </label>
+          <label class="field-label" for="examDate" style="margin-top:18px">${t("examDate")}</label>
+          <input id="examDate" class="input" type="date" value="${esc(p.examDate || "")}" />
+          <p class="muted small" style="margin:6px 0 0">${t("examDateNote")}</p>
+          <label class="field-label" for="dailyGoal" style="margin-top:18px">${t("dailyGoal")}</label>
+          <input id="dailyGoal" class="input" type="number" min="5" max="200" step="5" value="${esc(p.dailyGoal || 20)}" />`, firstRun)}
 
-        <div class="field-label" style="margin-top:18px">${t("revealQ")}</div>
-        <label class="mode-opt">
-          <input type="radio" name="mode" value="exam" ${!p.instant ? "checked" : ""} />
-          <div><b>📝 ${t("examMode")} <span class="badge">${t("recommended")}</span></b>
-          <span>${t("examModeDesc")}</span></div>
-        </label>
-        <label class="mode-opt">
-          <input type="radio" name="mode" value="instant" ${p.instant ? "checked" : ""} />
-          <div><b>⚡ ${t("practiceMode")}</b>
-          <span>${t("practiceModeDesc")}</span></div>
-        </label>
-
-        <label class="field-label" for="examDate" style="margin-top:18px">${t("examDate")}</label>
-        <input id="examDate" class="input" type="date" value="${esc(p.examDate || "")}" />
-        <p class="muted small" style="margin:6px 0 0">${t("examDateNote")}</p>
-
-        <label class="field-label" for="dailyGoal" style="margin-top:18px">${t("dailyGoal")}</label>
-        <input id="dailyGoal" class="input" type="number" min="5" max="200" step="5" value="${esc(p.dailyGoal || 20)}" />
-
-        <div class="field-label" style="margin-top:22px">🐾 ${t("buddySection")}</div>
-        <div class="muted small" style="margin-bottom:8px">${t("buddyChar")}</div>
-        <div class="char-row">
-          ${Object.keys(CHAR_KEYS).map(k => `
-            <label class="char-opt">
-              <input type="radio" name="petChar" value="${k}" ${(p.petChar || "sprout") === k ? "checked" : ""} />
-              ${window.Pet && Pet.preview ? Pet.preview(k) : ""}
-              <span>${t(CHAR_KEYS[k])}</span>
-            </label>`).join("")}
-        </div>
-        <label class="field-label" for="petName" style="margin-top:12px">${t("buddyName")}</label>
-        <input id="petName" class="input" type="text" maxlength="16" placeholder="Kiko" value="${esc(p.petName || "Kiko")}" />
-        <label class="check-row"><input type="checkbox" id="petOn" ${p.pet !== false ? "checked" : ""} /> ${t("showPet")}</label>
+        ${sec("buddy", "🐾", t("buddySection"), esc((p.petName || "Kiko") + " · " + t(CHAR_KEYS[p.petChar || "sprout"])), `
+          <div class="muted small" style="margin-bottom:8px">${t("buddyChar")}</div>
+          <div class="char-row">
+            ${Object.keys(CHAR_KEYS).map(k => `
+              <label class="char-opt">
+                <input type="radio" name="petChar" value="${k}" ${(p.petChar || "sprout") === k ? "checked" : ""} />
+                ${window.Pet && Pet.preview ? Pet.preview(k) : ""}
+                <span>${t(CHAR_KEYS[k])}</span>
+              </label>`).join("")}
+          </div>
+          <label class="field-label" for="petName" style="margin-top:12px">${t("buddyName")}</label>
+          <input id="petName" class="input" type="text" maxlength="16" placeholder="Kiko" value="${esc(p.petName || "Kiko")}" />
+          <label class="check-row"><input type="checkbox" id="petOn" ${p.pet !== false ? "checked" : ""} /> ${t("showPet")}</label>`, firstRun)}
 
         <div class="actions save-row"><span class="unsaved-badge hidden" id="unsavedBadge">● ${t("unsavedBadge")}</span><button class="btn" type="submit">${firstRun ? t("startReviewing") : t("saveSettings")}</button></div>
       </form>
-      ${firstRun ? "" : aiPanelHtml()}
-      ${firstRun ? "" : installHtml(false)}
-      ${firstRun ? "" : backupPanelHtml()}
-      ${firstRun ? "" : `
-        <div class="panel danger-zone">
-          <b>${t("resetProgress")}</b>
-          <p class="sub" style="margin:4px 0 12px">${t("resetDesc")}</p>
-          <button class="btn secondary" id="resetBtn">${t("resetProgress")}</button>
-        </div>`}
+      ${firstRun ? "" : sec("ai", "✨", t("aiTutorTitle"), aiSummary(), aiPanelHtml())}
+      ${firstRun ? "" : (IN ? sec("install", "📲", t("installShort"), IN.isStandalone() ? t("installedShort") : "", installHtml(false)) : "")}
+      ${firstRun ? "" : sec("backup", "🛡️", t("backupTitle"), "", backupPanelHtml())}
+      ${firstRun ? "" : sec("reset", "🗑️", t("resetProgress"), "", `
+          <p class="sub" style="margin:0 0 12px">${t("resetDesc")}</p>
+          <button class="btn secondary" id="resetBtn">${t("resetProgress")}</button>`)}
       <p class="note">${t("profileNote")}</p>
     `;
     const read = () => ({
@@ -482,6 +488,7 @@
       if (firstRun) setTimeout(() => pet().say(t("petHi", { name: profile.name ? " " + profile.name : "" }), 3200), 400);
       else toast(t("settingsSaved"));
     });
+    app.querySelectorAll("details.set-sec").forEach(d => d.addEventListener("toggle", () => { d.open ? openSecs.add(d.dataset.sec) : openSecs.delete(d.dataset.sec); }));
     if (!firstRun) { bindAiPanel(); bindBackupPanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
     const reset = document.getElementById("resetBtn");
     if (reset) reset.addEventListener("click", () => confirmBox(t("resetConfirm"), t("reset"), () => {
@@ -498,25 +505,15 @@
   const fmtDate = ts => new Date(ts).toLocaleString(I.lang === "en" ? "en-US" : "fil-PH", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
   const reasonLabel = r => (r || "").startsWith("update") ? t("reasonUpdate") : t({ daily: "reasonDaily", manual: "reasonManual", "before-restore": "reasonRestore", "before-reset": "reasonReset", "before-remap": "reasonUpdate" }[r] || "reasonManual");
   function backupPanelHtml() {
-    const list = store.get("cscoach.backups", []);
     const lastExport = store.get("cscoach.lastExport", null);
     return `
       <div class="panel backup-panel">
-        <b>🛡️ ${t("backupTitle")}</b>
-        <p class="muted small" style="margin:4px 0 10px">${t("backupDesc")}</p>
-        <div class="backup-meta">
-          <span>✅ ${t("lastAuto")}: <b>${list.length ? fmtDate(list[list.length - 1].savedAt) : t("never")}</b></span>
-          <span>💾 ${t("lastExport")}: <b>${lastExport ? fmtDate(lastExport) : t("never")}</b></span>
-        </div>
+        <p class="muted small" style="margin:0 0 10px">${t("backupDesc")}</p>
+        <div class="backup-meta"><span>💾 ${t("lastExport")}: <b>${lastExport ? fmtDate(lastExport) : t("never")}</b></span></div>
         <div class="backup-btns">
           <button class="btn" id="bkDownload">⬇️ ${t("backupDownload")}</button>
-          <button class="btn secondary" id="bkCopy">📋 ${t("backupCopy")}</button>
-        </div>
-        <div class="backup-btns">
           <label class="btn secondary file-btn">📂 ${t("restoreFile")}<input type="file" id="bkFile" accept=".json,application/json,text/plain" hidden /></label>
-          <button class="btn secondary" id="bkPaste">📝 ${t("restorePaste")}</button>
         </div>
-        ${list.length ? `<button class="link" id="bkAuto">↩️ ${t("restoreAuto")} (${list.length})</button>` : ""}
       </div>`;
   }
   function confirmRestore(snap) {
@@ -534,51 +531,22 @@
   function bindBackupPanel() {
     const fileName = () => "cs-coach-backup-" + new Date().toISOString().slice(0, 10) + ".json";
     document.getElementById("bkDownload").onclick = () => {
+      if (window.claude && typeof window.claude.use === "function") return toast(t("backupUseCopy"));   // claude.ai blocks downloads
       const json = JSON.stringify(snapshot("manual"));
-      let ok = false;
       try {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }));
         a.download = fileName(); document.body.appendChild(a); a.click(); a.remove();
-        ok = true;
-      } catch (_) {}
-      store.set("cscoach.lastExport", Date.now());
-      toast(ok ? t("backupSaved") : t("backupUseCopy"));
+        store.set("cscoach.lastExport", Date.now());
+        toast(t("backupSaved"));
+      } catch (_) { toast(t("backupUseCopy")); }
       const y = window.scrollY; renderSettings(false); window.scrollTo(0, y);
-    };
-    document.getElementById("bkCopy").onclick = async () => {
-      const code = btoa(unescape(encodeURIComponent(JSON.stringify(snapshot("manual")))));
-      try { await navigator.clipboard.writeText(code); store.set("cscoach.lastExport", Date.now()); toast(t("backupCopied")); }
-      catch (_) {
-        modal(`<div class="modal-title">📋 ${t("backupCopy")}</div><p class="muted small">${t("backupManualCopy")}</p><textarea class="input code-box" readonly>${esc(code)}</textarea><div class="actions"><button class="btn" data-x>${t("gotIt")}</button></div>`,
-          (w, close) => { const ta = w.querySelector("textarea"); ta.focus(); ta.select(); w.querySelector("[data-x]").onclick = () => { store.set("cscoach.lastExport", Date.now()); close(); }; });
-      }
     };
     document.getElementById("bkFile").onchange = e => {
       const f = e.target.files[0]; if (!f) return;
       const r = new FileReader();
       r.onload = () => { const snap = parseBackup(String(r.result)); snap ? confirmRestore(snap) : toast(t("badBackup")); };
       r.readAsText(f);
-    };
-    document.getElementById("bkPaste").onclick = () => modal(`
-      <div class="modal-title">📝 ${t("restorePaste")}</div>
-      <textarea class="input code-box" id="pasteBox" placeholder="${t("pastePh")}"></textarea>
-      <div class="actions"><button class="btn secondary" data-x>${t("cancel")}</button><button class="btn" data-go>${t("restoreBtn")}</button></div>`,
-      (w, close) => {
-        w.querySelector("[data-x]").onclick = close;
-        w.querySelector("[data-go]").onclick = () => { const snap = parseBackup(w.querySelector("#pasteBox").value); close(); snap ? confirmRestore(snap) : toast(t("badBackup")); };
-      });
-    const au = document.getElementById("bkAuto");
-    if (au) au.onclick = () => {
-      const list = store.get("cscoach.backups", []).slice().reverse();
-      modal(`
-        <div class="modal-title">↩️ ${t("restoreAuto")}</div>
-        <div class="set-list">${list.map((b, i) => `<button class="set-item" data-b="${i}"><div class="set-num">${list.length - i}</div><div class="set-info"><b>${fmtDate(b.savedAt)}</b><span>${reasonLabel(b.reason)} · v${esc(b.version)} · ${b.data && b.data.stats ? Object.keys(b.data.stats).length : 0} ${t("questions").toLowerCase()}</span></div></button>`).join("")}</div>
-        <div class="actions"><button class="btn secondary" data-x>${t("cancel")}</button></div>`,
-        (w, close) => {
-          w.querySelector("[data-x]").onclick = close;
-          w.querySelectorAll("[data-b]").forEach(b => b.onclick = () => { close(); confirmRestore(list[+b.dataset.b]); });
-        });
     };
   }
 
@@ -711,6 +679,11 @@
 
 
   // ---------- AI tutor: bring your own key ----------
+  function aiSummary() {
+    if (window.CSAI.builtIn()) return t("aiBuiltInShort");
+    const c = window.CSAI.current();
+    return c && c.key ? "✅ " + (c.provider === "claude" ? t("aiProvClaude") : t("aiProvGemini")) : t("aiOffShort");
+  }
   function aiPanelHtml() {
     if (window.CSAI.builtIn()) return `<div class="panel ai-panel"><b>✨ ${t("aiTutorTitle")}</b><p class="muted small" style="margin:6px 0 0">${t("aiBuiltIn")}</p></div>`;
     const cur = window.CSAI.current() || {};
@@ -768,7 +741,8 @@
         rerender();
       } catch (e) {
         btn.disabled = false; btn.textContent = t("aiSaveTest");
-        toast(e && e.code === "bad_key" ? t("aiBadKey") : t("aiTestFail"));
+        const detail = e && e.message && e.message !== e.code ? " (" + String(e.message).slice(0, 140) + ")" : "";
+        toast((e && e.code === "bad_key" ? t("aiBadKey") : e && e.code === "rate_limited" ? t("aiQuota") : t("aiTestFail")) + detail);
       }
     };
     const rm = document.getElementById("aiRemove");

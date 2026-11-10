@@ -35,7 +35,7 @@ Lessons are organized by the official CSC Professional exam scope of examination
 - Progress is stored on the device (`localStorage`, keys `cscoach.*`). App updates never clear it.
 - A full backup is saved automatically before a new app version first runs, and once a day (last 5 kept).
 - Questions are fingerprinted by their text, so progress follows a question even if the bank is reorganized.
-- Settings → **Backup & restore**: download a backup file, copy a backup code, restore from file/code, or restore an automatic backup.
+- Settings → **Backup & restore**: download a backup file, or restore from a file.
 - **Rules for developers:** only *append* new questions to a subject's list (never reorder or delete), and never rename lesson `id`s.
 
 ## Website (phones: iPhone & Android)
