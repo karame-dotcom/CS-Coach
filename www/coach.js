@@ -56,12 +56,14 @@
     panel.classList.remove("hidden");
     fab.classList.add("open");
     if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(true);
+    document.body.classList.add("chat-open");
+    setTimeout(fitPanel, 0);
     if (!msgs.children.length) greet();
     renderChips();
     if (kind) { addMsg("user", esc(chipLabel(kind)), chipLabel(kind)); reply(builtIn(kind)); }
     else setTimeout(() => input.focus(), 50);
   }
-  function close() { focus = null; panel.classList.add("hidden"); fab.classList.remove("open"); if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(false); }
+  function close() { focus = null; document.body.classList.remove("chat-open"); panel.classList.add("hidden"); fitPanel(); fab.classList.remove("open"); if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(false); }
   const toggle = () => panel.classList.contains("hidden") ? open() : close();
   fab.addEventListener("click", toggle);
   panel.querySelector(".coach-x").addEventListener("click", close);
@@ -74,6 +76,24 @@
     if (sample) askAI(label + ": " + ctx.question, true); else reply(builtIn("explain"));
   }
   window.CoachUI = { open, close, toggle, explain };
+
+  // Keep the phone keyboard open after sending: the Send button never steals focus
+  const sendBtn = panel.querySelector(".coach-input button");
+  ["pointerdown", "mousedown", "touchstart"].forEach(ev => sendBtn.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+  sendBtn.addEventListener("touchend", e => { e.preventDefault(); panel.querySelector("#coachForm").requestSubmit(); }, { passive: false });
+
+  // Freeze the chat header on phones: fit the panel to the visible area above the keyboard
+  const vv = window.visualViewport;
+  function fitPanel() {
+    if (panel.classList.contains("hidden") || window.innerWidth > 520) { panel.style.top = panel.style.height = panel.style.bottom = ""; return; }
+    const h = vv ? vv.height : window.innerHeight, top = vv ? vv.offsetTop : 0;
+    panel.style.top = (top + 8) + "px";
+    panel.style.bottom = "auto";
+    panel.style.height = (h - 16) + "px";
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+  if (vv) { vv.addEventListener("resize", fitPanel); vv.addEventListener("scroll", fitPanel); }
+  window.addEventListener("resize", fitPanel);
 
   function addMsg(role, html, text) {
     const div = document.createElement("div");
@@ -211,9 +231,9 @@
     if (/weak|focus|improve|mahina|what should|ano dapat|pagtuunan/.test(q)) return builtIn("focus");
     if (/hint|this question|tanong na ito|help|tulong/.test(q)) return builtIn("hint");
     if (/motivat|tired|pagod|give up|nervous|kaba|stress|sad|lungkot|suko/.test(q)) return builtIn("motivate");
-    if (/exam day|tip|bring|dalhin|time|oras/.test(q)) return builtIn("tips");
     const subj = A().subjects.find(s => q.includes(s.id) || (s.id === "numerical" && /math|number|compute|numer/.test(q)) || (s.id === "geninfo" && /constitution|konstitusyon|law|batas|ra |general/.test(q)) || (s.id === "verbal" && /english|ingles|grammar|vocab/.test(q)) || (s.id === "filipino" && /filipino|tagalog/.test(q)) || (s.id === "analytical" && /logic|lohika|analytic|reason/.test(q)));
     if (subj) { const tr = NAME(subj.id); return `<b>${subj.icon} ${t("tipsFor", { s: esc(tr.name) })}</b><ul>${tr.tips.map(x => `<li>${esc(x)}</li>`).join("")}</ul><div class="cacts">${btn("s:" + subj.id, t("practiceNow", { i: subj.icon }))}</div>`; }
+    if (/exam day|tip|bring|dalhin|time|oras/.test(q)) return builtIn("tips");
     return t("canHelp");
   }
 
@@ -284,6 +304,7 @@ ${JSON.stringify(context)}`;
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
+    input.focus({ preventScroll: true });
     addMsg("user", esc(text), text);
     const wants = !!ctxQ() && /explain|gets|maintindihan|paliwanag|bakit|paano|why|how|confus|gulo|step/i.test(text);
     if (sample) askAI(text, wants); else reply(builtIn("text", text));

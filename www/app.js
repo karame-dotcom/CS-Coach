@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.9.0";
+  const APP_VERSION = "1.10.0";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -176,7 +176,34 @@
   }
 
   // Shuffle the choice order while tracking the correct answer
+  // Error-recognition items ("Identify the part with an error: X (A) / Y (B) / … / No error (D)")
+  // are shown as a sentence with each underlined part's letter below it, like the real exam.
+  function errParts(q) {
+    const m = q.q.match(/^(.*?:)\s*(.+)$/);
+    if (!m || !/\([A-E]\)\s*$/.test(m[2])) return null;
+    const parts = m[2].split(/\s*\/\s*/).map(p => { const x = p.match(/^(.*?)\s*\(([A-E])\)\s*$/); return x ? { text: x[1], letter: x[2] } : null; });
+    if (parts.length < 3 || parts.some(p => !p)) return null;
+    return { prompt: m[1], parts };
+  }
+  const isNoError = txt => /^(no error|walang mali)$/i.test(txt.trim());
+  function qHtml(q) {
+    const ep = errParts(q);
+    if (!ep) return esc(q.q);
+    const segs = ep.parts.filter(p => !isNoError(p.text)), none = ep.parts.find(p => isNoError(p.text));
+    return `<span class="err-prompt">${esc(ep.prompt)}</span>
+      <span class="err-sentence">${segs.map(p => `<span class="seg"><u>${esc(p.text)}</u><b>${p.letter}</b></span>`).join(" ")}</span>
+      ${none ? `<span class="err-sentence noerr"><span class="seg"><span>${esc(none.text)}</span><b>${none.letter}</b></span></span>` : ""}`;
+  }
+  // Choice text: for error items, show the underlined words for that letter
+  function cText(q, i) {
+    const ep = errParts(q), c = q.c[i];
+    if (!ep) return c;
+    const part = ep.parts.find(p => p.letter === c);
+    return part ? part.text : c;
+  }
+
   function prepare(q) {
+    if (errParts(q)) return { ...q };   // letters must stay in order
     const order = shuffle(q.c.map((_, i) => i));
     return { ...q, c: order.map(i => q.c[i]), a: order.indexOf(q.a) };
   }
@@ -651,15 +678,15 @@
         <div class="step-card check">
           <div class="lesson-h">🧠 ${t("quickCheck")}</div>
           <p class="muted small" style="margin-top:0">${t("quickCheckSub")}</p>
-          <p class="point-text">${esc(cq.q)}</p>
-          <div class="choices">${cq.c.map((c, n) => `<button class="choice" data-ci="${n}"><span class="letter">${LETTERS[n]}</span><span>${esc(c)}</span></button>`).join("")}</div>
+          <p class="point-text qtext">${qHtml(cq)}</p>
+          <div class="choices">${cq.c.map((c, n) => `<button class="choice" data-ci="${n}"><span class="letter">${LETTERS[n]}</span><span>${esc(cText(cq, n))}</span></button>`).join("")}</div>
           <div id="checkFb"></div>
         </div>`;
       setTimeout(() => app.querySelectorAll("[data-ci]").forEach(b => b.addEventListener("click", () => {
         const n = +b.dataset.ci;
         app.querySelectorAll("[data-ci]").forEach((x, m) => { x.disabled = true; if (m === cq.a) x.classList.add("correct"); else if (m === n) x.classList.add("wrong"); });
         n === cq.a ? pet().cheer() : pet().cry();
-        document.getElementById("checkFb").innerHTML = `<div class="feedback ${n === cq.a ? "ok" : "no"}"><b>${n === cq.a ? t("correctFb") : t("wrongFb", { x: LETTERS[cq.a] + ": " + esc(cq.c[cq.a]) })}</b>${esc(cq.e)}</div>`;
+        document.getElementById("checkFb").innerHTML = `<div class="feedback ${n === cq.a ? "ok" : "no"}"><b>${n === cq.a ? t("correctFb") : t("wrongFb", { x: LETTERS[cq.a] + ": " + esc(cText(cq, cq.a)) })}</b>${esc(cq.e)}</div>`;
       })), 0);
     } else {
       const a = accOf(qs);
@@ -1213,7 +1240,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
           <button class="tool ${isStar ? "on" : ""}" id="starBtn" aria-pressed="${isStar}" title="${t("starTitle")}">${isStar ? "★" : "☆"} <span>${t("star")}</span></button>
           <button class="tool help" id="helpBtn" title="${t("helpTitle")}">💡 <span>${t("helpMe")}</span></button>
         </div>
-        <div class="qtext">${esc(q.q)}</div>
+        <div class="qtext">${qHtml(q)}</div>
       </div>
       </div>
       <div class="qcard qcard-bottom">
@@ -1222,12 +1249,12 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
             let cls = "";
             if (locked) cls = i === q.a ? "correct" : (i === ans ? "wrong" : "");
             else if (i === ans) cls = "selected";
-            return `<button class="choice ${cls}" data-i="${i}" ${locked ? "disabled" : ""}><span class="letter">${LETTERS[i]}</span><span>${esc(c)}</span></button>`;
+            return `<button class="choice ${cls}" data-i="${i}" ${locked ? "disabled" : ""}><span class="letter">${LETTERS[i]}</span><span>${esc(cText(q, i))}</span></button>`;
           }).join("")}
         </div>
         ${locked ? `
           <div class="feedback ${ans === q.a ? "ok" : "no"}">
-            <b>${ans === q.a ? t("correctFb") : t("wrongFb", { x: LETTERS[q.a] + ": " + esc(q.c[q.a]) })}</b>
+            <b>${ans === q.a ? t("correctFb") : t("wrongFb", { x: LETTERS[q.a] + ": " + esc(cText(q, q.a)) })}</b>
             ${esc(q.e)}
           </div>` : `
           <button class="unsure-toggle ${isUnsure ? "on" : ""}" id="unsureBtn" aria-pressed="${isUnsure}">
@@ -1436,11 +1463,11 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
             <span class="review-status">Q${r.i + 1} · ${statusLabel[r.status]}${r.unsure ? ` <span class="badge unsure-badge">${t("notSure")}</span>` : ""}</span>
             <button class="tool small-tool ${starred.has(r.q.id) ? "on" : ""}" data-star="${r.q.id}" title="${t("star")}">${starred.has(r.q.id) ? "★" : "☆"}</button>
           </div>
-          <div class="q">${esc(r.q.q)}</div>
+          <div class="q qtext">${qHtml(r.q)}</div>
           ${r.status === "correct"
-            ? `<div class="row right">${t("yourAnswer")}: ${LETTERS[r.ans]}. ${esc(r.q.c[r.ans])}</div>`
-            : `<div class="row yours">${t("yourAnswer")}: ${r.ans === null ? t("noAnswer") : LETTERS[r.ans] + ". " + esc(r.q.c[r.ans])}</div>
-               <div class="row right">${t("correctAnswer")}: ${LETTERS[r.q.a]}. ${esc(r.q.c[r.q.a])}</div>`}
+            ? `<div class="row right">${t("yourAnswer")}: ${LETTERS[r.ans]}. ${esc(cText(r.q, r.ans))}</div>`
+            : `<div class="row yours">${t("yourAnswer")}: ${r.ans === null ? t("noAnswer") : LETTERS[r.ans] + ". " + esc(cText(r.q, r.ans))}</div>
+               <div class="row right">${t("correctAnswer")}: ${LETTERS[r.q.a]}. ${esc(cText(r.q, r.q.a))}</div>`}
           <div class="why">💡 ${esc(r.q.e)}</div>
           <button class="link explain-link" data-explain="${r.i}">${t("askExplain")}</button>
         </div>`).join("") : `<div class="perfect">${t("nothingHere")}</div>`}
@@ -1481,9 +1508,9 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   function qContext(q, revealed, ans) {
     const l = q.lid && lessonById.get(q.lid), tr = sn(subjectOf(q));
     return {
-      subject: tr.name, sid: q.sid, topic: l ? l.title : null, question: q.q, choices: q.c, hint: q.h, revealed,
-      answer: revealed ? q.c[q.a] : null, answerLetter: revealed ? LETTERS[q.a] : null,
-      studentAnswer: ans != null ? q.c[ans] : null, explanation: revealed ? q.e : null,
+      subject: tr.name, sid: q.sid, topic: l ? l.title : null, question: q.q, choices: q.c.map((_, i) => cText(q, i)), hint: q.h, revealed,
+      answer: revealed ? cText(q, q.a) : null, answerLetter: revealed ? LETTERS[q.a] : null,
+      studentAnswer: ans != null ? cText(q, ans) : null, explanation: revealed ? q.e : null,
       trick: l ? l.remember : tr.tips[0], tips: tr.tips
     };
   }
