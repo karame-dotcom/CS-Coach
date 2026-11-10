@@ -16,7 +16,7 @@
   panel.setAttribute("role", "dialog");
   panel.innerHTML = `
     <div class="coach-head">
-      <div class="coach-avatar">🤖</div>
+      <div class="coach-avatar">${window.Pet && window.Pet.avatar ? window.Pet.avatar() : "🌱"}</div>
       <div><b id="coachTitle"></b><span id="coachSub"></span></div>
       <button class="coach-x" aria-label="Close">✕</button>
     </div>
@@ -35,7 +35,7 @@
   let sample = null;
   function paintLabels() {
     fab.setAttribute("aria-label", t("coachTitle"));
-    fab.innerHTML = `<span class="fab-ico">💬</span><span class="fab-label">${t("coachTitle")}</span>`;
+    fab.innerHTML = `<span class="fab-ico">💬</span><span class="fab-label">Kiko</span>`;
     panel.querySelector("#coachTitle").textContent = t("coachTitle");
     panel.querySelector("#coachSub").textContent = sample ? t("coachSubAI") : t("coachSub");
     input.placeholder = t("askPh");
@@ -51,15 +51,17 @@
   function open(kind) {
     panel.classList.remove("hidden");
     fab.classList.add("open");
+    if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(true);
     if (!msgs.children.length) greet();
     renderChips();
     if (kind) { addMsg("user", esc(chipLabel(kind)), chipLabel(kind)); reply(builtIn(kind)); }
     else setTimeout(() => input.focus(), 50);
   }
-  function close() { panel.classList.add("hidden"); fab.classList.remove("open"); }
-  fab.addEventListener("click", () => panel.classList.contains("hidden") ? open() : close());
+  function close() { panel.classList.add("hidden"); fab.classList.remove("open"); if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(false); }
+  const toggle = () => panel.classList.contains("hidden") ? open() : close();
+  fab.addEventListener("click", toggle);
   panel.querySelector(".coach-x").addEventListener("click", close);
-  window.CoachUI = { open };
+  window.CoachUI = { open, close, toggle };
 
   function addMsg(role, html, text) {
     const div = document.createElement("div");
@@ -205,7 +207,7 @@
       } : null,
       today: new Date().toDateString()
     };
-    const instructions = `You are "AI Coach" inside CS Coach, a reviewer app for the Philippine Civil Service Exam (Professional level, passing rate 80%). Subjects: Verbal Ability (English and Filipino), Numerical Ability, Analytical Ability, General Information (1987 Constitution, RA 6713, peace and human rights, environment). 
+    const instructions = `You are Kiko, a cheerful little sprout-buddy tutor (and the student's study buddy) inside CS Coach, a reviewer app for the Philippine Civil Service Exam (Professional level, passing rate 80%). Subjects: Verbal Ability (English and Filipino), Numerical Ability, Analytical Ability, General Information (1987 Constitution, RA 6713, peace and human rights, environment). 
 LANGUAGE: ${t("aiLang")}
 Be warm, encouraging and specific. Use the student's analytics below: name their weak and strong subjects and weak topics with numbers, and give concrete daily targets (e.g., "5 Numerical questions a day"). If an exam date is set, plan around the days left and the student's daily goal. Prioritize high-yield topics (importance 3) the student is weak in, and mention the "Mistakes & Starred" review set when they have mistakes. The app has tabs: Learn (step-by-step lessons), Practice, Calendar, Analytics. Keep replies short (under 150 words), with short bullet lists and **bold** for key points.
 IMPORTANT: if currentQuestion.answerRevealed is false, NEVER reveal or hint at which choice is correct. Only coach the method. If it is true, you may explain the answer.

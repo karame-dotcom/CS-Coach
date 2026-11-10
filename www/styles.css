@@ -546,3 +546,25 @@ body.has-tabbar .coach-panel { bottom: calc(70px + env(safe-area-inset-bottom));
 .cal-legend i.l0 { background: #fff; } .cal-legend i.l1 { background: #dcfce7; } .cal-legend i.l2 { background: #86efac; } .cal-legend i.l3 { background: #15803d; }
 .day-detail { margin-top: 12px; padding: 12px; border-radius: 12px; background: var(--bg); display: flex; flex-direction: column; gap: 4px; font-size: .9rem; }
 .day-detail ul { margin: 4px 0 0; padding-left: 18px; }
+
+/* ===== v6: Kiko is the chat ===== */
+.coach-fab { display: none; }
+body.no-pet .coach-fab { display: flex; }
+.pet { cursor: pointer; }
+.pet-ask { position: absolute; right: -4px; top: 6px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: .85rem; background: linear-gradient(120deg, var(--green), var(--blue)); box-shadow: 0 3px 8px rgba(29,78,216,.35); pointer-events: auto; cursor: pointer; animation: askPulse 2.4s ease-in-out infinite; }
+@keyframes askPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+.pet-wrap.chatting .pet-ask { display: none; }
+.pet-wrap.chatting { z-index: 46; }
+.pet-bubble { pointer-events: auto; cursor: pointer; }
+.coach-avatar { background: #fff; overflow: hidden; width: 42px; height: 42px; }
+.kiko-mini { width: 40px; height: 40px; }
+.kiko-mini .m-happy, .kiko-mini .m-sad, .kiko-mini .k-sparkles { display: none; }
+/* chat opens beside Kiko on the left */
+.coach-panel { left: 14px; right: auto; }
+@media (min-width: 520px) { .coach-panel { left: 110px; } }
+@media (max-width: 480px) {
+  .pet-ask { width: 24px; height: 24px; font-size: .75rem; top: 2px; right: -6px; }
+  .coach-panel { left: 10px; width: calc(100vw - 20px); }
+  body.has-tabbar .coach-panel { bottom: calc(140px + env(safe-area-inset-bottom)); height: min(500px, calc(100vh - 240px)); }
+  .coach-panel { bottom: calc(84px + env(safe-area-inset-bottom)); height: min(520px, calc(100vh - 170px)); }
+}

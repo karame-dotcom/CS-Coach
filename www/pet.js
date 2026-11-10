@@ -1,5 +1,6 @@
 // Kiko: CS Coach's animated study buddy (original character).
-// API: Pet.cheer(msg), Pet.cry(msg), Pet.say(msg, ms), Pet.hop(), Pet.setVisible(bool)
+// API: Pet.cheer(msg), Pet.cry(msg), Pet.say(msg, ms), Pet.hop(), Pet.setVisible(bool), Pet.setChatOpen(bool), Pet.avatar()
+// Tapping Kiko opens the tutor chat (coach.js).
 (function () {
   "use strict";
   const SVG = `
@@ -78,7 +79,7 @@
 
   const root = document.createElement("div");
   root.className = "pet-wrap";
-  root.innerHTML = `<div class="pet-bubble hidden"></div><div class="pet idle" role="button" tabindex="0" aria-label="Kiko">${SVG}</div><div class="pet-hearts"></div>`;
+  root.innerHTML = `<div class="pet-bubble hidden"></div><div class="pet idle" role="button" tabindex="0" aria-label="Kiko: tap to ask your tutor buddy">${SVG}</div><div class="pet-hearts"></div>`;
   document.body.appendChild(root);
   const pet = root.querySelector(".pet");
   const bubble = root.querySelector(".pet-bubble");
@@ -125,13 +126,38 @@
   }
   setInterval(wander, 5200);
 
-  pet.addEventListener("click", () => { setMood("happy", 1400); say(pick(msgs().pat)); burstHearts(); });
+  // Kiko IS the chat: tapping opens the tutor chat
+  const hint = document.createElement("span");
+  hint.className = "pet-ask"; hint.textContent = "💬";
+  root.appendChild(hint);
+  let chatOpen = false;
+  function tap() {
+    setMood("happy", 900); burstHearts();
+    if (window.CoachUI) window.CoachUI.toggle(); else say(pick(msgs().pat));
+  }
+  pet.addEventListener("click", tap);
+  hint.addEventListener("click", tap);
+  bubble.addEventListener("click", tap);
+  pet.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(); } });
+
+  // Now and then, invite the student to ask a question
+  const invite = () => {
+    const I = window.I18N;
+    if (chatOpen || root.classList.contains("hidden") || !pet.classList.contains("idle") || !bubble.classList.contains("hidden") || !I) return;
+    const list = I.t("askMe");
+    say(list[Math.floor(Math.random() * list.length)], 3500);
+  };
+  setTimeout(invite, 9000);
+  setInterval(invite, 40000);
 
   window.Pet = {
     cheer(msg) { setMood("happy", 2200); say(msg || pick(msgs().cheer)); burstHearts(pick(["✨", "💚", "⭐"])); },
     cry(msg) { setMood("sad", 2800); say(msg || pick(msgs().cry), 3000); },
     say,
     hop() { setMood("hop", 600); },
-    setVisible(v) { root.classList.toggle("hidden", !v); }
+    setVisible(v) { root.classList.toggle("hidden", !v); document.body.classList.toggle("no-pet", !v); },
+    setChatOpen(v) { chatOpen = v; root.classList.toggle("chatting", v); if (v) { bubble.classList.add("hidden"); setMood("happy", 900); } },
+    // small static Kiko for the chat header (unique gradient id)
+    avatar() { return SVG.replace(/kikoBody/g, "kikoMini").replace('class="kiko"', 'class="kiko-mini"'); }
   };
 })();
