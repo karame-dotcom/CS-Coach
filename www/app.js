@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.18.1";
+  const APP_VERSION = "1.19.0";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -1696,6 +1696,90 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     });
   }
 
+
+  // ---------- Score celebration pop-up ----------
+  // ≥ passing: fireworks + dancing buddy · 60–79: sparkles + happy bounce · < 60: hearts + encouragement
+  function celebrate(pct, correct, total) {
+    const tier = pct >= PASSING ? "good" : pct >= 60 ? "mid" : "low";
+    const name = profile && profile.name ? ", " + esc(profile.name) : "";
+    const title = t({ good: "celGoodTitle", mid: "celMidTitle", low: "celLowTitle" }[tier], { name });
+    const text = t({ good: "celGoodText", mid: "celMidText", low: "celLowText" }[tier]);
+    const charKey = (profile && profile.petChar) || "sprout";
+    const kiko = window.Pet && Pet.preview ? Pet.preview(charKey) : "";
+    modal(`
+      <div class="cel cel-${tier}">
+        <div class="cel-kiko ${tier === "low" ? "cheerup" : "happy"} ${tier === "good" ? "dance" : "bounce"}">${kiko}</div>
+        <div class="cel-ring" style="--p:0"><div><span class="cel-num"><span id="celPct">0</span>%</span></div></div>
+        <div class="cel-count">${t("celCorrect", { c: correct, n: total })}</div>
+        <h2 class="cel-title">${title}</h2>
+        <p class="cel-text">${text}</p>
+        <div class="actions"><button class="btn" data-see>${t("celSee")}</button></div>
+      </div>
+    `, (w, close) => {
+      w.classList.add("cel-bg");
+      w.querySelector("[data-see]").onclick = close;
+      // count the score up and fill the ring
+      const ring = w.querySelector(".cel-ring"), num = w.querySelector("#celPct"), t0 = performance.now(), dur = 1200;
+      const step = now => {
+        const k = Math.min(1, (now - t0) / dur), v = Math.round(pct * (1 - Math.pow(1 - k, 3)));
+        num.textContent = v; ring.style.setProperty("--p", v);
+        if (k < 1 && document.body.contains(w)) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) particles(w, tier);
+      try { navigator.vibrate && navigator.vibrate(tier === "good" ? [30, 40, 30, 40, 60] : 25); } catch (_) {}
+    });
+  }
+
+  // Lightweight canvas effects: fireworks, sparkles, or floating hearts
+  function particles(host, kind) {
+    const c = document.createElement("canvas");
+    c.className = "cel-canvas";
+    host.insertBefore(c, host.firstChild);
+    const ctx = c.getContext("2d"), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const size = () => { c.width = innerWidth * dpr; c.height = innerHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); };
+    size();
+    const COLORS = ["#22c55e", "#3b82f6", "#facc15", "#f472b6", "#ffffff", "#34d399", "#60a5fa"];
+    const P = [], W = () => innerWidth, H = () => innerHeight;
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    function burst() {
+      const x = rnd(W() * 0.15, W() * 0.85), y = rnd(H() * 0.12, H() * 0.45), col = COLORS[Math.floor(Math.random() * COLORS.length)];
+      for (let i = 0; i < 46; i++) {
+        const a = (Math.PI * 2 * i) / 46, sp = rnd(1.8, 4.6);
+        P.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, decay: rnd(0.012, 0.02), col, r: rnd(1.6, 2.8), g: 0.05 });
+      }
+    }
+    function sparkle() {
+      P.push({ x: rnd(0, W()), y: rnd(H() * 0.2, H()), vx: rnd(-0.3, 0.3), vy: rnd(-1.2, -0.4), life: 1, decay: rnd(0.008, 0.016), col: COLORS[Math.floor(Math.random() * 4)], r: rnd(1.5, 3.5), g: 0, star: true });
+    }
+    function heart() {
+      P.push({ x: rnd(W() * 0.1, W() * 0.9), y: H() + 20, vx: rnd(-0.4, 0.4), vy: rnd(-2.2, -1.2), life: 1, decay: rnd(0.004, 0.008), txt: ["💚", "💙", "🤍", "✨"][Math.floor(Math.random() * 4)], s: rnd(18, 30), g: 0 });
+    }
+    const t0 = performance.now(), RUN = kind === "good" ? 3200 : 2600;
+    let last = 0;
+    function frame(now) {
+      if (!document.body.contains(c)) return;
+      const el = now - t0;
+      if (el < RUN && now - last > (kind === "good" ? 380 : kind === "mid" ? 40 : 160)) {
+        last = now;
+        if (kind === "good") burst(); else if (kind === "mid") sparkle(); else heart();
+      }
+      ctx.clearRect(0, 0, W(), H());
+      for (let i = P.length - 1; i >= 0; i--) {
+        const p = P[i];
+        p.vy += p.g; p.x += p.vx; p.y += p.vy; p.vx *= 0.99; p.life -= p.decay;
+        if (p.life <= 0) { P.splice(i, 1); continue; }
+        ctx.globalAlpha = Math.max(0, p.life);
+        if (p.txt) { ctx.font = p.s + "px serif"; ctx.fillText(p.txt, p.x, p.y); }
+        else if (p.star) { ctx.fillStyle = p.col; ctx.beginPath(); for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2; ctx.lineTo(p.x + Math.cos(a) * p.r * 2.2, p.y + Math.sin(a) * p.r * 2.2); ctx.lineTo(p.x + Math.cos(a + Math.PI / 4) * p.r * 0.7, p.y + Math.sin(a + Math.PI / 4) * p.r * 0.7); } ctx.closePath(); ctx.fill(); }
+        else { ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill(); }
+      }
+      ctx.globalAlpha = 1;
+      if (el < RUN + 2500 || P.length) requestAnimationFrame(frame); else c.remove();
+    }
+    requestAnimationFrame(frame);
+  }
+
   // ---------- results & review ----------
   function renderResults(filter) {
     const S = session;
@@ -1721,9 +1805,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     if (!S.saved) {
       S.saved = true;
       recordSession(S);
-      setTimeout(() => pct >= PASSING
-        ? pet().cheer(pct === 100 ? t("petPerfect") : t("petPass", { p: pct }))
-        : pet().cry(pct >= 60 ? t("petNear", { p: pct }) : t("petLow", { p: pct })), 300);
+      setTimeout(() => celebrate(pct, counts.correct, rows.length), 250);
       const saveable = !S.key.endsWith(":retry") && !["starred", "review"].includes(S.key) && !S.key.startsWith("ai:");
       if (saveable && (best[S.key] == null || pct > best[S.key])) { best[S.key] = pct; store.set("cscoach.best", best); }
     }

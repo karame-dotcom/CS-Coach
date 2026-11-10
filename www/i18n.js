@@ -460,6 +460,15 @@
     // v18: help shows a similar question; tips per subject
     similarQ: ["A similar question", "Katulad na tanong", "Similar na question"],
     tipsTricks: ["Tips & tricks for {s}", "Mga tip at teknik sa {s}", "Tips & tricks sa {s}"],
+    // v19: score celebration
+    celGoodTitle: ["Amazing{name}! 🎉", "Ang galing mo{name}! 🎉", "Ang galing mo{name}! 🎉"],
+    celGoodText: ["You passed with flying colors. Keep this up and the real exam is yours!", "Pasado ka nang buong husay! Ituloy mo lang at sa iyo na ang tunay na eksamen!", "Pasado ka with flying colors! Keep it up at sa'yo na ang actual exam!"],
+    celMidTitle: ["You did good{name}! 👏", "Magaling ang ginawa mo{name}! 👏", "You did good{name}! 👏"],
+    celMidText: ["Stay consistent and you can do even better. You're getting close to the 80% passing mark!", "Manatiling tuloy-tuloy at mas gagaling ka pa. Malapit ka na sa 80% na passing mark!", "Stay consistent at mas gagaling ka pa. Malapit ka na sa 80% passing mark!"],
+    celLowTitle: ["You showed up{name}! 💪", "Nagpakita ka{name}! 💪", "You showed up{name}! 💪"],
+    celLowText: ["You're trying to learn, and that's what matters. Keep it up: you'll get it!", "Sinusubukan mong matuto, at iyon ang mahalaga. Tuloy lang: makukuha mo rin!", "Sinusubukan mong matuto, at 'yon ang importante. Keep it up: makukuha mo rin!"],
+    celCorrect: ["{c} of {n} correct", "{c} sa {n} ang tama", "{c} of {n} tama"],
+    celSee: ["See my answers", "Tingnan ang aking mga sagot", "Tingnan ang answers ko"],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 

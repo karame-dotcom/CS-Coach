@@ -772,3 +772,34 @@ body.no-pet:not(.has-tabbar) .coach-fab { display: flex !important; }
 .num-list { display: flex; flex-direction: column; gap: 8px; }
 .num-item { display: flex; gap: 10px; align-items: baseline; padding: 8px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); line-height: 1.45; }
 .num-item b { flex: none; color: var(--blue); }
+
+/* ===== v19: score celebration ===== */
+.cel-bg { background: rgba(15,42,61,.6); }
+.cel-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 0; }
+.cel-bg .modal { position: relative; z-index: 1; text-align: center; overflow: visible; animation: celPop .45s cubic-bezier(.2,1.4,.4,1); }
+@keyframes celPop { from { transform: scale(.6); opacity: 0; } }
+.cel-good .cel-title { color: var(--green-dark); }
+.cel-mid .cel-title { color: var(--blue); }
+.cel-low .cel-title { color: #b45309; }
+.cel-kiko { width: 120px; height: 120px; margin: -70px auto 0; }
+.cel-kiko .kiko-mini { width: 120px; height: 120px; overflow: visible; }
+/* faces: happy for good/mid, encouraging smile + hearts for low */
+.cel-kiko.happy .m-idle { display: none; }
+.cel-kiko.happy .m-happy, .cel-kiko.happy .k-sparkles { display: inline; }
+.cel-kiko.dance .kiko-mini { animation: kDance .9s ease-in-out infinite; transform-origin: 60px 110px; }
+@keyframes kDance { 0%,100% { transform: rotate(-10deg) translateY(0); } 25% { transform: rotate(0) translateY(-14px); } 50% { transform: rotate(10deg) translateY(0); } 75% { transform: rotate(0) translateY(-14px); } }
+.cel-kiko.dance .k-arm-l { transform-origin: 28px 70px; animation: waveL .3s ease-in-out infinite alternate; }
+.cel-kiko.dance .k-arm-r { transform-origin: 92px 70px; animation: waveR .3s ease-in-out infinite alternate; }
+.cel-kiko.dance .k-sparkles path { transform-box: fill-box; transform-origin: center; animation: twinkle .6s ease-in-out infinite alternate; }
+.cel-kiko.bounce .kiko-mini { animation: kBounce 1.1s ease-in-out infinite; transform-origin: 60px 110px; }
+@keyframes kBounce { 0%,100% { transform: translateY(0) scale(1,1); } 40% { transform: translateY(-10px) scale(.97,1.03); } 60% { transform: translateY(0) scale(1.04,.96); } }
+.cel-kiko.cheerup .k-arm-r { transform-origin: 92px 70px; animation: waveR .5s ease-in-out infinite alternate; }
+.cel-ring { --p: 0; width: 130px; height: 130px; margin: 6px auto 6px; border-radius: 50%; background: conic-gradient(var(--green) calc(var(--p) * 1%), var(--line) 0); display: grid; place-items: center; }
+.cel-low .cel-ring { background: conic-gradient(#f59e0b calc(var(--p) * 1%), var(--line) 0); }
+.cel-mid .cel-ring { background: conic-gradient(var(--blue) calc(var(--p) * 1%), var(--line) 0); }
+.cel-ring > div { width: 104px; height: 104px; border-radius: 50%; background: var(--white); display: grid; place-items: center; font-size: 1.9rem; font-weight: 800; color: var(--ink); }
+.cel-count { color: var(--muted); font-weight: 600; font-size: .9rem; }
+.cel-title { margin: 10px 0 6px; font-size: 1.4rem; }
+.cel-text { margin: 0 0 6px; line-height: 1.5; }
+@media (prefers-reduced-motion: reduce) { .cel-kiko .kiko-mini, .cel-bg .modal { animation: none !important; } }
+.cel-num { white-space: nowrap; }
