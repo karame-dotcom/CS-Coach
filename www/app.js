@@ -3,7 +3,7 @@
 
   const PASSING = 80;          // CSC passing rate for the Professional level
   const MOCK_SIZE = 30;
-  const SET_SIZE = window.SET_SIZE || 10;
+  const ROUND_SIZE = 10;       // questions per subject round
   const LETTERS = "ABCDEFGH";
   const app = document.getElementById("app");
   const backBtn = document.getElementById("backBtn");
@@ -18,6 +18,9 @@
   let best = store.get("cscoach.best", {});                    // { key: pct }
   let starred = new Set(store.get("cscoach.starred", []));     // question ids
   const saveStars = () => store.set("cscoach.starred", [...starred]);
+  let stats = store.get("cscoach.stats", {});                  // { qid: { n, c, last } }
+  let history = store.get("cscoach.history", []);              // past sessions
+  const pet = () => window.Pet || { cheer() {}, cry() {}, say() {}, hop() {}, setVisible() {} };
 
   // ---------- helpers ----------
   const esc = s => String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -28,7 +31,54 @@
   SUBJECTS.forEach(s => s.questions.forEach((q, i) => { q.id = s.id + "-" + i; q.sid = s.id; q.subject = s.name; byId.set(q.id, q); }));
   const allQuestions = () => SUBJECTS.flatMap(s => s.questions);
   const subjectOf = q => SUBJECTS.find(s => s.id === q.sid);
-  const setsOf = s => Array.from({ length: Math.ceil(s.questions.length / SET_SIZE) }, (_, i) => s.questions.slice(i * SET_SIZE, (i + 1) * SET_SIZE));
+
+  // Pick questions for a round: unseen first, then ones you got wrong, then weakest
+  function smartPick(qs, n) {
+    const rank = q => {
+      const st = stats[q.id];
+      if (!st) return Math.random();
+      if (!st.last) return 1 + Math.random();
+      return 2 + st.c / st.n + Math.random() * 0.5;
+    };
+    return qs.map(q => [rank(q), q]).sort((a, b) => a[0] - b[0]).slice(0, n).map(x => x[1]);
+  }
+
+  // Analytics used by the home screen and the AI coach
+  function analytics() {
+    const subjects = SUBJECTS.map(s => {
+      let seen = 0, attempts = 0, correct = 0, wrongNow = 0;
+      s.questions.forEach(q => { const st = stats[q.id]; if (st) { seen++; attempts += st.n; correct += st.c; if (!st.last) wrongNow++; } });
+      return { id: s.id, name: s.name, total: s.questions.length, seen, attempts, correct, wrongNow, acc: attempts ? Math.round(correct / attempts * 100) : null };
+    });
+    const attempts = subjects.reduce((a, x) => a + x.attempts, 0), correct = subjects.reduce((a, x) => a + x.correct, 0);
+    const days = [...new Set(history.map(h => new Date(h.t).toDateString()))];
+    let streak = 0; const d = new Date();
+    if (!days.includes(d.toDateString())) d.setDate(d.getDate() - 1);
+    while (days.includes(d.toDateString())) { streak++; d.setDate(d.getDate() - 1); }
+    const examDate = profile && profile.examDate ? profile.examDate : null;
+    const daysLeft = examDate ? Math.ceil((new Date(examDate + "T08:00:00") - new Date()) / 86400000) : null;
+    return {
+      name: profile && profile.name || "", mode: profile && profile.instant ? "practice" : "exam",
+      overall: { attempts, correct, acc: attempts ? Math.round(correct / attempts * 100) : null },
+      subjects, sessions: history.length, recent: history.slice(-5).map(h => ({ title: h.title, pct: h.pct, date: new Date(h.t).toLocaleDateString() })),
+      daysActive: days.length, streak, examDate, daysLeft, starred: starred.size, passing: PASSING
+    };
+  }
+
+  function recordSession(S) {
+    const by = {};
+    S.items.forEach((q, i) => {
+      const ans = S.answers[i]; if (ans === null) return;
+      const ok = ans === q.a ? 1 : 0;
+      const st = stats[q.id] || (stats[q.id] = { n: 0, c: 0, last: 0 });
+      st.n++; st.c += ok; st.last = ok;
+      const b = by[q.sid] || (by[q.sid] = { n: 0, c: 0 }); b.n++; b.c += ok;
+    });
+    const correct = S.items.filter((q, i) => S.answers[i] === q.a).length;
+    history.push({ t: Date.now(), key: S.key, title: S.title, total: S.items.length, correct, pct: Math.round(correct / S.items.length * 100), by });
+    history = history.slice(-100);
+    store.set("cscoach.stats", stats); store.set("cscoach.history", history);
+  }
 
   // Shuffle the choice order while tracking the correct answer
   function prepare(q) {
@@ -66,7 +116,7 @@
   function renderSettings(firstRun) {
     setBack(firstRun ? null : renderHome);
     settingsBtn.classList.toggle("hidden", firstRun);
-    const p = profile || { name: "", instant: false };
+    const p = profile || { name: "", instant: false, examDate: "", pet: true };
     app.innerHTML = `
       <h2>${firstRun ? "Welcome to CS Coach! 👋" : "Settings"}</h2>
       <p class="sub">${firstRun ? "Let's set up your reviewer. You can change these anytime in Settings (⚙️)." : "Your profile and how quizzes behave."}</p>
@@ -86,12 +136,18 @@
           <span>See right away if each answer is correct, with an explanation. Answers lock once chosen.</span></div>
         </label>
 
+        <label class="field-label" for="examDate" style="margin-top:18px">Exam date (optional)</label>
+        <input id="examDate" class="input" type="date" value="${esc(p.examDate || "")}" />
+        <p class="muted small" style="margin:6px 0 0">The AI coach uses this to plan your review schedule.</p>
+
+        <label class="check-row"><input type="checkbox" id="petOn" ${p.pet !== false ? "checked" : ""} /> Show Kiko, my study buddy 🌱</label>
+
         <div class="actions"><button class="btn" type="submit">${firstRun ? "Start reviewing →" : "Save settings"}</button></div>
       </form>
       ${firstRun ? "" : `
         <div class="panel danger-zone">
           <b>Reset progress</b>
-          <p class="sub" style="margin:4px 0 12px">Clears your best scores and starred questions on this device.</p>
+          <p class="sub" style="margin:4px 0 12px">Clears your scores, analytics and starred questions on this device.</p>
           <button class="btn secondary" id="resetBtn">Reset progress</button>
         </div>`}
       <p class="note">Your profile is saved only on this device.</p>
@@ -100,14 +156,18 @@
       e.preventDefault();
       profile = {
         name: document.getElementById("name").value.trim(),
-        instant: app.querySelector("input[name=mode]:checked").value === "instant"
+        instant: app.querySelector("input[name=mode]:checked").value === "instant",
+        examDate: document.getElementById("examDate").value,
+        pet: document.getElementById("petOn").checked
       };
+      pet().setVisible(profile.pet);
       store.set("cscoach.profile", profile);
       renderHome();
     });
     const reset = document.getElementById("resetBtn");
-    if (reset) reset.addEventListener("click", () => confirmBox("Reset all best scores and starred questions?", "Reset", () => {
-      best = {}; starred = new Set(); store.set("cscoach.best", best); saveStars(); renderHome();
+    if (reset) reset.addEventListener("click", () => confirmBox("Reset all scores, analytics and starred questions?", "Reset", () => {
+      best = {}; starred = new Set(); stats = {}; history = [];
+      store.set("cscoach.best", best); store.set("cscoach.stats", stats); store.set("cscoach.history", history); saveStars(); renderHome();
     }));
     window.scrollTo(0, 0);
   }
@@ -123,7 +183,7 @@
 
     app.innerHTML = `
       <h2>${profile && profile.name ? `Hi, ${esc(profile.name)}! ` : ""}Choose a subject</h2>
-      <p class="sub">Each subject has sets of ${SET_SIZE} questions. Passing rate: ${PASSING}%.</p>
+      <p class="sub">Tap a subject to start a ${ROUND_SIZE}-question round. New and missed questions come first. Passing rate: ${PASSING}%.</p>
       <div class="hero">
         <div class="stat"><b>${total}</b><span>Questions</span></div>
         <div class="stat"><b>${starred.size}</b><span>Starred</span></div>
@@ -144,17 +204,17 @@
             <p>Practice the questions you starred to come back to.</p>
             <div class="meta"><span class="badge blue">${starred.size} items</span></div>
           </button>` : ""}
-        ${SUBJECTS.map(s => {
-          const sets = setsOf(s);
-          const done = sets.filter((_, i) => best[s.id + ":" + (i + 1)] != null).length;
+        ${analytics().subjects.map(a => {
+          const s = SUBJECTS.find(x => x.id === a.id);
           return `
           <button class="card" data-id="${s.id}">
             <span class="ico">${s.icon}</span>
             <h3>${esc(s.name)}</h3>
             <p>${esc(s.desc)}</p>
+            <div class="mini-bar"><div style="width:${Math.round(a.seen / a.total * 100)}%"></div></div>
             <div class="meta">
-              <span class="badge blue">${sets.length} sets · ${s.questions.length} items</span>
-              <span>${done ? `<span class="badge">${done}/${sets.length} done</span>` : "Not started"}</span>
+              <span class="badge blue">${a.seen}/${a.total} practiced</span>
+              <span>${a.acc != null ? `<span class="badge ${a.acc >= PASSING ? "" : "blue"}">${a.acc}% accuracy</span>` : "Not started"}</span>
             </div>
           </button>`;
         }).join("")}
@@ -166,48 +226,16 @@
       const id = btn.dataset.id;
       if (id === "mock") return startMock();
       if (id === "starred") return startSession("starred", "Starred Questions", [...starred].map(i => byId.get(i)).filter(Boolean), renderHome);
-      renderSubject(SUBJECTS.find(x => x.id === id));
+      startSubject(id);
     }));
     window.scrollTo(0, 0);
   }
 
   function startMock() { startSession("mock", "Full Mock Exam", shuffle(allQuestions()).slice(0, MOCK_SIZE), renderHome); }
 
-  // ---------- subject: choose a set ----------
-  function renderSubject(s) {
-    setBack(renderHome);
-    const sets = setsOf(s);
-    app.innerHTML = `
-      <h2>${s.icon} ${esc(s.name)}</h2>
-      <p class="sub">${esc(s.desc)}</p>
-      <div class="set-list">
-        ${sets.map((qs, i) => {
-          const key = s.id + ":" + (i + 1), b = best[key];
-          return `
-          <button class="set-item" data-set="${i}">
-            <div class="set-num">${i + 1}</div>
-            <div class="set-info"><b>Set ${i + 1}</b><span>Questions ${i * SET_SIZE + 1}–${i * SET_SIZE + qs.length}</span></div>
-            <div class="set-score">${b != null ? `<span class="badge ${b >= PASSING ? "" : "blue"}">${b >= PASSING ? "✓ " : ""}Best ${b}%</span>` : `<span class="muted">Start →</span>`}</div>
-          </button>`;
-        }).join("")}
-        <button class="set-item all" data-set="all">
-          <div class="set-num">∞</div>
-          <div class="set-info"><b>All ${s.questions.length} questions</b><span>Every set combined, shuffled</span></div>
-          <div class="set-score">${best[s.id + ":all"] != null ? `<span class="badge blue">Best ${best[s.id + ":all"]}%</span>` : `<span class="muted">Start →</span>`}</div>
-        </button>
-      </div>
-      <div class="panel tips">
-        <b>💡 Coach's tips for this subject</b>
-        <ul>${s.tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
-      </div>
-    `;
-    app.querySelectorAll(".set-item").forEach(btn => btn.addEventListener("click", () => {
-      const v = btn.dataset.set, back = () => renderSubject(s);
-      if (v === "all") return startSession(s.id + ":all", s.name + " · All", s.questions, back);
-      const n = +v;
-      startSession(s.id + ":" + (n + 1), s.name + " · Set " + (n + 1), sets[n], back, true);
-    }));
-    window.scrollTo(0, 0);
+  function startSubject(id) {
+    const s = SUBJECTS.find(x => x.id === id);
+    startSession(s.id, s.name, smartPick(s.questions, ROUND_SIZE), renderHome);
   }
 
   // ---------- quiz session ----------
@@ -242,6 +270,18 @@
     return ans !== null ? "answered" : "";
   }
 
+  const ARROW_L = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ARROW_R = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function goTo(i) {
+    if (!session || session.done) return;
+    if (i < 0 || i >= session.items.length) return;
+    session.idx = i; renderQuestion(true);
+  }
+  function goNext() {
+    if (session.idx === session.items.length - 1) openSubmit(); else goTo(session.idx + 1);
+  }
+
   function renderQuestion(scrollTop) {
     setBack(leaveSession);
     const S = session, { items, idx } = S, q = items[idx];
@@ -262,7 +302,7 @@
       </div>
       <div class="progress"><div style="width:${Math.round(answeredCount / items.length * 100)}%"></div></div>
       ${S.showPalette ? `
-        <div class="palette">
+        <div class="palette" id="palette">
           ${items.map((it, i) => `<button class="pal ${qState(i)} ${i === idx ? "current" : ""}" data-go="${i}" aria-label="Question ${i + 1}">${i + 1}${starred.has(it.id) ? '<i class="pal-star">★</i>' : ""}</button>`).join("")}
         </div>
         <div class="legend">
@@ -272,13 +312,17 @@
           <span><i class="dot"></i>Unanswered</span><span>★ Starred</span>
         </div>` : ""}
 
-      <div class="qcard">
+      <div class="qcard" id="qcard">
         <div class="qrow">
           <span class="qsubject">${esc(q.subject)}</span>
-          <div class="qtools">
-            <button class="tool ${isStar ? "on" : ""}" id="starBtn" aria-pressed="${isStar}" title="Star this question to come back to it">${isStar ? "★" : "☆"} <span>Star</span></button>
-            <button class="tool help" id="helpBtn" title="Get coaching on how to answer">💡 <span>Help me</span></button>
+          <div class="qnav">
+            <button class="arrow" id="prevBtn" ${idx === 0 ? "disabled" : ""} aria-label="Previous question" title="Previous">${ARROW_L}</button>
+            <button class="arrow ${last ? "submit" : ""} ${locked && !last ? "pulse" : ""}" id="nextBtn" aria-label="${last ? "Review and submit" : "Next question"}" title="${last ? "Review & submit" : "Next"}">${ARROW_R}</button>
           </div>
+        </div>
+        <div class="qtools">
+          <button class="tool ${isStar ? "on" : ""}" id="starBtn" aria-pressed="${isStar}" title="Star this question to come back to it">${isStar ? "★" : "☆"} <span>Star</span></button>
+          <button class="tool help" id="helpBtn" title="Get coaching on how to answer">💡 <span>Help me</span></button>
         </div>
         <div class="qtext">${esc(q.q)}</div>
         <div class="choices">
@@ -299,43 +343,66 @@
             <span>Not sure yet. Mark this to come back to it before submitting.</span>
           </button>`}
       </div>
-
-      <div class="nav">
-        <button class="btn secondary" id="prevBtn" ${idx === 0 ? "disabled" : ""}>← Previous</button>
-        ${last
-          ? `<button class="btn" id="submitBtn">Review & Submit</button>`
-          : `<button class="btn blue" id="nextBtn">Next →</button>`}
-      </div>
-      ${!last ? `<div class="submit-row"><button class="link" id="submitEarly">Finish & submit all</button></div>` : ""}
+      ${last
+        ? `<div class="actions"><button class="btn" id="submitBtn">Review & Submit</button></div>`
+        : `<div class="submit-row"><button class="link" id="submitEarly">Finish & submit all</button></div>`}
     `;
 
-    const go = i => { S.idx = i; renderQuestion(true); };
-    app.querySelectorAll(".pal").forEach(b => b.addEventListener("click", () => go(+b.dataset.go)));
+    app.querySelectorAll(".pal").forEach(b => b.addEventListener("click", () => goTo(+b.dataset.go)));
     document.getElementById("togglePal").addEventListener("click", () => { S.showPalette = !S.showPalette; renderQuestion(false); });
     app.querySelectorAll(".choice").forEach(b => b.addEventListener("click", () => {
       const i = +b.dataset.i;
       if (locked) return;
-      S.answers[idx] = (!S.instant && S.answers[idx] === i) ? null : i;   // tap again to clear (exam mode)
-      if (S.instant) S.unsure.delete(idx);
+      const was = S.answers[idx];
+      S.answers[idx] = (!S.instant && was === i) ? null : i;   // tap again to clear (exam mode)
+      if (S.instant) {
+        S.unsure.delete(idx);
+        i === q.a ? pet().cheer() : pet().cry();
+      } else if (S.answers[idx] !== null) pet().hop();
       renderQuestion(false);
     }));
     document.getElementById("starBtn").addEventListener("click", () => {
-      starred.has(q.id) ? starred.delete(q.id) : starred.add(q.id);
+      const on = !starred.has(q.id);
+      on ? starred.add(q.id) : starred.delete(q.id);
+      if (on) pet().say("Starred! ⭐ Babalikan natin 'yan.");
       saveStars(); renderQuestion(false);
     });
     document.getElementById("helpBtn").addEventListener("click", () => showHelp(q));
     const ub = document.getElementById("unsureBtn");
-    if (ub) ub.addEventListener("click", () => { S.unsure.has(idx) ? S.unsure.delete(idx) : S.unsure.add(idx); renderQuestion(false); });
-    document.getElementById("prevBtn").addEventListener("click", () => idx > 0 && go(idx - 1));
-    const nb = document.getElementById("nextBtn");
-    if (nb) nb.addEventListener("click", () => go(idx + 1));
-    const sb = document.getElementById("submitBtn") || null;
+    if (ub) ub.addEventListener("click", () => {
+      S.unsure.has(idx) ? S.unsure.delete(idx) : (S.unsure.add(idx), pet().say("Okay! We'll come back to this one 👍"));
+      renderQuestion(false);
+    });
+    document.getElementById("prevBtn").addEventListener("click", () => goTo(idx - 1));
+    document.getElementById("nextBtn").addEventListener("click", goNext);
+    const sb = document.getElementById("submitBtn");
     if (sb) sb.addEventListener("click", openSubmit);
     const se = document.getElementById("submitEarly");
     if (se) se.addEventListener("click", openSubmit);
 
+    // Swipe left/right on the question card to navigate
+    const card = document.getElementById("qcard");
+    let sx = 0, sy = 0;
+    card.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+    card.addEventListener("touchend", e => {
+      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) > 70 && Math.abs(dy) < 45) dx < 0 ? goNext() : goTo(idx - 1);
+    }, { passive: true });
+
+    // Keep the current number visible in the one-line overview
+    const pal = document.getElementById("palette");
+    if (pal) {
+      const cur = pal.children[idx];
+      pal.scrollLeft = cur.offsetLeft - pal.clientWidth / 2 + cur.clientWidth / 2;
+    }
     if (scrollTop) window.scrollTo(0, 0);
   }
+
+  document.addEventListener("keydown", e => {
+    if (!session || session.done || document.querySelector(".modal-bg") || /input|textarea/i.test(e.target.tagName)) return;
+    if (e.key === "ArrowRight") goNext();
+    if (e.key === "ArrowLeft") goTo(session.idx - 1);
+  });
 
   function showHelp(q) {
     const s = subjectOf(q);
@@ -415,6 +482,10 @@
 
     if (!S.saved) {
       S.saved = true;
+      recordSession(S);
+      setTimeout(() => pct >= PASSING
+        ? pet().cheer(pct === 100 ? "PERFECT! Ang galing mo! 🏆" : "Pasado! " + pct + "%! 🎉")
+        : pet().cry(pct >= 60 ? "Malapit na! " + pct + "%… kaya natin 'to! 💪" : "Huhu… " + pct + "%. Review tayo together 💙"), 300);
       const saveable = !S.key.endsWith(":retry") && S.key !== "starred";
       if (saveable && (best[S.key] == null || pct > best[S.key])) { best[S.key] = pct; store.set("cscoach.best", best); }
     }
@@ -444,7 +515,7 @@
         </div>
         <div class="actions">
           ${missed.length ? `<button class="btn" id="retryWrong">Retry ${missed.length} missed</button>` : ""}
-          <button class="btn blue" id="again">Take again</button>
+          <button class="btn blue" id="again">${SUBJECTS.some(x => x.id === S.key) ? "Next round" : "Take again"}</button>
           <button class="btn secondary" id="exit">Done</button>
         </div>
       </div>
@@ -480,6 +551,7 @@
     document.getElementById("again").addEventListener("click", () => {
       const base = S.key.replace(/:retry$/, "");
       if (base === "mock") return startMock();
+      if (SUBJECTS.some(x => x.id === base)) return startSubject(base);
       startSession(S.key, S.title, S.items.map(q => byId.get(q.id)), S.exitTo, false);
     });
     const rw = document.getElementById("retryWrong");
@@ -495,5 +567,25 @@
     try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch (_) {}
   }
 
-  if (!profile) renderSettings(true); else renderHome();
+  // Shared with coach.js (AI chat) and pet.js
+  window.CSApp = {
+    analytics, subjects: SUBJECTS, passing: PASSING,
+    profile: () => profile,
+    startSubject, startMock,
+    startStarred: () => starred.size && startSession("starred", "Starred Questions", [...starred].map(i => byId.get(i)).filter(Boolean), renderHome),
+    // Current question for the coach. The answer key is included only after it's revealed.
+    current: () => {
+      if (!session || session.done) return null;
+      const q = session.items[session.idx], ans = session.answers[session.idx];
+      const revealed = session.instant && ans !== null;
+      return { subject: q.subject, sid: q.sid, question: q.q, choices: q.c, hint: q.h, revealed, answer: revealed ? q.c[q.a] : null, explanation: revealed ? q.e : null };
+    }
+  };
+
+  if (!profile) renderSettings(true);
+  else {
+    renderHome();
+    pet().setVisible(profile.pet !== false);
+    setTimeout(() => pet().say(`Hi${profile.name ? " " + profile.name : ""}! Ready to review? 🌱`, 3200), 700);
+  }
 })();
