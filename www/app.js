@@ -293,6 +293,7 @@
     const last = idx === items.length - 1;
 
     app.innerHTML = `
+      <div class="quiz-sticky" id="quizSticky">
       <div class="quiz-head">
         <div>
           <div class="quiz-title">${esc(S.title)}</div>
@@ -312,7 +313,7 @@
           <span><i class="dot"></i>Unanswered</span><span>★ Starred</span>
         </div>` : ""}
 
-      <div class="qcard" id="qcard">
+      <div class="qcard qcard-top">
         <div class="qrow">
           <span class="qsubject">${esc(q.subject)}</span>
           <div class="qnav">
@@ -325,6 +326,9 @@
           <button class="tool help" id="helpBtn" title="Get coaching on how to answer">💡 <span>Help me</span></button>
         </div>
         <div class="qtext">${esc(q.q)}</div>
+      </div>
+      </div>
+      <div class="qcard qcard-bottom">
         <div class="choices">
           ${q.c.map((c, i) => {
             let cls = "";
@@ -381,13 +385,15 @@
     if (se) se.addEventListener("click", openSubmit);
 
     // Swipe left/right on the question card to navigate
-    const card = document.getElementById("qcard");
     let sx = 0, sy = 0;
-    card.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
-    card.addEventListener("touchend", e => {
-      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
-      if (Math.abs(dx) > 70 && Math.abs(dy) < 45) dx < 0 ? goNext() : goTo(idx - 1);
-    }, { passive: true });
+    app.querySelectorAll(".qcard").forEach(card => {
+      card.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+      card.addEventListener("touchend", e => {
+        const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+        if (Math.abs(dx) > 70 && Math.abs(dy) < 45) dx < 0 ? goNext() : goTo(idx - 1);
+      }, { passive: true });
+    });
+    fitSticky();
 
     // Keep the current number visible in the one-line overview
     const pal = document.getElementById("palette");
@@ -397,6 +403,17 @@
     }
     if (scrollTop) window.scrollTo(0, 0);
   }
+
+  // Freeze the question header under the top bar, unless it would take up
+  // too much of the screen (e.g. a long reading passage on a small phone)
+  function fitSticky() {
+    const st = document.getElementById("quizSticky");
+    if (!st) return;
+    document.documentElement.style.setProperty("--topbar-h", document.querySelector(".topbar").offsetHeight + "px");
+    st.classList.remove("unstick");
+    if (st.offsetHeight > window.innerHeight * 0.6) st.classList.add("unstick");
+  }
+  window.addEventListener("resize", fitSticky);
 
   document.addEventListener("keydown", e => {
     if (!session || session.done || document.querySelector(".modal-bg") || /input|textarea/i.test(e.target.tagName)) return;

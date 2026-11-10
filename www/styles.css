@@ -373,3 +373,10 @@ main { padding-bottom: calc(130px + env(safe-area-inset-bottom)); }
   .pet-bubble { bottom: 72px; }
   .pet-hearts span { bottom: 50px; }
 }
+
+/* ===== frozen question header ===== */
+.quiz-sticky { position: sticky; top: var(--topbar-h, 68px); z-index: 5; background: var(--bg); margin: -20px -16px 0; padding: 14px 16px 0; }
+.quiz-sticky.unstick { position: static; }
+.qcard-top { border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0; padding-bottom: 12px; box-shadow: 0 6px 10px -8px rgba(15,42,61,.25); }
+.qcard-top .qtext { margin-bottom: 0; }
+.qcard-bottom { border-top: 0; border-radius: 0 0 var(--radius) var(--radius); padding-top: 8px; }
