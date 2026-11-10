@@ -14,8 +14,10 @@ window.CSAI = (function () {
   const parseJson = text => { const m = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/); return JSON.parse(m ? m[0] : text); };
   function wrap(callText) {
     const call = async (input, opts) => {
-      const text = await callText(toMessages(input));
-      if (opts && opts.onText) opts.onText({ text, delta: text });
+      const onText = opts && opts.onText;
+      let streamed = false;
+      const text = await callText(toMessages(input), onText ? (full, delta) => { streamed = true; onText({ text: full, delta }); } : null);
+      if (onText && !streamed) onText({ text, delta: text });
       return { text, truncated: false };
     };
     call.json = async (input, opts) => parseJson((await call(input, opts)).text);
@@ -23,63 +25,87 @@ window.CSAI = (function () {
   }
 
   // ---- Google Gemini (free tier with a Google AI Studio key) ----
-  // The key goes in the ?key= query parameter (no custom header), which browsers
-  // can send to Google without a blocked CORS preflight.
+  // Speed: the working model is remembered (no model lookup per message), "thinking"
+  // is turned off on Flash models, and replies stream in as they're written.
+  // The key goes in the ?key= query parameter (browser-friendly, no CORS preflight issue).
   const GEMINI = "https://generativelanguage.googleapis.com/v1beta/";
-  const FALLBACK_MODELS = ["models/gemini-2.5-flash", "models/gemini-flash-latest", "models/gemini-2.0-flash", "models/gemini-2.5-flash-lite", "models/gemini-2.0-flash-lite"];
+  const PREFERRED = ["models/gemini-2.5-flash", "models/gemini-flash-latest", "models/gemini-2.0-flash", "models/gemini-2.5-flash-lite", "models/gemini-2.0-flash-lite"];
   async function geminiCandidates(key) {
     const cached = localStorage.getItem("cscoach.geminiModel");
+    if (cached) return [...new Set([cached, ...PREFERRED])];   // fast path: no lookup
     let listed = [];
     try {
       const r = await fetch(GEMINI + "models?pageSize=200&key=" + encodeURIComponent(key));
       const d = await r.json().catch(() => ({}));
       if (r.status === 400 || r.status === 401 || r.status === 403) throw err("bad_key", d.error && d.error.message);
-      const ver = n => parseFloat((n.match(/gemini-([\d.]+)/) || [0, 0])[1]) || 0;
-      listed = (d.models || [])
-        .filter(m => (m.supportedGenerationMethods || []).includes("generateContent") && /gemini-[\d.]+-flash(-lite)?$|gemini-flash-latest$/.test(m.name))
-        .map(m => m.name)
-        .sort((x, y) => (ver(y) - ver(x)) || (x.includes("lite") - y.includes("lite")));
+      listed = (d.models || []).filter(m => (m.supportedGenerationMethods || []).includes("generateContent")
+        && /gemini-[\d.]+-flash(-lite)?$|gemini-flash-latest$/.test(m.name)).map(m => m.name);
     } catch (e) { if (e.code === "bad_key") throw e; }
-    const all = [cached, ...listed, ...FALLBACK_MODELS].filter(Boolean);
-    return [...new Set(all)];
+    // known-fast models first, then anything else the key can use
+    return [...new Set([...PREFERRED.filter(m => !listed.length || listed.includes(m)), ...listed])];
   }
-  async function geminiOnce(key, model, messages) {
-    let res, d = {};
+  const noThinking = model => /gemini-2\.5-flash/.test(model) ? { thinkingConfig: { thinkingBudget: 0 } } : {};
+  async function geminiOnce(key, model, messages, onText, thinkingOff) {
+    const body = {
+      contents: messages.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+      generationConfig: { maxOutputTokens: 2048, ...(thinkingOff ? noThinking(model) : {}) }
+    };
+    const stream = !!onText;
+    let res;
     try {
-      res = await fetch(GEMINI + model + ":generateContent?key=" + encodeURIComponent(key), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: messages.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
-          generationConfig: { maxOutputTokens: 4096 }
-        })
+      res = await fetch(GEMINI + model + (stream ? ":streamGenerateContent?alt=sse&key=" : ":generateContent?key=") + encodeURIComponent(key), {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
       });
-      d = await res.json().catch(() => ({}));
     } catch (_) { throw err("offline", "Network blocked or offline"); }
-    const msg = d.error && d.error.message;
-    if (res.status === 400 && /api key/i.test(msg || "")) throw err("bad_key", msg);
-    if (res.status === 401 || res.status === 403) throw err("bad_key", msg);
-    if (res.status === 404) throw err("no_model", msg);
-    if (res.status === 429) throw err("rate_limited", msg);
-    if (!res.ok) throw err("error", msg || ("HTTP " + res.status));
-    const c = d.candidates && d.candidates[0];
-    const text = c && c.content && (c.content.parts || []).map(p => p.text || "").join("");
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      const msg = (d.error && d.error.message) || ("HTTP " + res.status);
+      if (res.status === 400 && /api key/i.test(msg)) throw err("bad_key", msg);
+      if (res.status === 400 && /thinking/i.test(msg)) throw err("no_thinking_cfg", msg);
+      if (res.status === 401 || res.status === 403) throw err("bad_key", msg);
+      if (res.status === 404) throw err("no_model", msg);
+      if (res.status === 429) throw err("rate_limited", msg);
+      throw err("error", msg);
+    }
+    const partText = d => { const c = d && d.candidates && d.candidates[0]; return c && c.content ? (c.content.parts || []).map(p => p.text || "").join("") : ""; };
+    let text = "";
+    if (stream && res.body && res.body.getReader) {
+      // Server-sent events: "data: {...}\n\n" chunks, each with a piece of the reply
+      const reader = res.body.getReader(), dec = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let i;
+        while ((i = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+          if (!line.startsWith("data:")) continue;
+          try { const piece = partText(JSON.parse(line.slice(5))); if (piece) { text += piece; onText(text, piece); } } catch (_) {}
+        }
+      }
+    } else {
+      text = partText(await res.json().catch(() => ({})));
+    }
     if (!text) throw err("refusal", "Empty reply");
     return text;
   }
   function viaGemini(key) {
-    return wrap(async messages => {
+    return wrap(async (messages, onText) => {
       const models = await geminiCandidates(key);
       let last = null;
       for (const model of models) {
         try {
-          const text = await geminiOnce(key, model, messages);
+          let text;
+          try { text = await geminiOnce(key, model, messages, onText, true); }
+          catch (e) { if (e.code !== "no_thinking_cfg") throw e; text = await geminiOnce(key, model, messages, onText, false); }
           try { localStorage.setItem("cscoach.geminiModel", model); } catch (_) {}
           return text;
         } catch (e) {
           last = e;
           if (e.code === "bad_key" || e.code === "offline") throw e;   // same result for every model
-          // model missing, or no free quota for this model: try the next one
+          if (localStorage.getItem("cscoach.geminiModel") === model) { try { localStorage.removeItem("cscoach.geminiModel"); } catch (_) {} }
+          // model missing or out of free quota: try the next one
         }
       }
       throw last || err("error");
@@ -91,7 +117,7 @@ window.CSAI = (function () {
     let clientP = null;
     const client = () => clientP || (clientP = import("https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk/+esm")
       .then(m => new (m.default || m.Anthropic)({ apiKey: key, dangerouslyAllowBrowser: true })));
-    return wrap(async messages => {
+    return wrap(async (messages) => {
       let Anthropic, c;
       try { c = await client(); Anthropic = c.constructor; } catch (_) { throw err("offline"); }
       const opus = model !== "claude-haiku-5-5";
