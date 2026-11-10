@@ -387,6 +387,16 @@
     tapToFlip: ["Tap a card to flip it", "Pindutin ang kard para ibaligtad", "I-tap ang card para i-flip"],
     exTitle: ["Examples", "Mga halimbawa", "Examples"],
     tapReveal: ["Tap to see the answer", "Pindutin para makita ang sagot", "I-tap para makita ang sagot"],
+    // v13: install
+    installTitle: ["Install CS Coach on this phone", "I-install ang CS Coach sa phone na ito", "I-install ang CS Coach sa phone mo"],
+    installDesc: ["Opens full-screen from your home screen, works offline, and keeps your progress safer.", "Bubukas nang buong-screen mula sa home screen, gumagana kahit offline, at mas ligtas ang progreso mo.", "Bubukas nang full-screen from your home screen, gumagana offline, at mas safe ang progress mo."],
+    installBtn: ["📲 Install app", "📲 I-install ang app", "📲 I-install ang app"],
+    installDone: ["✅ Installed: you're using the app version.", "✅ Naka-install: app na ang ginagamit mo.", "✅ Installed: app version na ang gamit mo."],
+    installLater: ["Not now", "Mamaya na", "Mamaya na"],
+    installInApp: ["This page is open inside another app, which can't install apps. Open it in Chrome first:", "Nakabukas ang page sa loob ng ibang app, na hindi makapag-install. Buksan muna ito sa Chrome:", "Nakabukas ang page sa loob ng ibang app, kaya hindi ma-install. Buksan muna sa Chrome:"],
+    openInChrome: ["Open in Chrome", "Buksan sa Chrome", "Open in Chrome"],
+    installIOS: ["On iPhone: open this page in Safari, tap Share ⬆️, then “Add to Home Screen”.", "Sa iPhone: buksan ito sa Safari, pindutin ang Share ⬆️, saka “Add to Home Screen”.", "Sa iPhone: buksan sa Safari, i-tap ang Share ⬆️, tapos “Add to Home Screen”."],
+    installManual: ["In Chrome: tap ⋮ (top right) → “Install app” or “Add to Home screen”. Don't see it? Tap ⋮ → “Open in Chrome” first if you're inside another app.", "Sa Chrome: pindutin ang ⋮ (itaas, kanan) → “Install app” o “Add to Home screen”. Wala? Kung nasa loob ka ng ibang app, pindutin muna ang ⋮ → “Open in Chrome”.", "Sa Chrome: i-tap ang ⋮ (taas, kanan) → “Install app” o “Add to Home screen”. Wala? Kung nasa loob ka ng ibang app, i-tap muna ang ⋮ → “Open in Chrome”."],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 

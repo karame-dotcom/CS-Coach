@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.11.0";
+  const APP_VERSION = "1.12.0";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -434,6 +434,7 @@
 
         <div class="actions save-row"><span class="unsaved-badge hidden" id="unsavedBadge">● ${t("unsavedBadge")}</span><button class="btn" type="submit">${firstRun ? t("startReviewing") : t("saveSettings")}</button></div>
       </form>
+      ${firstRun ? "" : installHtml(false)}
       ${firstRun ? "" : backupPanelHtml()}
       ${firstRun ? "" : `
         <div class="panel danger-zone">
@@ -480,7 +481,7 @@
       if (firstRun) setTimeout(() => pet().say(t("petHi", { name: profile.name ? " " + profile.name : "" }), 3200), 400);
       else toast(t("settingsSaved"));
     });
-    if (!firstRun) bindBackupPanel();
+    if (!firstRun) { bindBackupPanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
     const reset = document.getElementById("resetBtn");
     if (reset) reset.addEventListener("click", () => confirmBox(t("resetConfirm"), t("reset"), () => {
       autoBackup("before-reset");
@@ -706,6 +707,31 @@
     window.scrollTo(0, 0);
   }
 
+
+  // ---------- Install on phone ----------
+  const IN = window.CSInstall;
+  function installHtml(compact) {
+    if (!IN || IN.isStandalone()) return compact ? "" : `<div class="panel install-panel"><b>📲 ${t("installTitle")}</b><p class="muted small" style="margin:6px 0 0">${t("installDone")}</p></div>`;
+    let body;
+    if (IN.canPrompt()) body = `<button class="btn" data-install>${t("installBtn")}</button>`;
+    else if (IN.isIOS) body = `<p class="install-steps">${t("installIOS")}</p>`;
+    else if (IN.isAndroid && IN.inAppBrowser) body = `<p class="install-steps">${t("installInApp")}</p><a class="btn" href="${IN.chromeLink()}">${t("openInChrome")}</a>`;
+    else body = `<p class="install-steps">${t("installManual")}</p>${IN.isAndroid ? `<a class="btn secondary" href="${IN.chromeLink()}">${t("openInChrome")}</a>` : ""}`;
+    return `<div class="panel install-panel ${compact ? "compact" : ""}">
+      ${compact ? `<button class="install-x" data-install-x aria-label="${t("installLater")}">✕</button>` : ""}
+      <b>📲 ${t("installTitle")}</b>
+      <p class="muted small" style="margin:6px 0 10px">${t("installDesc")}</p>
+      ${body}
+    </div>`;
+  }
+  function bindInstall(root, rerender) {
+    root.querySelectorAll("[data-install]").forEach(b => b.onclick = async () => { const ok = await IN.prompt(); if (ok) pet().cheer("📲 🎉"); rerender(); });
+    root.querySelectorAll("[data-install-x]").forEach(b => b.onclick = () => { store.set("cscoach.installLater", Date.now()); rerender(); });
+  }
+  // show the banner on Learn at most once every 3 days until installed
+  const showInstallBanner = () => IN && !IN.isStandalone() && Date.now() - (store.get("cscoach.installLater", 0) || 0) > 3 * DAY;
+  if (IN) IN.onChange(() => { if (!session && tab === "learn" && document.getElementById("recLesson") !== undefined && !document.querySelector(".modal-bg")) { const slot = document.getElementById("installSlot"); if (slot) { slot.innerHTML = showInstallBanner() ? installHtml(true) : ""; bindInstall(slot, () => openTab("learn")); } } });
+
   // ---------- LEARN tab: lectures + questions ----------
   // Syllabus order: official topic number, then lesson order
   const sortedLessons = sid => (LESSONS[sid] || []).map((l, i) => ({ l, i })).sort((x, y) => (x.l.unit - y.l.unit) || (x.i - y.i));
@@ -722,6 +748,7 @@
     app.innerHTML = `
       <h2>📖 ${t("learnTitle")}</h2>
       <p class="sub">${t("learnSub")}</p>
+      <div id="installSlot">${showInstallBanner() ? installHtml(true) : ""}</div>
       ${rec ? `
         <button class="rec-card" id="recLesson">
           <span class="rec-kicker">${t("recommendedLesson")} · ${impLabel(rec.imp)}</span>
@@ -748,6 +775,7 @@
       </div>
     `;
     document.getElementById("wordBank").onclick = renderWordBank;
+    bindInstall(app, () => openTab("learn"));
     const rc = document.getElementById("recLesson");
     if (rc) rc.addEventListener("click", () => renderLesson(rec.sid, LESSONS[rec.sid].indexOf(rec)));
     app.querySelectorAll("[data-sid]").forEach(b => b.addEventListener("click", () => renderLessonList(b.dataset.sid)));

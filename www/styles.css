@@ -700,3 +700,10 @@ body.no-pet .coach-fab { display: flex; }
 .wb-front small { color: var(--muted); font-style: italic; }
 .wb-tl { font-weight: 700; color: var(--green-dark); }
 .wb-trick { color: #92400e; }
+
+/* ===== v13: install ===== */
+.install-panel { position: relative; border: 2px solid var(--green); background: linear-gradient(160deg, var(--green-soft), var(--white)); }
+.install-panel > b { display: block; padding-right: 28px; }
+.install-panel .btn { display: block; width: 100%; text-align: center; text-decoration: none; margin-top: 6px; }
+.install-steps { margin: 0 0 6px; line-height: 1.5; font-size: .92rem; }
+.install-x { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border: 0; border-radius: 10px; background: rgba(15,42,61,.06); font: inherit; cursor: pointer; color: var(--muted); }
