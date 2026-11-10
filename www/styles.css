@@ -707,3 +707,7 @@ body.no-pet .coach-fab { display: flex; }
 .install-panel .btn { display: block; width: 100%; text-align: center; text-decoration: none; margin-top: 6px; }
 .install-steps { margin: 0 0 6px; line-height: 1.5; font-size: .92rem; }
 .install-x { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border: 0; border-radius: 10px; background: rgba(15,42,61,.06); font: inherit; cursor: pointer; color: var(--muted); }
+.ex-try { list-style: none; padding: 0; margin: 6px 0 0; }
+.ex-try li { padding: 4px 0; }
+.ex-try li.ok { color: var(--green-dark); font-weight: 700; }
+.ex-try li.no { color: var(--muted); }

@@ -121,7 +121,7 @@
 
     // coach chat
     coachTitle: ["Kiko · your tutor buddy", "Kiko · ang iyong tutor buddy", "Kiko · tutor buddy mo"],
-    coachSub: ["Ask me anything about your review", "Magtanong ka tungkol sa iyong pagrerebyu", "Ask mo ako kahit ano about sa review mo"],
+    coachSub: ["Built-in tutor · AI isn't connected on this website yet", "Built-in na tutor · wala pang AI sa website na ito", "Built-in tutor · wala pang AI sa website na ito"],
     coachSubAI: ["AI tutor · knows your scores and progress", "AI tutor · alam ang iyong iskor at progreso", "AI tutor · alam ang scores at progress mo"],
     askMe: [
       ["Ask me! I'm your tutor buddy 💬", "Stuck? Tap me and ask! 🌱", "Want a study plan? Ask me! 🗓️", "I can tell you what to focus on 🎯", "Tap me for help anytime 💚"],
@@ -397,6 +397,22 @@
     openInChrome: ["Open in Chrome", "Buksan sa Chrome", "Open in Chrome"],
     installIOS: ["On iPhone: open this page in Safari, tap Share ⬆️, then “Add to Home Screen”.", "Sa iPhone: buksan ito sa Safari, pindutin ang Share ⬆️, saka “Add to Home Screen”.", "Sa iPhone: buksan sa Safari, i-tap ang Share ⬆️, tapos “Add to Home Screen”."],
     installManual: ["In Chrome: tap ⋮ (top right) → “Install app” or “Add to Home screen”. Don't see it? Tap ⋮ → “Open in Chrome” first if you're inside another app.", "Sa Chrome: pindutin ang ⋮ (itaas, kanan) → “Install app” o “Add to Home screen”. Wala? Kung nasa loob ka ng ibang app, pindutin muna ang ⋮ → “Open in Chrome”.", "Sa Chrome: i-tap ang ⋮ (taas, kanan) → “Install app” o “Add to Home screen”. Wala? Kung nasa loob ka ng ibang app, i-tap muna ang ⋮ → “Open in Chrome”."],
+    // v14: smarter built-in tutor
+    exSimpler: ["Okay, let me explain it a simpler way 😊", "Sige, ipapaliwanag ko sa mas simpleng paraan 😊", "Okay, mas simple na explanation 😊"],
+    exRule: ["📏 The rule", "📏 Ang tuntunin", "📏 Ang rule"],
+    exSimilar: ["🧩 Similar examples", "🧩 Mga katulad na halimbawa", "🧩 Similar examples"],
+    exTryEach: ["🔁 Try each choice in the sentence", "🔁 Subukan ang bawat pagpipilian sa pangungusap", "🔁 I-try ang bawat choice sa sentence"],
+    exYouPicked: ["You picked {x}.", "Ang pinili mo ay {x}.", "Ang pinili mo ay {x}."],
+    exFits: ["fits the rule", "tugma sa tuntunin", "pasok sa rule"],
+    exNoFit: ["doesn't fit", "hindi tugma", "hindi pasok"],
+    exHiddenTry: ["Put each choice into the blank and check it against the rule above. Which one fits?", "Ilagay ang bawat pagpipilian sa patlang at suriin gamit ang tuntunin sa itaas. Alin ang tugma?", "Ilagay ang bawat choice sa blank at i-check gamit ang rule sa taas. Alin ang pasok?"],
+    exStill: ["Still tricky? That's totally okay! 💪 The quickest fix is the short step-by-step lesson for this topic:", "Mahirap pa rin? Ayos lang 'yan! 💪 Pinakamabilis na tulong ang maikling aralin para sa paksang ito:", "Mahirap pa rin? Okay lang 'yan! 💪 Pinaka-mabilis na tulong ang short lesson para sa topic na ito:"],
+    openLesson: ["📖 Open the lesson", "📖 Buksan ang aralin", "📖 Buksan ang lesson"],
+    clarify: [
+      ["Sorry, I didn't quite catch that 😅 What would you like help with?", "Hmm, can you tell me a bit more? For example: “explain this question” or “make my study plan”.", "I'm here! 🌱 Try one of the buttons below, or ask about a subject like “tips for math”."],
+      ["Pasensya, hindi ko masyadong naintindihan 😅 Saan kita matutulungan?", "Hmm, puwede mo bang dagdagan? Halimbawa: “ipaliwanag ang tanong na ito” o “gawan ako ng study plan”.", "Nandito lang ako! 🌱 Pindutin ang isang button sa ibaba, o magtanong tungkol sa asignatura gaya ng “tips sa math”."],
+      ["Sorry, hindi ko masyadong gets 😅 Saan kita matutulungan?", "Hmm, pwede mo bang i-explain pa? Halimbawa: “explain this question” o “gawan mo ako ng study plan”.", "Nandito ako! 🌱 I-tap ang isang button sa baba, o mag-ask about a subject like “tips sa math”."]
+    ],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 

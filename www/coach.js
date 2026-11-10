@@ -116,6 +116,7 @@
   }
   function act(a) {
     close();
+    if (a.startsWith("lesson:")) return A().openLesson(a.slice(7));
     if (a === "mock") A().startMock();
     else if (a === "starred") A().startStarred();
     else if (a.startsWith("s:")) A().startSubject(a.slice(2));
@@ -136,6 +137,8 @@
     }));
   }
   function reply(html) {
+    if (html === lastBotHtml) { const opts = t("clarify"); html = `<div class="muted small">${opts[Math.floor(Math.random() * opts.length)]}</div>` + html; }
+    lastBotHtml = html;
     const typing = addMsg("bot", `<span class="typing"><i></i><i></i><i></i></span>`);
     setTimeout(() => {
       typing.remove();
@@ -150,6 +153,27 @@
       ${a.overall.attempts ? t("greetStats", { n: a.overall.attempts, p: a.overall.acc }) : t("greetNoData")}
       <br>${t("greetTap")}`, "greeting");
   }
+
+
+  // ---------- built-in tutor helpers ----------
+  const words = s => (String(s || "").toLowerCase().match(/[a-zà-ÿñ']{3,}/g) || []);
+  function lessonOf(lid) {
+    const L = window.LESSONS || {};
+    for (const sid in L) for (const l of L[sid]) if (l.id === lid) return l;
+    return null;
+  }
+  // the lesson rule (key point) that best matches this question, with its examples
+  function bestRule(c) {
+    const l = lessonOf(c.lid);
+    if (!l) return { rule: c.trick, examples: [], lesson: null };
+    const qw = new Set(words(c.question + " " + (c.explanation || "") + " " + (c.hint || "")));
+    let best = 0, bi = 0;
+    l.points.forEach((p, i) => { const sc = words(p).filter(w => qw.has(w)).length; if (sc > best) { best = sc; bi = i; } });
+    const ex = (window.LESSON_EXAMPLES && LESSON_EXAMPLES[l.id] && LESSON_EXAMPLES[l.id][bi]) || [];
+    return { rule: best > 0 ? l.points[bi] : l.remember, examples: ex, lesson: l };
+  }
+  const explainLevel = {};   // per question: 1st, 2nd, 3rd time the student asks
+  let lastBotHtml = "";
 
   // ---------- built-in coach (works offline) ----------
   const SUB = id => A().subjects.find(s => s.id === id);
@@ -211,17 +235,36 @@
     if (kind === "explain") {
       const c = ctxQ();
       if (!c) return t("openFirst");
-      const L = "ABCD";
-      return `<div class="ex-sec"><b>${t("exBreak")}</b>
-          <div><i>${t("exAsks")}:</i> ${esc(c.question)}</div>
-          <div><i>${t("exChoices")}:</i> ${c.choices.map((x, i) => `<span class="ex-choice">${L[i]}. ${esc(x)}</span>`).join(" ")}</div></div>
-        <div class="ex-sec"><b>${t("exSteps")}</b><ol>
-          <li>${t("exStep1", { s: esc(c.topic || c.subject) })}</li>
-          <li>${t("exStep2", { h: esc(c.hint) })}</li>
-          <li>${t("exStep3")}</li>
-          <li>${c.revealed ? t("exStep4Revealed", { e: esc(c.explanation) }) : t("exStep4Hidden")}</li></ol>
-          ${c.revealed ? `<div class="ex-answer">${t("exAnswer", { a: esc(c.answerLetter + ". " + c.answer) })}</div>` : ""}</div>
-        <div class="ex-sec trick"><b>${t("exTrick")}</b><div>${esc(c.trick)}</div></div>`;
+      const L = "ABCD", key = c.question;
+      const level = explainLevel[key] = (explainLevel[key] || 0) + 1;
+      const br = bestRule(c);
+      if (level === 1) {
+        return `<div class="ex-sec"><b>${t("exBreak")}</b>
+            <div><i>${t("exAsks")}:</i> ${esc(c.question)}</div>
+            <div><i>${t("exChoices")}:</i> ${c.choices.map((x, i) => `<span class="ex-choice">${L[i]}. ${esc(x)}</span>`).join(" ")}</div></div>
+          <div class="ex-sec"><b>${t("exSteps")}</b><ol>
+            <li>${t("exStep1", { s: esc(c.topic || c.subject) })}</li>
+            <li>${t("exStep2", { h: esc(c.hint) })}</li>
+            <li>${t("exStep3")}</li>
+            <li>${c.revealed ? t("exStep4Revealed", { e: esc(c.explanation) }) : t("exStep4Hidden")}</li></ol>
+            ${c.revealed ? `<div class="ex-answer">${t("exAnswer", { a: esc(c.answerLetter + ". " + c.answer) })}</div>` : ""}</div>
+          <div class="ex-sec trick"><b>${t("exTrick")}</b><div>${esc(br.rule)}</div></div>`;
+      }
+      if (level === 2) {
+        const tryEach = c.revealed
+          ? `${c.studentAnswer && c.studentAnswer !== c.answer ? `<div>${t("exYouPicked", { x: "<b>" + esc(c.studentAnswer) + "</b>" })}</div>` : ""}
+             <ul class="ex-try">${c.choices.map((x, i) => x === c.answer
+                ? `<li class="ok">✅ ${L[i]}. ${esc(x)}: ${t("exFits")}</li>`
+                : `<li class="no">❌ ${L[i]}. ${esc(x)}: ${t("exNoFit")}</li>`).join("")}</ul>`
+          : `<div>${t("exHiddenTry")}</div>`;
+        return `<div>${t("exSimpler")}</div>
+          <div class="ex-sec trick"><b>${t("exRule")}</b><div>${esc(br.rule)}</div></div>
+          ${br.examples.length ? `<div class="ex-sec"><b>${t("exSimilar")}</b><ul>${br.examples.map(([q, a]) => `<li>${esc(q)} → <b>${esc(a)}</b></li>`).join("")}</ul></div>` : ""}
+          <div class="ex-sec"><b>${t("exTryEach")}</b>${tryEach}</div>`;
+      }
+      explainLevel[key] = 0;   // next request starts over
+      return `${t("exStill")}
+        <div class="cacts">${br.lesson ? btn("lesson:" + br.lesson.id, t("openLesson")) : ""}${btn("s:" + c.sid, t("practiceNow", { i: SUB(c.sid).icon }))}</div>`;
     }
 
     if (kind === "tips") return `<b>${t("tipsTitle")}</b><ul>${t("examTips").map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
@@ -233,7 +276,11 @@
     }
 
     // keyword routing for typed questions (English and Filipino keywords)
-    const q = (text || "").toLowerCase();
+    const q = (text || "").toLowerCase().trim();
+    if (/^(what|wut|huh|ha|ano|ano daw|eh|hmm+|\?+|i don'?t get it|don'?t get it|hindi ko gets|di ko gets|hindi ko maintindihan|di ko maintindihan|confused|nalilito)\W*$/.test(q)) {
+      if (ctxQ()) return builtIn("explain");
+      const opts = t("clarify"); return opts[Math.floor(Math.random() * opts.length)];
+    }
     if (ctxQ() && /explain|hindi ko (ma)?gets|di ko gets|hindi ko maintindihan|di ko maintindihan|ipaliwanag|paliwanag|bakit|paano|why|how|confus|gulo|step by step/.test(q)) return builtIn("explain");
     if (/analy|perform|score|stat|progress|how am i|result|resulta|kumusta ako/.test(q)) return builtIn("analyze");
     if (/plan|strateg|schedule|routine|study|araw-araw|daily|week|linggo/.test(q)) return builtIn("plan");

@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.12.0";
+  const APP_VERSION = "1.13.0";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -1706,7 +1706,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   function qContext(q, revealed, ans) {
     const l = q.lid && lessonById.get(q.lid), tr = sn(subjectOf(q));
     return {
-      subject: tr.name, sid: q.sid, topic: l ? l.title : null, question: q.q, choices: q.c.map((_, i) => cText(q, i)), hint: q.h, revealed,
+      subject: tr.name, sid: q.sid, lid: q.lid || null, topic: l ? l.title : null, question: q.q, choices: q.c.map((_, i) => cText(q, i)), hint: q.h, revealed,
       answer: revealed ? cText(q, q.a) : null, answerLetter: revealed ? LETTERS[q.a] : null,
       studentAnswer: ans != null ? cText(q, ans) : null, explanation: revealed ? q.e : null,
       trick: l ? l.remember : tr.tips[0], tips: tr.tips
@@ -1719,6 +1719,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     subjName: id => sn(SUBJECTS.find(s => s.id === id)),
     profile: () => profile,
     startSubject, startMock, startStarred, startReview,
+    openLesson(lid) { const l = lessonById.get(lid); if (!l) return; session = null; tab = "learn"; paintTabbar(); showTabbar(true); renderLesson(l.sid, LESSONS[l.sid].indexOf(l), 0); },
     // Current question for the coach. The answer key is included only after it's revealed.
     current: () => {
       if (!session || session.done) return null;
