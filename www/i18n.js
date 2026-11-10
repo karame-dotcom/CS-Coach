@@ -369,6 +369,24 @@
     reasonRestore: ["Before a restore", "Bago magbalik ng backup", "Bago mag-restore"],
     reasonReset: ["Before reset", "Bago ang reset", "Bago ang reset"],
     backupRemind: ["Psst! Save a backup of your progress in ⚙️ Settings 🛡️", "Psst! Mag-save ng backup ng progreso mo sa ⚙️ Mga Setting 🛡️", "Psst! Mag-save ka ng backup ng progress mo sa ⚙️ Settings 🛡️"],
+    // v12: word helper, word bank, key-point examples
+    wMeaning: ["Meaning", "Kahulugan", "Meaning"],
+    wExample: ["Example", "Halimbawa", "Example"],
+    wTagalog: ["In Tagalog", "Sa Tagalog", "Sa Tagalog"],
+    wEnglish: ["In English", "Sa Ingles", "Sa English"],
+    wRemember: ["🧠 Remember it", "🧠 Paano tandaan", "🧠 Paano tandaan"],
+    wSay: ["🔊 Say it", "🔊 Bigkasin", "🔊 Say it"],
+    wLookUp: ["🔎 Look it up", "🔎 Hanapin", "🔎 Look it up"],
+    wTranslate: ["🌐 Translate to Tagalog", "🌐 Isalin sa Tagalog", "🌐 Translate sa Tagalog"],
+    wLoading: ["Looking it up…", "Hinahanap…", "Hinahanap…"],
+    wNotFound: ["This word isn't in the app's dictionary yet.", "Wala pa sa diksiyonaryo ng app ang salitang ito.", "Wala pa sa dictionary ng app ang word na ito."],
+    wAiNote: ["Explained by AI", "Ipinaliwanag ng AI", "Explained by AI"],
+    lpTip: ["💡 Tip: long-press any word to see its meaning, an example, and the Tagalog.", "💡 Tip: pindutin nang matagal ang anumang salita para makita ang kahulugan, halimbawa at salin.", "💡 Tip: i-long-press ang kahit anong word para makita ang meaning, example at Tagalog."],
+    wordBankTitle: ["Word Bank", "Bangko ng Salita", "Word Bank"],
+    wordBankDesc: ["Advanced exam words with pictures and memory tricks", "Mahihirap na salita sa eksamen, may larawan at paraan ng pagtanda", "Advanced exam words with pictures at memory tricks"],
+    tapToFlip: ["Tap a card to flip it", "Pindutin ang kard para ibaligtad", "I-tap ang card para i-flip"],
+    exTitle: ["Examples", "Mga halimbawa", "Examples"],
+    tapReveal: ["Tap to see the answer", "Pindutin para makita ang sagot", "I-tap para makita ang sagot"],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 

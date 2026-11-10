@@ -44,6 +44,17 @@ One-time setup: repo **Settings → Pages → Build and deployment → Source: G
 The site will be at `https://karame-dotcom.github.io/CS-Coach/`.
 On a phone, open the link and **Add to Home Screen** (iPhone: Share → Add to Home Screen; Android: ⋮ → Install app). It works offline too.
 
+## AI on the website (optional)
+Inside claude.ai the app uses Claude directly. For the public website, deploy the small proxy in `server/` (Cloudflare Worker) so your Anthropic API key stays secret:
+```bash
+cd server
+npm install
+npx wrangler login
+npx wrangler secret put ANTHROPIC_API_KEY
+npx wrangler deploy
+```
+Then put the Worker URL in `www/config.js` (`window.CS_AI_ENDPOINT = "https://…workers.dev"`) and push. Only the website's address may call the Worker (see `ALLOWED_ORIGINS` in `server/worker.js`). Each AI request is billed to your Anthropic account.
+
 ## Run the web version
 ```bash
 npm start        # serves www/ at http://localhost:3000

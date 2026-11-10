@@ -654,3 +654,49 @@ body.no-pet .coach-fab { display: flex; }
 .qrow + .qtext { margin-top: 12px; }
 .qrow .qsubject { font-size: .72rem; }
 .coach-panel.typing .coach-chips { display: none; }
+.coach-input textarea { flex: 1; min-width: 0; resize: none; padding: 10px 14px; border: 2px solid var(--line); border-radius: 20px; font: inherit; font-size: 16px; line-height: 1.35; max-height: 96px; overflow-y: auto; }
+.coach-input textarea:focus { outline: none; border-color: var(--blue); }
+.coach-input { align-items: flex-end; }
+
+/* ===== v12: key-point examples, word helper, word bank ===== */
+.ex-head { margin: 14px 0 8px; font-weight: 800; font-size: .9rem; color: var(--blue); }
+.ex-list { display: grid; gap: 8px; }
+.ex-card { display: flex; gap: 10px; align-items: flex-start; text-align: left; width: 100%; padding: 10px 12px; border-radius: 12px; border: 1.5px dashed #c9d8fb; background: var(--blue-soft); font: inherit; color: var(--ink); cursor: pointer; }
+.ex-n { flex: none; width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; font-weight: 800; font-size: .8rem; color: #fff; background: var(--blue); }
+.ex-body { display: flex; flex-direction: column; gap: 4px; line-height: 1.45; }
+.ex-a { display: none; font-weight: 700; color: var(--green-dark); }
+.ex-card.open { border-style: solid; border-color: var(--green); background: var(--green-soft); }
+.ex-card.open .ex-a { display: block; animation: pop .25s ease-out; }
+.ex-card.open .ex-n { background: var(--green); }
+
+/* long-press areas: no native selection menu */
+.qtext, .choice, .step-card, .review-item, .feedback, .why, .wb-card, .modal-text, .coach-block { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.word-sheet { align-items: end; }
+.word-sheet .modal { animation: sheetUp .22s ease-out; }
+@keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } }
+.w-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.w-word { font-size: 1.5rem; font-weight: 800; }
+.w-pos { font-size: .8rem; font-weight: 700; color: var(--muted); font-style: italic; }
+.w-head .tool { margin-left: auto; }
+.w-row { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line); line-height: 1.45; }
+.w-label { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
+.w-memory { display: flex; gap: 12px; align-items: center; margin-top: 12px; padding: 12px; border-radius: 14px; background: #fffbeb; border: 2px solid #fcd34d; }
+.w-pic { font-size: 2.2rem; line-height: 1.1; flex: none; max-width: 40%; text-align: center; }
+.w-memory p { margin: 4px 0 0; line-height: 1.45; }
+.w-link { display: block; text-align: center; margin-top: 12px; text-decoration: none; }
+
+.wb-entry { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; padding: 14px 16px; margin-bottom: 16px; border-radius: 14px; border: 2px solid #fcd34d; background: #fffbeb; font: inherit; color: var(--ink); cursor: pointer; }
+.wb-entry > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; }
+.wb-entry small { color: var(--muted); }
+.wb-pics { font-size: 1.6rem; }
+.wb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.wb-card { position: relative; min-height: 170px; border: 1px solid var(--line); border-radius: 16px; background: var(--white); font: inherit; color: var(--ink); cursor: pointer; padding: 0; perspective: 600px; }
+.wb-front, .wb-back { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px; border-radius: 16px; backface-visibility: hidden; transition: transform .45s; text-align: center; }
+.wb-back { transform: rotateY(180deg); background: linear-gradient(160deg, var(--green-soft), var(--blue-soft)); font-size: .8rem; line-height: 1.35; justify-content: flex-start; overflow: auto; }
+.wb-card.flipped .wb-front { transform: rotateY(180deg); }
+.wb-card.flipped .wb-back { transform: rotateY(360deg); }
+.wb-pic { font-size: 2.4rem; }
+.wb-front b { font-size: 1.05rem; }
+.wb-front small { color: var(--muted); font-style: italic; }
+.wb-tl { font-weight: 700; color: var(--green-dark); }
+.wb-trick { color: #92400e; }

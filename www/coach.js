@@ -23,7 +23,7 @@
     <div class="coach-msgs" id="coachMsgs"></div>
     <div class="coach-chips" id="coachChips"></div>
     <div class="coach-input" id="coachForm" role="group">
-      <input id="coachText" type="text" name="kiko-chat-message" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="send" inputmode="text" aria-autocomplete="none" data-lpignore="true" data-form-type="other" />
+      <textarea id="coachText" rows="1" name="kiko-chat-message" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="send" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></textarea>
       <button type="button" aria-label="Send">➤</button>
     </div>`;
   document.body.append(fab, panel);
@@ -48,15 +48,14 @@
   document.addEventListener("cscoach:lang", () => { paintLabels(); msgs.innerHTML = ""; transcript.length = 0; });
   document.addEventListener("cscoach:pet", paintLabels);
 
-  if (window.claude && typeof window.claude.use === "function") {
-    window.claude.use("sample").then(s => { sample = s; paintLabels(); }).catch(() => {});
-  }
+  window.CSAI.get().then(s => { sample = s; paintLabels(); }).catch(() => {});
 
   function open(kind) {
     panel.classList.remove("hidden");
     fab.classList.add("open");
     if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(true);
     document.body.classList.add("chat-open");
+    if (window.CSBack) window.CSBack();   // phone Back closes the chat
     setTimeout(fitPanel, 0);
     if (!msgs.children.length) greet();
     renderChips();
@@ -76,14 +75,18 @@
     addMsg("user", esc(label) + `<br><small>“${esc(ctx.question.length > 90 ? ctx.question.slice(0, 90) + "…" : ctx.question)}”</small>`, label + ": " + ctx.question);
     if (sample) askAI(label + ": " + ctx.question, true); else reply(builtIn("explain"));
   }
-  window.CoachUI = { open, close, toggle, explain };
+  const isOpen = () => !panel.classList.contains("hidden");
+  window.CoachUI = { open, close, toggle, explain, isOpen };
 
   // Keep the phone keyboard open after sending: the Send button never steals focus
   const sendBtn = panel.querySelector(".coach-input button");
   ["pointerdown", "mousedown", "touchstart"].forEach(ev => sendBtn.addEventListener(ev, e => e.preventDefault(), { passive: false }));
   sendBtn.addEventListener("touchend", e => { e.preventDefault(); send(); }, { passive: false });
   sendBtn.addEventListener("click", send);
-  input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); send(); } });
+  input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } });
+  // grow the text box up to 4 lines while typing
+  const grow = () => { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 96) + "px"; };
+  input.addEventListener("input", grow);
   // Hide the quick-question buttons while typing (keyboard open) to save space
   input.addEventListener("focus", () => panel.classList.add("typing"));
   input.addEventListener("blur", () => panel.classList.remove("typing"));
@@ -308,7 +311,7 @@ ${JSON.stringify(context)}`;
   function send() {
     const text = input.value.trim();
     if (!text) return;
-    input.value = "";
+    input.value = ""; input.style.height = "auto";
     input.focus({ preventScroll: true });
     addMsg("user", esc(text), text);
     const wants = !!ctxQ() && /explain|gets|maintindihan|paliwanag|bakit|paano|why|how|confus|gulo|step/i.test(text);

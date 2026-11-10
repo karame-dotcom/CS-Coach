@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.10.0";
+  const APP_VERSION = "1.11.0";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -264,7 +264,36 @@
   // ---------- navigation ----------
   let onBack = null;
   let tab = "learn";
-  function setBack(fn) { onBack = fn; backBtn.classList.toggle("hidden", !fn); }
+  function setBack(fn) { onBack = fn; backBtn.classList.toggle("hidden", !fn); ensureGuard(); }
+
+  // ---------- Phone back button / back gesture ----------
+  // Keep one extra history entry while there is something to go back from, so the
+  // phone's Back closes (in order) a pop-up, the chat, the current inner screen,
+  // or returns to the Learn tab, instead of leaving the app.
+  let guard = false;
+  const modalOpen = () => document.querySelector(".modal-bg");
+  const chatIsOpen = () => !!(window.CoachUI && window.CoachUI.isOpen && window.CoachUI.isOpen());
+  const canGoBack = () => !!(modalOpen() || chatIsOpen() || onBack || (profile && tab !== "learn"));
+  // Chrome skips history entries a page adds without a user tap, so only add one
+  // while the user is interacting (right after a tap/click/keypress).
+  const userActive = () => !navigator.userActivation || navigator.userActivation.isActive;
+  function ensureGuard() {
+    if (guard || !canGoBack() || !userActive()) return;
+    try { window.history.pushState({ cscoach: Date.now() }, ""); guard = true; } catch (_) {}
+  }
+  window.CSBack = ensureGuard;
+  // after every tap, make sure Back has something to close
+  ["click", "keydown"].forEach(ev => document.addEventListener(ev, () => setTimeout(ensureGuard, 0), true));
+  window.addEventListener("popstate", () => {
+    guard = false;
+    const m = modalOpen();
+    if (m) m.remove();
+    else if (chatIsOpen()) window.CoachUI.close();
+    else if (onBack) onBack();
+    else if (profile && tab !== "learn") openTab("learn");
+    else { try { window.history.back(); } catch (_) {} return; }   // nothing left: leave the app
+    setTimeout(ensureGuard, 0);
+  });
   backBtn.addEventListener("click", () => onBack && onBack());
   settingsBtn.addEventListener("click", () => {
     if (session && !session.done) return confirmBox(t("leaveForSettings"), t("leave"), () => { session = null; renderSettings(false); });
@@ -287,6 +316,7 @@
     tab = name || tab;
     session = null;
     paintTabbar(); showTabbar(true);
+    setTimeout(ensureGuard, 0);
     settingsBtn.classList.remove("hidden");
     if (tab === "learn") renderLearn();
     else if (tab === "analytics") renderAnalytics();
@@ -301,6 +331,7 @@
     wrap.className = "modal-bg";
     wrap.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${html}</div>`;
     document.body.appendChild(wrap);
+    ensureGuard();
     const close = () => wrap.remove();
     wrap.addEventListener("click", e => { if (e.target === wrap) close(); });
     bind(wrap, close);
@@ -549,6 +580,132 @@
     };
   }
 
+
+  // ---------- WORD HELPER: long-press any word ----------
+  // Shows meaning, an example sentence and the Tagalog (or English, for Filipino words).
+  // Advanced words also show a "picture" and a fun memory trick.
+  const G = window.GLOSSARY || {}, GF = window.GLOSSARY_FIL || {};
+  function lookupWord(raw) {
+    const w = raw.toLowerCase().replace(/[^a-zà-ÿñ'-]/g, "").replace(/^['-]+|['-]+$/g, "");
+    const c = [w, w.replace(/ies$/, "y"), w.replace(/es$/, ""), w.replace(/s$/, ""), w.replace(/ed$/, ""), w.replace(/ed$/, "e"), w.replace(/d$/, ""), w.replace(/ing$/, ""), w.replace(/ing$/, "e"), w.replace(/ly$/, "")];
+    for (const k of c) { if (G[k]) return { word: k, en: G[k] }; if (GF[k]) return { word: k, fil: GF[k] }; }
+    return { word: w };
+  }
+  function say(text, lang) {
+    try { const u = new SpeechSynthesisUtterance(text); u.lang = lang; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (_) {}
+  }
+  function wordBody(r, ai) {
+    if (r.en) {
+      const e = r.en;
+      return `
+        <div class="w-row"><span class="w-label">${t("wMeaning")}</span><span>${esc(e.m)}</span></div>
+        <div class="w-row"><span class="w-label">${t("wExample")}</span><span><i>“${esc(e.s)}”</i></span></div>
+        <div class="w-row"><span class="w-label">🇵🇭 ${t("wTagalog")}</span><span><b>${esc(e.tl)}</b></span></div>
+        ${e.pic && e.trick ? `<div class="w-memory"><div class="w-pic">${e.pic}</div><div><b>${t("wRemember")}</b><p>${esc(e.trick)}</p></div></div>` : ""}
+        ${ai ? `<p class="muted small">✨ ${t("wAiNote")}</p>` : ""}`;
+    }
+    const f = r.fil;
+    return `
+      <div class="w-row"><span class="w-label">${t("wMeaning")}</span><span>${esc(f.m)}</span></div>
+      <div class="w-row"><span class="w-label">🇺🇸 ${t("wEnglish")}</span><span><b>${esc(f.en)}</b></span></div>
+      <div class="w-row"><span class="w-label">${t("wExample")}</span><span><i>“${esc(f.s)}”</i></span></div>`;
+  }
+  function showWord(raw) {
+    const r = lookupWord(raw);
+    const isFil = !!r.fil;
+    const title = r.word || raw;
+    modal(`
+      <div class="w-head"><span class="w-word">${esc(title)}</span>${r.en && r.en.pos ? `<span class="w-pos">${esc(r.en.pos)}</span>` : ""}
+        <button class="tool icon" data-say aria-label="${t("wSay")}">🔊</button></div>
+      <div id="wBody">${(r.en || r.fil) ? wordBody(r) : `<div class="ai-loading"><div class="spinner"></div><span class="muted small">${t("wLoading")}</span></div>`}</div>
+      <div class="actions"><button class="btn" data-x>${t("gotIt")}</button></div>
+    `, (w, close) => {
+      w.querySelector("[data-x]").onclick = close;
+      w.querySelector("[data-say]").onclick = () => say(title, isFil ? "fil-PH" : "en-US");
+      w.classList.add("word-sheet");
+      if (!r.en && !r.fil) fetchWord(title).then(html => { const b = w.querySelector("#wBody"); if (b) b.innerHTML = html; });
+    });
+  }
+  async function fetchWord(word) {
+    // 1) AI (claude.ai, or the website's AI server if set up)
+    if (sampleFn) {
+      try {
+        const lang = I.lang === "en" ? "English" : "Tagalog/Filipino";
+        const d = await sampleFn.json(`Explain the word "${word}" for a Filipino reviewing for the Civil Service Exam. Return JSON only: {"pos":"noun|verb|adj|adv|…","m":"short meaning in ${lang}","s":"one example sentence using the word","tl":"Tagalog equivalent (or English equivalent if the word is Filipino)","pic":"2–4 emoji that picture the meaning","trick":"one short, fun way to remember it"}`, { cache: true });
+        if (d && d.m) { G[word.toLowerCase()] = { pos: d.pos, m: d.m, s: d.s || "", tl: d.tl || "", pic: d.pic, trick: d.trick, adv: 1 }; return wordBody({ en: G[word.toLowerCase()] }, true); }
+      } catch (_) {}
+    }
+    // 2) free online dictionary (works on the website, not inside claude.ai)
+    try {
+      const res = await fetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + encodeURIComponent(word));
+      if (res.ok) {
+        const data = await res.json(), m = data[0] && data[0].meanings && data[0].meanings[0], def = m && m.definitions[0];
+        if (def) return `
+          <div class="w-row"><span class="w-label">${t("wMeaning")}</span><span>${esc(def.definition)}</span></div>
+          ${def.example ? `<div class="w-row"><span class="w-label">${t("wExample")}</span><span><i>“${esc(def.example)}”</i></span></div>` : ""}
+          <a class="btn secondary w-link" href="https://translate.google.com/?sl=en&tl=tl&text=${encodeURIComponent(word)}" target="_blank" rel="noopener">${t("wTranslate")}</a>`;
+      }
+    } catch (_) {}
+    // 3) nothing available: offer a search
+    return `<p class="muted">${t("wNotFound")}</p>
+      <a class="btn secondary w-link" href="https://www.google.com/search?q=${encodeURIComponent(word + " meaning tagalog")}" target="_blank" rel="noopener">${t("wLookUp")}</a>`;
+  }
+
+  // Long-press detection (touch and mouse). A long-press never answers a question.
+  const LP_SEL = ".qtext, .choice, .step-card, .review-item, .feedback, .why, .wb-card, .modal-text, .coach-block";
+  let lpTimer = null, lpPos = null, swallow = false;
+  function wordAt(x, y) {
+    let node, off;
+    if (document.caretRangeFromPoint) { const r = document.caretRangeFromPoint(x, y); if (!r) return null; node = r.startContainer; off = r.startOffset; }
+    else if (document.caretPositionFromPoint) { const p = document.caretPositionFromPoint(x, y); if (!p) return null; node = p.offsetNode; off = p.offset; }
+    if (!node || node.nodeType !== 3) return null;
+    const txt = node.textContent, re = /[A-Za-zÀ-ÿñÑ'-]/;
+    let a = off, b = off;
+    while (a > 0 && re.test(txt[a - 1])) a--;
+    while (b < txt.length && re.test(txt[b])) b++;
+    const w = txt.slice(a, b).replace(/^['-]+|['-]+$/g, "");
+    return w.length > 1 ? w : null;
+  }
+  function lpBegin(x, y, target) {
+    if (!target.closest || !target.closest(LP_SEL)) return;
+    lpPos = { x, y }; clearTimeout(lpTimer);
+    lpTimer = setTimeout(() => {
+      const w = wordAt(lpPos.x, lpPos.y);
+      if (!w) return;
+      swallow = true; setTimeout(() => { swallow = false; }, 900);
+      try { navigator.vibrate && navigator.vibrate(15); } catch (_) {}
+      showWord(w);
+    }, 550);
+  }
+  const lpCancel = () => clearTimeout(lpTimer);
+  document.addEventListener("touchstart", e => lpBegin(e.touches[0].clientX, e.touches[0].clientY, e.target), { passive: true });
+  document.addEventListener("touchmove", e => { if (lpPos && Math.hypot(e.touches[0].clientX - lpPos.x, e.touches[0].clientY - lpPos.y) > 10) lpCancel(); }, { passive: true });
+  document.addEventListener("touchend", lpCancel); document.addEventListener("touchcancel", lpCancel);
+  document.addEventListener("mousedown", e => { if (e.button === 0) lpBegin(e.clientX, e.clientY, e.target); });
+  document.addEventListener("mousemove", e => { if (lpPos && Math.hypot(e.clientX - lpPos.x, e.clientY - lpPos.y) > 10) lpCancel(); });
+  document.addEventListener("mouseup", lpCancel);
+  document.addEventListener("click", e => { if (swallow) { e.preventDefault(); e.stopPropagation(); swallow = false; } }, true);
+  document.addEventListener("contextmenu", e => { if (e.target.closest && e.target.closest(LP_SEL)) e.preventDefault(); });
+
+  // ---------- WORD BANK: advanced words as flip cards with pictures ----------
+  function renderWordBank() {
+    setBack(() => openTab("learn"));
+    showTabbar(true);
+    const words = Object.keys(G).filter(k => G[k] && G[k].adv && G[k].pic).sort();
+    app.innerHTML = `
+      <h2>🧠 ${t("wordBankTitle")}</h2>
+      <p class="sub">${t("wordBankDesc")}. ${t("tapToFlip")}.</p>
+      <div class="wb-grid">${words.map(k => {
+        const e = G[k];
+        return `<button class="wb-card" data-w="${esc(k)}">
+          <span class="wb-front"><span class="wb-pic">${e.pic}</span><b>${esc(k)}</b><small>${esc(e.pos || "")}</small></span>
+          <span class="wb-back"><b>${esc(k)}</b><span>${esc(e.m)}</span><span class="wb-tl">🇵🇭 ${esc(e.tl)}</span><span class="wb-trick">🧠 ${esc(e.trick)}</span></span>
+        </button>`;
+      }).join("")}</div>`;
+    app.querySelectorAll(".wb-card").forEach(c => c.addEventListener("click", () => { c.classList.toggle("flipped"); if (c.classList.contains("flipped")) say(c.dataset.w, "en-US"); }));
+    window.scrollTo(0, 0);
+  }
+
   // ---------- LEARN tab: lectures + questions ----------
   // Syllabus order: official topic number, then lesson order
   const sortedLessons = sid => (LESSONS[sid] || []).map((l, i) => ({ l, i })).sort((x, y) => (x.l.unit - y.l.unit) || (x.i - y.i));
@@ -571,6 +728,7 @@
           <b>${SUBJECTS.find(x => x.id === rec.sid).icon} ${esc(rec.title)}</b>
           <span>⏱ ${t("minRead", { n: rec.mins })} · ${t("qCount", { n: lessonQs(rec.sid, rec).length })}</span>
         </button>` : ""}
+      <button class="wb-entry" id="wordBank"><span class="wb-pics">🧠🖼️</span><span><b>${t("wordBankTitle")}</b><small>${t("wordBankDesc")}</small></span><span>→</span></button>
       <div class="grid">
         ${SUBJECTS.map(s => {
           const L = LESSONS[s.id] || [], read = L.filter(l => lessonsRead.has(l.id)).length, a = accOf(s.questions), tr = sn(s);
@@ -589,6 +747,7 @@
         }).join("")}
       </div>
     `;
+    document.getElementById("wordBank").onclick = renderWordBank;
     const rc = document.getElementById("recLesson");
     if (rc) rc.addEventListener("click", () => renderLesson(rec.sid, LESSONS[rec.sid].indexOf(rec)));
     app.querySelectorAll("[data-sid]").forEach(b => b.addEventListener("click", () => renderLessonList(b.dataset.sid)));
@@ -662,6 +821,13 @@
           <div class="point-num">${k + 1}</div>
           <div class="lesson-h">📌 ${t("pointN", { i: k + 1 })} / ${l.points.length}</div>
           <p class="point-text">${esc(l.points[k])}</p>
+          ${(window.LESSON_EXAMPLES && LESSON_EXAMPLES[l.id] && LESSON_EXAMPLES[l.id][k]) ? `
+          <div class="ex-head">✏️ ${t("exTitle")} <span class="muted small">· ${t("tapReveal")}</span></div>
+          <div class="ex-list">${LESSON_EXAMPLES[l.id][k].map(([q, a], n) => `
+            <button class="ex-card" data-ex>
+              <span class="ex-n">${n + 1}</span>
+              <span class="ex-body"><span class="ex-q">${esc(q)}</span><span class="ex-a">✅ ${esc(a)}</span></span>
+            </button>`).join("")}</div>` : ""}
         </div>`;
     } else if (kind === "example") {
       body = `
@@ -719,6 +885,8 @@
         <button class="btn" id="stepNext">${step === 0 ? t("letsStart") : kind === "check" ? t("finishLesson") : t("continue")} →</button>
       </div>` : ""}
     `;
+    app.querySelectorAll("[data-ex]").forEach(b => b.addEventListener("click", () => { if (!b.classList.contains("open")) { b.classList.add("open"); pet().hop(); } }));
+    if (kind[0] === "p" && !store.get("cscoach.lpTip", false)) { store.set("cscoach.lpTip", true); setTimeout(() => toast(t("lpTip")), 600); }
     const sb = document.getElementById("stepBack"); if (sb) sb.onclick = () => go(step - 1);
     const sx = document.getElementById("stepNext"); if (sx) sx.onclick = () => go(step + 1);
     const ex = document.getElementById("showEx");
@@ -825,7 +993,7 @@
 
   // ---------- AI-generated questions (Claude via the artifact "sample" capability) ----------
   let sampleFn = null;
-  if (inArtifact()) window.claude.use("sample").then(fn => { sampleFn = fn; if (session == null && tab === "practice" && !document.querySelector(".modal-bg")) openTab("practice"); }).catch(() => {});
+  window.CSAI.get().then(fn => { sampleFn = fn; if (fn && session == null && tab === "practice" && !document.querySelector(".modal-bg")) openTab("practice"); }).catch(() => {});
   function aiReady() { return !!sampleFn; }
 
   function weakestLesson(sid) {
