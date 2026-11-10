@@ -33,6 +33,8 @@
     prev: ["Previous", "Nakaraan", "Previous"], next: ["Next", "Susunod", "Next"],
     play: ["Play", "I-play", "Play"], pause: ["Pause", "I-pause", "Pause"],
     mute: ["Mute", "I-mute", "Mute"], unmute: ["Unmute", "Buksan ang tunog", "Unmute"],
+    voice: ["Voice", "Boses", "Voice"],
+    noFil: ["", "Walang boses na Tagalog sa device na ito, kaya Ingles na boses muna ang gamit. Para sa natural na Tagalog, buksan ito sa Microsoft Edge (boses ni Blessica) o sa Chrome sa Android.", "Walang Tagalog voice sa device na ito, kaya English voice muna. Para sa natural na Tagalog, i-open ito sa Microsoft Edge (Blessica voice) o sa Chrome sa Android."],
     speed: ["Speed", "Bilis", "Speed"], replay: ["Replay", "Ulitin", "Ulitin"]
   };
   const IDX = { en: 0, tl: 1, tg: 2 };
@@ -197,6 +199,9 @@
   .lec-dots button.seen { background: #86efac; }
   .lec-start { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(15,30,22,.55); z-index: 3; }
   .lec-start button { font: inherit; font-size: 1.4rem; background: #fde68a; color: #0f2a3d; border: 0; border-radius: 14px; padding: 12px 22px; cursor: pointer; box-shadow: 0 4px 0 #b45309; }
+  .lec .hidden { display: none !important; }
+  .lec-voice { margin: 10px 0 0 6px; font-size: .85rem; color: #5b6b7a; }
+  .lec-voice select { margin-left: 4px; max-width: 72%; font: inherit; color: #0f2a3d; padding: 5px 6px; border: 1.5px solid #dde6ee; border-radius: 8px; background: #fff; }
   .lec-note { font-size: .8rem; color: #5b6b7a; margin: 8px 0 0 6px; }
   @media (prefers-reduced-motion: reduce) {
     .lec-doodle .ch { animation: none; stroke-dashoffset: 0; } .lec-doodle .cht, .lec-doodle .ch.dash { animation: none; opacity: .95; }
@@ -277,7 +282,8 @@
             <div class="lec-dots">${slides.map((_, i) => `<button type="button" data-i="${i}" aria-label="${i + 1}"></button>`).join("")}</div>
           </div>
         </div>
-        ${tts ? "" : `<p class="lec-note">${tr("noVoice")}</p>`}
+        ${tts ? `<div class="lec-voice hidden"><label>🗣 ${tr("voice")} <select></select></label>
+          <p class="lec-note lec-voice-tip hidden">${tr("noFil")}</p></div>` : `<p class="lec-note">${tr("noVoice")}</p>`}
       </div>`;
     const root = host.querySelector(".lec"), $ = s => root.querySelector(s);
     const textEl = $(".lec-text"), artEl = $(".lec-art"), labelEl = $(".lec-label"), countEl = $(".lec-count"), bubble = $(".lec-bubble");
@@ -290,15 +296,37 @@
     const clearTimers = () => { timers.forEach(clearTimeout); timers = []; clearInterval(typer); typer = null; };
     const talking = on => root.classList.toggle("talking", on);
 
-    // pick a voice: Filipino if the device has one, otherwise English
-    let voice = null;
+    // Voice: rank what the device offers. Prefer natural Filipino voices
+    // (Edge: Blessica/Angelo, Android: Google Filipino), then Philippine English,
+    // and skip novelty/robotic voices. The user can override with the picker.
+    let voice = null, voices = [];
+    const NOVELTY = /albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|organ|superstar|trinoids|whisper|wobble|zarvox|fred|junior|ralph|kathy|grandma|grandpa|eddy|flo|reed|rocko|sandy|shelley/i;
+    function score(v) {
+      const l = v.lang.replace("_", "-").toLowerCase(), n = v.name.toLowerCase();
+      if (NOVELTY.test(n)) return -1;
+      let s = 0;
+      if (/^(fil|tl)\b/.test(l)) s += lang === "en" ? 40 : 100;
+      else if (l === "en-ph") s += lang === "en" ? 90 : 60;
+      else if (/^en-(us|gb|au|ca)/.test(l)) s += lang === "en" ? 70 : 30;
+      else if (/^en/.test(l)) s += lang === "en" ? 60 : 25;
+      else return -1;
+      if (/natural|neural|online|premium|enhanced/.test(n)) s += 25;
+      if (/google/.test(n)) s += 15;
+      if (/blessica|rosa|samantha|aria|jenny|ava|emma/.test(n)) s += 8;   // warm, clear default voices
+      return s;
+    }
+    let savedVoice = ""; try { savedVoice = localStorage.getItem("cscoach.voice") || ""; } catch (_) {}
     function pickVoice() {
       if (!tts) return;
-      const vs = synth.getVoices();
-      const want = lang === "en" ? [/^en[-_](US|PH|GB)/i, /^en/i] : [/^fil/i, /^tl/i, /^en[-_]PH/i, /^en/i];
-      for (const re of want) { voice = vs.find(v => re.test(v.lang)); if (voice) break; }
+      voices = synth.getVoices().filter(v => score(v) >= 0).sort((a, b) => score(b) - score(a));
+      voice = voices.find(v => v.name === savedVoice) || voices[0] || null;
+      const sel = $(".lec-voice select");
+      if (!sel) return;
+      sel.innerHTML = voices.map(v => `<option value="${esc(v.name)}"${v === voice ? " selected" : ""}>${esc(v.name.replace(/^(Microsoft|Google)\s+/, "").replace(/\s+Online \(Natural\)/, " (Natural)"))} · ${esc(v.lang)}</option>`).join("");
+      $(".lec-voice").classList.toggle("hidden", !voices.length);
+      const hasFil = voices.some(v => /^(fil|tl)/i.test(v.lang));
+      $(".lec-voice-tip").classList.toggle("hidden", hasFil || lang === "en");
     }
-    if (tts) { pickVoice(); synth.addEventListener && synth.addEventListener("voiceschanged", pickVoice); }
 
     const readMs = s => Math.max(1800, s.split(/\s+/).length * 330 / rate);
 
@@ -309,7 +337,7 @@
       synth.cancel();
       const u = new SpeechSynthesisUtterance(speakable(text));
       if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = lang === "en" ? "en-US" : "fil-PH";
-      u.rate = rate;
+      u.rate = rate * 0.95; u.pitch = 1.05;   // a touch slower and brighter: calm, friendly teacher
       const g = gen; let ended = false;
       const end = () => { if (ended || g !== gen || stopped) return; ended = true; finish(); };
       u.onend = end; u.onerror = end;
@@ -382,6 +410,13 @@
     root.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => act(b.dataset.a)));
     root.querySelectorAll(".lec-dots button").forEach(b => b.addEventListener("click", () => show(+b.dataset.i)));
     $(".lec-start button").addEventListener("click", () => { $(".lec-start").remove(); setPlaying(true); show(0); });
+    const vsel = $(".lec-voice select");
+    if (vsel) vsel.addEventListener("change", () => {
+      voice = voices.find(v => v.name === vsel.value) || voice;
+      try { localStorage.setItem("cscoach.voice", voice.name); } catch (_) {}
+      if (playing) show(idx, { instant: true });
+    });
+    if (tts) { pickVoice(); synth.addEventListener ? synth.addEventListener("voiceschanged", pickVoice) : (synth.onvoiceschanged = pickVoice); }
     if (!tts) { muteBtn.disabled = true; muteBtn.textContent = "🔇"; }
 
     const onKey = e => {
