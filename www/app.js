@@ -4,6 +4,8 @@
   const PASSING = 80;          // CSC passing rate for the Professional level
   const MOCK_SIZE = 30;
   const ROUND_SIZE = 10;       // questions per subject round
+  const COOLDOWN_DAYS = 30;    // an answered question won't come back for this long
+  const DAY = 86400000;
   const LETTERS = "ABCDEFGH";
   const app = document.getElementById("app");
   const backBtn = document.getElementById("backBtn");
@@ -38,17 +40,55 @@
   const allQuestions = () => SUBJECTS.flatMap(s => s.questions);
   const subjectOf = q => SUBJECTS.find(s => s.id === q.sid);
   const LESSONS = window.LESSONS || {};
-  const lessonQs = (sid, l) => l.qs.map(i => byId.get(sid + "-" + i)).filter(Boolean);
+  const lessonById = new Map();
+  SUBJECTS.forEach(s => (LESSONS[s.id] || []).forEach(l => {
+    l.sid = s.id; lessonById.set(l.id, l);
+    l.qs.forEach(i => { const q = byId.get(s.id + "-" + i); if (q) q.lid = l.id; });
+  }));
+  const lessonQs = (sid, l) => SUBJECTS.find(x => x.id === sid).questions.filter(q => q.lid === l.id);
+  const impOf = q => (q.lid && lessonById.get(q.lid) ? lessonById.get(q.lid).imp : 2);
+  const impLabel = imp => t(imp >= 3 ? "impHigh" : imp === 2 ? "impMid" : "impLow");
 
-  // Pick questions for a round: unseen first, then ones you got wrong, then weakest
+  // AI-generated questions are saved on the device and join the bank
+  let aiBank = store.get("cscoach.aiq", []);
+  function addToBank(q) {
+    const s = SUBJECTS.find(x => x.id === q.sid);
+    if (!s || byId.has(q.id)) return;
+    s.questions.push(q); byId.set(q.id, q);
+  }
+  aiBank.forEach(addToBank);
+
+  // Rotation: a question you answered won't come back for COOLDOWN_DAYS.
+  // Fresh questions are ordered: never seen first (high-yield topics first),
+  // then old mistakes, then the rest. If there aren't enough fresh ones,
+  // the ones seen longest ago fill the round.
+  const isFresh = q => { const st = stats[q.id]; return !st || !st.t || Date.now() - st.t >= COOLDOWN_DAYS * DAY; };
+  let lastRecycled = 0;
   function smartPick(qs, n) {
     const rank = q => {
-      const st = stats[q.id];
-      if (!st) return Math.random();
-      if (!st.last) return 1 + Math.random();
-      return 2 + st.c / st.n + Math.random() * 0.5;
+      const st = stats[q.id], imp = impOf(q) * 0.15;
+      if (!st) return Math.random() - imp;
+      if (!st.last) return 1 + Math.random() - imp;
+      return 2 + st.c / st.n + Math.random() * 0.5 - imp;
     };
-    return qs.map(q => [rank(q), q]).sort((a, b) => a[0] - b[0]).slice(0, n).map(x => x[1]);
+    const fresh = qs.filter(isFresh).map(q => [rank(q), q]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+    const picked = fresh.slice(0, n);
+    lastRecycled = 0;
+    if (picked.length < n) {
+      const old = qs.filter(q => !isFresh(q)).sort((a, b) => (stats[a.id].t || 0) - (stats[b.id].t || 0));
+      const fill = old.slice(0, n - picked.length);
+      lastRecycled = fill.length;
+      picked.push(...fill);
+    }
+    return picked;
+  }
+  const freshCount = qs => qs.filter(isFresh).length;
+
+  // Mistakes (last attempt wrong) + starred, compiled into one review set
+  const mistakeIds = () => Object.keys(stats).filter(id => stats[id].last === 0 && byId.has(id));
+  function reviewQs() {
+    const ids = new Set([...mistakeIds(), ...starred]);
+    return [...ids].map(id => byId.get(id)).filter(Boolean);
   }
 
   // Shuffle the choice order while tracking the correct answer
@@ -63,6 +103,10 @@
     return { n, c, seen, acc: n ? Math.round(c / n * 100) : null };
   }
 
+  const goal = () => (profile && +profile.dailyGoal) || 20;
+  const dayKey = ts => new Date(ts).toDateString();
+  function answeredOn(key) { return history.filter(h => dayKey(h.t) === key).reduce((n, h) => n + (h.answered != null ? h.answered : h.total), 0); }
+
   // Analytics used by the Analytics tab and the AI coach
   function analytics() {
     const subjects = SUBJECTS.map(s => {
@@ -71,7 +115,7 @@
       return { id: s.id, name: sn(s).name, total: s.questions.length, seen, attempts, correct, wrongNow, acc: attempts ? Math.round(correct / attempts * 100) : null };
     });
     const topics = [];
-    SUBJECTS.forEach(s => (LESSONS[s.id] || []).forEach(l => { const a = accOf(lessonQs(s.id, l)); topics.push({ sid: s.id, id: l.id, title: l.title, attempts: a.n, acc: a.acc }); }));
+    SUBJECTS.forEach(s => (LESSONS[s.id] || []).forEach(l => { const a = accOf(lessonQs(s.id, l)); topics.push({ sid: s.id, id: l.id, title: l.title, importance: l.imp, attempts: a.n, acc: a.acc }); }));
     const attempts = subjects.reduce((a, x) => a + x.attempts, 0), correct = subjects.reduce((a, x) => a + x.correct, 0);
     const days = [...new Set(history.map(h => new Date(h.t).toDateString()))];
     let streak = 0; const d = new Date();
@@ -82,7 +126,9 @@
     return {
       name: profile && profile.name || "", mode: profile && profile.instant ? "practice" : "exam", language: I.names[I.lang],
       overall: { attempts, correct, acc: attempts ? Math.round(correct / attempts * 100) : null },
-      subjects, weakTopics: topics.filter(x => x.attempts >= 2).sort((a, b) => a.acc - b.acc).slice(0, 5),
+      subjects, weakTopics: topics.filter(x => x.attempts >= 2).sort((a, b) => (a.acc - b.acc) || (b.importance - a.importance)).slice(0, 5),
+      mistakes: mistakeIds().length, aiQuestions: aiBank.length, dailyGoal: goal(),
+      answeredToday: answeredOn(new Date().toDateString()),
       sessions: history.length, recent: history.slice(-5).map(h => ({ title: h.title, pct: h.pct, date: new Date(h.t).toLocaleDateString() })),
       lessonsRead: lessonsRead.size, daysActive: days.length, streak, examDate, daysLeft, starred: starred.size, passing: PASSING
     };
@@ -93,10 +139,11 @@
       const ans = S.answers[i]; if (ans === null) return;
       const ok = ans === q.a ? 1 : 0;
       const st = stats[q.id] || (stats[q.id] = { n: 0, c: 0, last: 0 });
-      st.n++; st.c += ok; st.last = ok;
+      st.n++; st.c += ok; st.last = ok; st.t = Date.now();
     });
     const correct = S.items.filter((q, i) => S.answers[i] === q.a).length;
-    history.push({ t: Date.now(), key: S.key, title: S.title, total: S.items.length, correct, pct: Math.round(correct / S.items.length * 100) });
+    const answered = S.answers.filter(a => a !== null).length;
+    history.push({ t: Date.now(), key: S.key, title: S.title, total: S.items.length, answered, correct, pct: Math.round(correct / S.items.length * 100) });
     history = history.slice(-100);
     store.set("cscoach.stats", stats); store.set("cscoach.history", history);
   }
@@ -117,7 +164,7 @@
   function paintTabbar() {
     tabbar.querySelectorAll("[data-tab]").forEach(b => {
       b.classList.toggle("active", b.dataset.tab === tab);
-      b.querySelector(".tab-label").textContent = t({ learn: "tabLearn", practice: "tabPractice", analytics: "tabAnalytics" }[b.dataset.tab]);
+      b.querySelector(".tab-label").textContent = t({ learn: "tabLearn", practice: "tabPractice", calendar: "tabCalendar", analytics: "tabAnalytics" }[b.dataset.tab]);
     });
   }
   tabbar.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => openTab(b.dataset.tab)));
@@ -128,6 +175,7 @@
     settingsBtn.classList.remove("hidden");
     if (tab === "learn") renderLearn();
     else if (tab === "analytics") renderAnalytics();
+    else if (tab === "calendar") renderCalendar();
     else renderPractice();
   }
   const goHome = () => openTab();
@@ -154,7 +202,7 @@
     setBack(firstRun ? null : goHome);
     showTabbar(false);
     settingsBtn.classList.toggle("hidden", !!firstRun);
-    const p = draft || profile || { name: "", instant: false, examDate: "", pet: true, lang: "en" };
+    const p = draft || profile || { name: "", instant: false, examDate: "", pet: true, lang: "en", dailyGoal: 20 };
     I.setLang(p.lang || "en");
     const langOpt = (v, flag, label, sample) => `
       <label class="lang-opt">
@@ -192,6 +240,9 @@
         <input id="examDate" class="input" type="date" value="${esc(p.examDate || "")}" />
         <p class="muted small" style="margin:6px 0 0">${t("examDateNote")}</p>
 
+        <label class="field-label" for="dailyGoal" style="margin-top:18px">${t("dailyGoal")}</label>
+        <input id="dailyGoal" class="input" type="number" min="5" max="200" step="5" value="${esc(p.dailyGoal || 20)}" />
+
         <label class="check-row"><input type="checkbox" id="petOn" ${p.pet !== false ? "checked" : ""} /> ${t("showPet")}</label>
 
         <div class="actions"><button class="btn" type="submit">${firstRun ? t("startReviewing") : t("saveSettings")}</button></div>
@@ -209,7 +260,9 @@
       instant: app.querySelector("input[name=mode]:checked").value === "instant",
       examDate: document.getElementById("examDate").value,
       pet: document.getElementById("petOn").checked,
-      lang: app.querySelector("input[name=lang]:checked").value
+      lang: app.querySelector("input[name=lang]:checked").value,
+      dailyGoal: Math.max(5, Math.min(200, +document.getElementById("dailyGoal").value || 20)),
+      created: (profile && profile.created) || (draft && draft.created) || Date.now()
     });
     // Re-render immediately in the chosen language
     app.querySelectorAll("input[name=lang]").forEach(r => r.addEventListener("change", () => renderSettings(firstRun, read())));
@@ -233,14 +286,30 @@
   }
 
   // ---------- LEARN tab: lectures + questions ----------
+  const sortedLessons = sid => (LESSONS[sid] || []).map((l, i) => ({ l, i })).sort((x, y) => (y.l.imp - x.l.imp) || (x.i - y.i));
+  function recommendedLesson() {
+    // High-yield first: unread lessons, then lessons below 80%
+    const all = SUBJECTS.flatMap(s => sortedLessons(s.id).map(x => x.l));
+    const byImp = all.slice().sort((a, b) => b.imp - a.imp);
+    return byImp.find(l => !lessonsRead.has(l.id)) || byImp.find(l => { const a = accOf(lessonQs(l.sid, l)); return a.acc != null && a.acc < PASSING; }) || null;
+  }
+
   function renderLearn() {
     setBack(null);
+    const rec = recommendedLesson();
     app.innerHTML = `
       <h2>📖 ${t("learnTitle")}</h2>
       <p class="sub">${t("learnSub")}</p>
+      ${rec ? `
+        <button class="rec-card" id="recLesson">
+          <span class="rec-kicker">${t("recommendedLesson")} · ${impLabel(rec.imp)}</span>
+          <b>${SUBJECTS.find(x => x.id === rec.sid).icon} ${esc(rec.title)}</b>
+          <span>⏱ ${t("minRead", { n: rec.mins })} · ${t("qCount", { n: lessonQs(rec.sid, rec).length })}</span>
+        </button>` : ""}
       <div class="grid">
         ${SUBJECTS.map(s => {
           const L = LESSONS[s.id] || [], read = L.filter(l => lessonsRead.has(l.id)).length, a = accOf(s.questions), tr = sn(s);
+          const high = L.filter(l => l.imp >= 3).length;
           return `
           <button class="card" data-sid="${s.id}">
             <span class="ico">${s.icon}</span>
@@ -249,31 +318,34 @@
             <div class="mini-bar"><div style="width:${L.length ? Math.round(read / L.length * 100) : 0}%"></div></div>
             <div class="meta">
               <span class="badge blue">${t("lessonsN", { a: read, b: L.length })}</span>
-              <span>${a.acc != null ? `<span class="badge ${a.acc >= PASSING ? "" : "blue"}">${t("accuracy", { p: a.acc })}</span>` : ""}</span>
+              <span>${a.acc != null ? `<span class="badge ${a.acc >= PASSING ? "" : "blue"}">${t("accuracy", { p: a.acc })}</span>` : `<span class="imp-chip imp3">${impLabel(3)} ×${high}</span>`}</span>
             </div>
           </button>`;
         }).join("")}
       </div>
     `;
+    const rc = document.getElementById("recLesson");
+    if (rc) rc.addEventListener("click", () => renderLesson(rec.sid, LESSONS[rec.sid].indexOf(rec)));
     app.querySelectorAll("[data-sid]").forEach(b => b.addEventListener("click", () => renderLessonList(b.dataset.sid)));
     window.scrollTo(0, 0);
   }
 
   function renderLessonList(sid) {
-    const s = SUBJECTS.find(x => x.id === sid), L = LESSONS[sid] || [], tr = sn(s);
+    const s = SUBJECTS.find(x => x.id === sid), tr = sn(s);
     setBack(() => openTab("learn"));
     showTabbar(true);
+    const list = sortedLessons(sid);
     app.innerHTML = `
       <h2>${s.icon} ${esc(tr.name)}</h2>
       <p class="sub">${esc(tr.desc)}</p>
-      ${sid !== "filipino" && t("lessonsLangNote") ? `<p class="muted small" style="margin:-8px 0 14px">${t("lessonsLangNote")}</p>` : ""}
+      <p class="muted small" style="margin:-8px 0 14px">${t("impNote")}${sid !== "filipino" && t("lessonsLangNote") ? " " + t("lessonsLangNote") : ""}</p>
       <div class="set-list">
-        ${L.map((l, i) => {
-          const a = accOf(lessonQs(sid, l)), read = lessonsRead.has(l.id);
+        ${list.map(({ l, i }, n) => {
+          const qs = lessonQs(sid, l), a = accOf(qs), read = lessonsRead.has(l.id);
           return `
-          <button class="set-item" data-l="${i}">
-            <div class="set-num ${read ? "read" : ""}">${read ? "✓" : i + 1}</div>
-            <div class="set-info"><b>${esc(l.title)}</b><span>⏱ ${t("minRead", { n: l.mins })} · ${t("qCount", { n: l.qs.length })}</span></div>
+          <button class="set-item imp-border${l.imp}" data-l="${i}">
+            <div class="set-num ${read ? "read" : ""}">${read ? "✓" : n + 1}</div>
+            <div class="set-info"><b>${esc(l.title)}</b><span><span class="imp-chip imp${l.imp}">${impLabel(l.imp)}</span> ⏱ ${t("minRead", { n: l.mins })} · ${t("qCount", { n: qs.length })}</span></div>
             <div class="set-score">${a.acc != null ? `<span class="badge ${a.acc >= PASSING ? "" : "blue"}">${a.acc}%</span>` : `<span class="muted">→</span>`}</div>
           </button>`;
         }).join("")}
@@ -283,37 +355,115 @@
     window.scrollTo(0, 0);
   }
 
-  function renderLesson(sid, i) {
+  const ytSearch = q => "https://www.youtube.com/results?search_query=" + encodeURIComponent(q) + "&sp=CAM%253D";
+  const inArtifact = () => !!(window.claude && typeof window.claude.use === "function");
+
+  // Step-by-step lesson: intro → one key point per step → example → quick check → wrap-up
+  function renderLesson(sid, i, step) {
     const s = SUBJECTS.find(x => x.id === sid), L = LESSONS[sid], l = L[i];
-    lessonsRead.add(l.id); store.set("cscoach.lessonsRead", [...lessonsRead]);
+    const qs = lessonQs(sid, l);
+    step = step || 0;
+    const steps = ["intro", ...l.points.map((_, k) => "p" + k), "example", "check", "done"];
+    const kind = steps[step];
+    if (kind === "done") { lessonsRead.add(l.id); store.set("cscoach.lessonsRead", [...lessonsRead]); }
     setBack(() => renderLessonList(sid));
     showTabbar(true);
-    const qs = lessonQs(sid, l), a = accOf(qs);
-    app.innerHTML = `
-      <div class="lesson-kicker">${s.icon} ${esc(sn(s).name)} · ${i + 1}/${L.length}</div>
-      <h2>${esc(l.title)}</h2>
-      <p class="sub">⏱ ${t("minRead", { n: l.mins })}${a.acc != null ? ` · ${t("accuracy", { p: a.acc })}` : ""}</p>
-      <div class="panel lesson">
-        <p class="lesson-intro">${esc(l.intro)}</p>
-        <div class="lesson-h">📌 ${t("keyPoints")}</div>
-        <ul class="lesson-points">${l.points.map(p => `<li>${esc(p)}</li>`).join("")}</ul>
-        <div class="lesson-example">
-          <div class="lesson-h">✏️ ${t("example")}</div>
-          <p>${esc(l.example.q)}</p>
-          <button class="link" id="showEx">${t("showAnswer")}</button>
+    const go = n => renderLesson(sid, i, n);
+    const order = sortedLessons(sid), pos = order.findIndex(x => x.i === i), nextL = order[pos + 1];
+    const video = l.video ? (inArtifact()
+      ? `<a class="video-card" href="https://www.youtube.com/watch?v=${esc(l.video.id)}" target="_blank" rel="noopener"><span class="vc-play">▶</span><span><small>${t("featuredVideo")}</small><b>${esc(l.video.title)}</b></span></a>`
+      : `<div class="video-embed"><iframe src="https://www.youtube-nocookie.com/embed/${esc(l.video.id)}" title="${esc(l.video.title)}" allowfullscreen loading="lazy"></iframe></div>`) : "";
+    const ytBtn = `<a class="yt-btn" href="${ytSearch(l.yt)}" target="_blank" rel="noopener">${t("watchVideos")}</a><p class="muted small center">${t("watchVideosNote")}</p>`;
+
+    let body = "";
+    if (kind === "intro") {
+      body = `
+        <div class="step-card intro">
+          <div class="step-emoji">${s.icon}</div>
+          <span class="imp-chip imp${l.imp}">${impLabel(l.imp)}</span>
+          <h2>${esc(l.title)}</h2>
+          <p class="lesson-intro">${esc(l.intro)}</p>
+          <div class="lesson-h">🗺️ ${t("whatYouLearn")}</div>
+          <ol class="mini-outline">${l.points.map(p => `<li>${esc(p.split(/[.:]/)[0])}</li>`).join("")}</ol>
+          ${video}${ytBtn}
+        </div>`;
+    } else if (kind[0] === "p") {
+      const k = +kind.slice(1);
+      body = `
+        <div class="step-card point">
+          <div class="point-num">${k + 1}</div>
+          <div class="lesson-h">📌 ${t("pointN", { i: k + 1 })} / ${l.points.length}</div>
+          <p class="point-text">${esc(l.points[k])}</p>
+        </div>`;
+    } else if (kind === "example") {
+      body = `
+        <div class="step-card example">
+          <div class="lesson-h">✏️ ${t("tryExample")}</div>
+          <p class="point-text">${esc(l.example.q)}</p>
+          <p class="muted small">${t("thinkFirst")}</p>
+          <button class="btn secondary" id="showEx">${t("showAnswer")}</button>
           <p class="ex-answer hidden" id="exAns">✅ ${esc(l.example.a)}</p>
-        </div>
-        <div class="lesson-remember"><b>💡 ${t("remember")}:</b> ${esc(l.remember)}</div>
+        </div>`;
+    } else if (kind === "check") {
+      const cq = prepare(qs[(Date.now() / DAY | 0) % qs.length]);
+      body = `
+        <div class="step-card check">
+          <div class="lesson-h">🧠 ${t("quickCheck")}</div>
+          <p class="muted small" style="margin-top:0">${t("quickCheckSub")}</p>
+          <p class="point-text">${esc(cq.q)}</p>
+          <div class="choices">${cq.c.map((c, n) => `<button class="choice" data-ci="${n}"><span class="letter">${LETTERS[n]}</span><span>${esc(c)}</span></button>`).join("")}</div>
+          <div id="checkFb"></div>
+        </div>`;
+      setTimeout(() => app.querySelectorAll("[data-ci]").forEach(b => b.addEventListener("click", () => {
+        const n = +b.dataset.ci;
+        app.querySelectorAll("[data-ci]").forEach((x, m) => { x.disabled = true; if (m === cq.a) x.classList.add("correct"); else if (m === n) x.classList.add("wrong"); });
+        n === cq.a ? pet().cheer() : pet().cry();
+        document.getElementById("checkFb").innerHTML = `<div class="feedback ${n === cq.a ? "ok" : "no"}"><b>${n === cq.a ? t("correctFb") : t("wrongFb", { x: LETTERS[cq.a] + ": " + esc(cq.c[cq.a]) })}</b>${esc(cq.e)}</div>`;
+      })), 0);
+    } else {
+      const a = accOf(qs);
+      body = `
+        <div class="step-card done">
+          <div class="step-emoji">🎉</div>
+          <h2>${t("wellDone")}</h2>
+          <div class="lesson-remember"><b>💡 ${t("remember")}:</b> ${esc(l.remember)}</div>
+          <p class="muted small center">${t("freshLeft", { n: freshCount(qs) })}${a.acc != null ? " · " + t("accuracy", { p: a.acc }) : ""}</p>
+          <div class="actions col">
+            <button class="btn" id="practiceTopic">${t("practiceTopic", { n: Math.min(10, qs.length) })}</button>
+            ${aiReady() ? `<button class="btn blue" id="aiTopic">${t("aiGenTopic")}</button>` : ""}
+            ${nextL ? `<button class="btn secondary" id="nextLesson">${t("nextLesson")}: ${esc(nextL.l.title)} →</button>` : ""}
+          </div>
+          ${ytBtn}
+        </div>`;
+      pet().cheer(t("wellDone"));
+    }
+
+    app.innerHTML = `
+      <div class="lesson-kicker">${s.icon} ${esc(sn(s).name)}</div>
+      <div class="stepper">
+        <div class="step-count">${t("stepOf", { i: step + 1, n: steps.length })}</div>
+        <div class="step-dots">${steps.map((_, n) => `<span class="${n < step ? "done" : n === step ? "on" : ""}"></span>`).join("")}</div>
       </div>
-      <div class="actions">
-        <button class="btn" id="practiceTopic">${t("practiceTopic", { n: qs.length })}</button>
-        ${i + 1 < L.length ? `<button class="btn secondary" id="nextLesson">${t("nextLesson")} →</button>` : ""}
-      </div>
+      ${body}
+      ${kind !== "done" ? `
+      <div class="nav step-nav">
+        <button class="btn secondary" id="stepBack" ${step === 0 ? "disabled" : ""}>← ${t("back")}</button>
+        <button class="btn" id="stepNext">${step === 0 ? t("letsStart") : kind === "check" ? t("finishLesson") : t("continue")} →</button>
+      </div>` : ""}
     `;
-    document.getElementById("showEx").addEventListener("click", e => { e.target.remove(); document.getElementById("exAns").classList.remove("hidden"); });
-    document.getElementById("practiceTopic").addEventListener("click", () => startSession("lesson:" + l.id, l.title, qs, () => renderLesson(sid, i)));
+    const sb = document.getElementById("stepBack"); if (sb) sb.onclick = () => go(step - 1);
+    const sx = document.getElementById("stepNext"); if (sx) sx.onclick = () => go(step + 1);
+    const ex = document.getElementById("showEx");
+    if (ex) ex.addEventListener("click", () => { ex.remove(); document.getElementById("exAns").classList.remove("hidden"); pet().hop(); });
+    const pt = document.getElementById("practiceTopic");
+    if (pt) pt.addEventListener("click", () => {
+      const picked = smartPick(qs, 10);
+      startSession("lesson:" + l.id, l.title, picked, () => renderLesson(sid, i, steps.length - 1));
+    });
+    const at = document.getElementById("aiTopic");
+    if (at) at.addEventListener("click", () => generateAI(sid, l, 5, () => renderLesson(sid, i, steps.length - 1)));
     const nl = document.getElementById("nextLesson");
-    if (nl) nl.addEventListener("click", () => renderLesson(sid, i + 1));
+    if (nl) nl.addEventListener("click", () => renderLesson(sid, nextL.i, 0));
     window.scrollTo(0, 0);
   }
 
@@ -332,12 +482,19 @@
           <p>${t("mockDesc", { n: MOCK_SIZE })}</p>
           <div class="meta"><span class="badge">${t("items", { n: MOCK_SIZE })}</span><span>${best.mock != null ? t("best", { p: best.mock }) : t("notTaken")}</span></div>
         </button>
-        ${starred.size ? `
-          <button class="card starred-card" data-id="starred">
-            <span class="ico">⭐</span>
-            <h3>${t("starredTitle")}</h3>
-            <p>${t("starredDesc")}</p>
-            <div class="meta"><span class="badge blue">${t("items", { n: starred.size })}</span></div>
+        ${reviewQs().length ? `
+          <button class="card starred-card" data-id="review">
+            <span class="ico">🎯</span>
+            <h3>${t("reviewTitle")}</h3>
+            <p>${t("reviewDesc")}</p>
+            <div class="meta"><span class="badge blue">${t("reviewCounts", { m: mistakeIds().length, s: starred.size })}</span></div>
+          </button>` : ""}
+        ${aiReady() ? `
+          <button class="card ai-card" data-id="ai">
+            <span class="ico">✨</span>
+            <h3>${t("aiTitle")}</h3>
+            <p>${t("aiDesc")}</p>
+            <div class="meta"><span class="badge">${t("aiCount", { n: aiBank.length })}</span></div>
           </button>` : ""}
         ${a.subjects.map(x => {
           const s = SUBJECTS.find(y => y.id === x.id), tr = sn(s);
@@ -348,29 +505,213 @@
             <p>${esc(tr.desc)}</p>
             <div class="mini-bar"><div style="width:${Math.round(x.seen / x.total * 100)}%"></div></div>
             <div class="meta">
-              <span class="badge blue">${t("practiced", { a: x.seen, b: x.total })}</span>
+              <span class="badge blue">${t("freshLeft", { n: freshCount(s.questions) })}</span>
               <span>${x.acc != null ? `<span class="badge ${x.acc >= PASSING ? "" : "blue"}">${t("accuracy", { p: x.acc })}</span>` : t("notStarted")}</span>
             </div>
           </button>`;
         }).join("")}
       </div>
+      <p class="note">🔄 ${t("rotationNote")}</p>
       <p class="note">${t("disclaimer")}</p>
     `;
     document.getElementById("changeMode").addEventListener("click", () => renderSettings(false));
     app.querySelectorAll(".card").forEach(btn => btn.addEventListener("click", () => {
       const id = btn.dataset.id;
       if (id === "mock") return startMock();
-      if (id === "starred") return startStarred();
+      if (id === "review") return startReview();
+      if (id === "ai") return pickAISubject();
       startSubject(id);
     }));
     window.scrollTo(0, 0);
   }
 
-  function startMock() { startSession("mock", t("mockTitle"), shuffle(allQuestions()).slice(0, MOCK_SIZE), () => openTab("practice")); }
+  function notifyRecycled() { if (lastRecycled) setTimeout(() => toast(t("recycled")), 300); }
+  function startMock() {
+    // one fresh question per subject in turn, so the mock stays balanced
+    const per = Math.ceil(MOCK_SIZE / SUBJECTS.length);
+    const picked = []; let rec = 0;
+    SUBJECTS.forEach(s => { picked.push(...smartPick(s.questions, per)); rec += lastRecycled; });
+    lastRecycled = rec;
+    startSession("mock", t("mockTitle"), shuffle(picked).slice(0, MOCK_SIZE), () => openTab("practice"));
+    notifyRecycled();
+  }
   function startStarred() { if (starred.size) startSession("starred", t("starredTitle"), [...starred].map(i => byId.get(i)).filter(Boolean), () => openTab("practice")); }
+  function startReview(exit) {
+    const qs = reviewQs();
+    if (!qs.length) return toast(t("reviewEmpty"));
+    startSession("review", t("reviewTitle"), qs.slice(0, 30), exit || (() => openTab(tab)));
+  }
   function startSubject(id) {
     const s = SUBJECTS.find(x => x.id === id);
     startSession(s.id, sn(s).name, smartPick(s.questions, ROUND_SIZE), () => openTab("practice"));
+    notifyRecycled();
+  }
+
+  function toast(msg) {
+    const el = document.createElement("div");
+    el.className = "toast"; el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.classList.add("out"), 3800);
+    setTimeout(() => el.remove(), 4300);
+  }
+
+  // ---------- AI-generated questions (Claude via the artifact "sample" capability) ----------
+  let sampleFn = null;
+  if (inArtifact()) window.claude.use("sample").then(fn => { sampleFn = fn; if (session == null && tab === "practice" && !document.querySelector(".modal-bg")) openTab("practice"); }).catch(() => {});
+  function aiReady() { return !!sampleFn; }
+
+  function weakestLesson(sid) {
+    return sortedLessons(sid).map(x => x.l)
+      .map(l => ({ l, a: accOf(lessonQs(sid, l)) }))
+      .sort((x, y) => ((x.a.acc == null ? 50 : x.a.acc) - x.l.imp * 5) - ((y.a.acc == null ? 50 : y.a.acc) - y.l.imp * 5))[0].l;
+  }
+
+  function pickAISubject() {
+    modal(`
+      <div class="modal-title">${t("aiTitle")}</div>
+      <p class="modal-text">${t("aiPick")}</p>
+      <div class="set-list">${SUBJECTS.map(s => `<button class="set-item" data-ai="${s.id}"><div class="set-num">${s.icon}</div><div class="set-info"><b>${esc(sn(s).name)}</b><span>${esc(t("aiTopicAuto", { t: weakestLesson(s.id).title }))}</span></div></button>`).join("")}</div>
+      <div class="actions"><button class="btn secondary" data-x>${t("cancel")}</button></div>
+    `, (w, close) => {
+      w.querySelector("[data-x]").onclick = close;
+      w.querySelectorAll("[data-ai]").forEach(b => b.onclick = () => { close(); const sid = b.dataset.ai; generateAI(sid, weakestLesson(sid), 10, () => openTab("practice")); });
+    });
+  }
+
+  async function generateAI(sid, lesson, n, exitTo) {
+    if (!sampleFn) return toast(t("aiUnavailable"));
+    const s = SUBJECTS.find(x => x.id === sid);
+    const close = modal(`<div class="ai-loading"><div class="spinner"></div><b>${t("aiGenerating")}</b><span class="muted small">${esc(sn(s).name)} · ${esc(lesson.title)}</span></div>`, () => {});
+    const examples = lessonQs(sid, lesson).filter(q => !q.ai).slice(0, 3).map(q => ({ q: q.q, c: q.c, a: q.a, e: q.e, h: q.h }));
+    const avoid = s.questions.filter(q => q.lid === lesson.id).map(q => q.q.slice(0, 90));
+    const explainLang = { en: "English", tl: "Tagalog (Filipino)", tg: "Taglish (casual mix of Tagalog and English)" }[I.lang];
+    const prompt = `You write practice questions for the Philippine Civil Service Exam (Professional level).
+Subject: ${s.name}. Topic: ${lesson.title}.
+Topic notes: ${lesson.points.join(" | ")}
+Write ${n} NEW multiple-choice questions on this topic, in the same style and difficulty as the real exam.
+Rules:
+- Question and choices language: ${sid === "filipino" ? "Filipino" : "English"} (as in the real exam).
+- Explanation "e" and coaching hint "h" language: ${explainLang}.
+- Exactly 4 choices, one clearly correct answer; "a" is the 0-based index of the correct choice. Vary the position of the correct answer.
+- Facts (laws, RA numbers, constitutional provisions, dates) must be accurate. If unsure of a fact, choose a different question.
+- Math must be correct; double-check every computation.
+- "h" coaches HOW to approach the question without giving away the answer.
+- Do not copy or closely paraphrase these existing questions: ${JSON.stringify(avoid)}
+Style examples: ${JSON.stringify(examples)}
+Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"e":"...","h":"..."}]}`;
+    try {
+      const out = await sampleFn.json(prompt, { modelTier: "default", cache: false });
+      const list = (out && out.questions) || [];
+      const now = Date.now();
+      const valid = list.filter(q => q && typeof q.q === "string" && Array.isArray(q.c) && q.c.length === 4 && q.c.every(c => typeof c === "string" && c.trim())
+        && new Set(q.c).size === 4 && Number.isInteger(q.a) && q.a >= 0 && q.a < 4 && typeof q.e === "string")
+        .map((q, k) => ({ id: `ai-${sid}-${now}-${k}`, sid, lid: lesson.id, ai: true, created: now, q: q.q.trim(), c: q.c.map(c => c.trim()), a: q.a, e: q.e, h: q.h || lesson.remember }));
+      close();
+      if (!valid.length) return toast(t("aiFail"));
+      aiBank = aiBank.concat(valid).slice(-300);
+      store.set("cscoach.aiq", aiBank);
+      valid.forEach(addToBank);
+      startSession("ai:" + sid, "✨ " + lesson.title, valid, exitTo || (() => openTab("practice")), true);
+    } catch (e) {
+      close();
+      toast(t("aiFail"));
+    }
+  }
+
+  // ---------- CALENDAR tab ----------
+  let calMonth = null, calSel = null;
+  function dayStats() {
+    const m = new Map();
+    history.forEach(h => {
+      const k = dayKey(h.t), d = m.get(k) || { n: 0, c: 0, sessions: [] };
+      d.n += h.answered != null ? h.answered : h.total; d.c += h.correct; d.sessions.push(h);
+      m.set(k, d);
+    });
+    return m;
+  }
+  function renderCalendar() {
+    setBack(null);
+    const ds = dayStats(), g = goal(), today = new Date(); today.setHours(0, 0, 0, 0);
+    if (!calMonth) calMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const exam = profile && profile.examDate ? new Date(profile.examDate + "T00:00:00") : null;
+    const daysLeft = exam ? Math.round((exam - today) / DAY) : null;
+    const startTs = Math.min(profile && profile.created || Date.now(), history.length ? history[0].t : Date.now());
+    const start = new Date(startTs); start.setHours(0, 0, 0, 0);
+    const totalDays = exam ? Math.max(1, Math.round((exam - start) / DAY)) : null;
+    const dayNum = exam ? Math.min(totalDays, Math.round((today - start) / DAY) + 1) : null;
+    const todayN = (ds.get(today.toDateString()) || { n: 0 }).n;
+    const lvl = n => n === 0 ? 0 : n < g / 2 ? 1 : n < g ? 2 : 3;
+
+    // month grid
+    const y = calMonth.getFullYear(), mo = calMonth.getMonth();
+    const first = new Date(y, mo, 1).getDay(), dim = new Date(y, mo + 1, 0).getDate();
+    let monthN = 0, monthActive = 0;
+    const cells = [];
+    for (let k = 0; k < first; k++) cells.push(`<div class="cal-cell empty"></div>`);
+    for (let d = 1; d <= dim; d++) {
+      const date = new Date(y, mo, d), key = date.toDateString(), st = ds.get(key);
+      const n = st ? st.n : 0; monthN += n; if (n) monthActive++;
+      const isToday = date.getTime() === today.getTime(), isExam = exam && date.getTime() === exam.getTime();
+      cells.push(`<button class="cal-cell l${lvl(n)} ${isToday ? "today" : ""} ${isExam ? "exam" : ""} ${calSel === key ? "sel" : ""}" data-day="${key}" aria-label="${date.toLocaleDateString()}: ${n}">
+        <span class="cal-d">${d}${isExam ? " 🎯" : ""}</span>${n ? `<span class="cal-n">${n}${n >= g ? "✓" : ""}</span>` : ""}</button>`);
+    }
+    // best streak overall
+    const keys = [...ds.keys()].map(k => new Date(k).getTime()).sort((a, b) => a - b);
+    let bestStreak = 0, run = 0;
+    keys.forEach((k, i) => { run = i && Math.round((k - keys[i - 1]) / DAY) === 1 ? run + 1 : 1; bestStreak = Math.max(bestStreak, run); });
+    const sel = calSel && ds.get(calSel);
+
+    app.innerHTML = `
+      <h2>📅 ${t("calTitle")}</h2>
+      <p class="sub">${t("calSub")}</p>
+      ${exam ? `
+        <div class="countdown">
+          <div class="cd-num">${Math.max(0, daysLeft)}</div>
+          <div class="cd-info"><b>${t("daysToGo")}</b><span>${t("examOn", { d: exam.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }) })}</span></div>
+        </div>
+        <div class="panel">
+          <div class="prep-row"><b>${t("prepDay", { i: Math.max(1, dayNum), n: totalDays })}</b><span class="muted small">${t("prepPct", { p: Math.min(100, Math.round(dayNum / totalDays * 100)) })}</span></div>
+          <div class="progress big"><div style="width:${Math.min(100, Math.round(dayNum / totalDays * 100))}%"></div></div>
+        </div>` : `
+        <button class="panel set-exam" id="setExam"><b>🎯 ${t("setExamDate")}</b><span class="muted small">${t("setExamDateNote")}</span></button>`}
+
+      <div class="panel goal-panel">
+        <div class="prep-row"><b>${t("todayGoal")}</b><span>${todayN >= g ? t("goalMet") : t("todayCount", { a: todayN, g })}</span></div>
+        <div class="progress big"><div style="width:${Math.min(100, Math.round(todayN / g * 100))}%"></div></div>
+        ${todayN < g ? `<div class="actions"><button class="btn" id="goalStart">${t("startNow")} →</button></div>` : ""}
+      </div>
+
+      <div class="panel">
+        <div class="cal-head">
+          <button class="arrow" id="calPrev" aria-label="${t("prev")}">‹</button>
+          <b>${calMonth.toLocaleDateString(I.lang === "en" ? "en-US" : "fil-PH", { month: "long", year: "numeric" })}</b>
+          <button class="arrow" id="calNext" aria-label="${t("next")}">›</button>
+        </div>
+        <div class="cal-grid">
+          ${t("weekdays").map(w => `<div class="cal-wd">${w}</div>`).join("")}
+          ${cells.join("")}
+        </div>
+        <div class="cal-legend">
+          <span>${t("less")}</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><span>${t("more")}</span>
+          <span class="muted">· ${t("goalMark")} · ${t("examDayMark")}</span>
+        </div>
+        ${calSel ? `<div class="day-detail"><b>${new Date(calSel).toLocaleDateString()}</b>
+          ${sel ? `<span>${t("dayDetail", { n: sel.n, p: sel.n ? Math.round(sel.c / sel.n * 100) : 0 })}</span>
+            <ul>${sel.sessions.map(h => `<li>${esc(h.title)}: ${h.pct}%</li>`).join("")}</ul>` : `<span class="muted">${t("noActivity")}</span>`}</div>` : ""}
+      </div>
+
+      <div class="tiles">
+        <div class="tile"><b>${monthN}</b><span>${t("monthTotal")}</span></div>
+        <div class="tile"><b>${monthActive}</b><span>${t("activeDays")}</span></div>
+        <div class="tile"><b>🔥 ${bestStreak}</b><span>${t("bestStreak")}</span></div>
+      </div>
+    `;
+    document.getElementById("calPrev").onclick = () => { calMonth = new Date(y, mo - 1, 1); renderCalendar(); };
+    document.getElementById("calNext").onclick = () => { calMonth = new Date(y, mo + 1, 1); renderCalendar(); };
+    app.querySelectorAll("[data-day]").forEach(b => b.addEventListener("click", () => { calSel = calSel === b.dataset.day ? null : b.dataset.day; const yy = window.scrollY; renderCalendar(); window.scrollTo(0, yy); }));
+    const se = document.getElementById("setExam"); if (se) se.onclick = () => renderSettings(false);
+    const gs = document.getElementById("goalStart");
+    if (gs) gs.onclick = () => { const a = analytics(); const w = a.subjects.slice().sort((p, q) => (p.acc == null ? -1 : p.acc) - (q.acc == null ? -1 : q.acc))[0]; startSubject(w.id); session.exitTo = () => openTab("calendar"); };
   }
 
   // ---------- ANALYTICS tab ----------
@@ -399,6 +740,7 @@
       <h2>📊 ${t("analyticsTitle")}</h2>
       <p class="sub">${t("analyticsSub")}</p>
       <div class="tiles">${tiles.map(([v, l]) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`).join("")}</div>
+      ${reviewQs().length ? `<button class="review-banner" id="reviewTop"><span>🎯</span><span><b>${t("reviewBtn", { n: reviewQs().length }).replace(/^🎯 /, "")}</b><small>${t("reviewCounts", { m: mistakeIds().length, s: starred.size })}</small></span><span>→</span></button>` : ""}
 
       <div class="panel chart-panel">
         <div class="chart-title">${t("accBySubject")}</div>
@@ -433,7 +775,7 @@
         ${a.weakTopics.length ? `<div class="topic-list">${a.weakTopics.map(w => {
           const s = SUBJECTS.find(y => y.id === w.sid);
           return `<div class="topic-row">
-            <span class="topic-name">${s.icon} ${esc(w.title)}</span>
+            <span class="topic-name">${s.icon} ${esc(w.title)}<br><span class="imp-chip imp${w.importance}">${impLabel(w.importance)}</span></span>
             <span class="badge ${w.acc >= PASSING ? "" : "blue"}">${w.acc}%</span>
             <button class="btn-mini" data-study="${w.sid}|${w.id}">${t("studyLesson")} →</button>
           </div>`;
@@ -453,7 +795,10 @@
         </table>
       </details>
 
-      <div class="actions"><button class="btn blue" id="askCoach">${t("askCoachPlan")}</button></div>
+      <div class="actions col">
+        <button class="btn" id="practiceReview" ${reviewQs().length ? "" : "disabled"}>${t("reviewBtn", { n: reviewQs().length })}</button>
+        <button class="btn blue" id="askCoach">${t("askCoachPlan")}</button>
+      </div>
       <div class="chart-tip hidden" id="chartTip"></div>
     `;
 
@@ -479,6 +824,9 @@
       renderLesson(sid, LESSONS[sid].findIndex(l => l.id === lid));
     }));
     document.getElementById("askCoach").addEventListener("click", () => window.CoachUI && window.CoachUI.open("plan"));
+    const rt = document.getElementById("reviewTop");
+    if (rt) rt.addEventListener("click", () => startReview(() => openTab("analytics")));
+    document.getElementById("practiceReview").addEventListener("click", () => startReview(() => openTab("analytics")));
     window.scrollTo(0, 0);
   }
 
@@ -595,7 +943,7 @@
 
       <div class="qcard qcard-top">
         <div class="qrow">
-          <span class="qsubject">${esc(sn(subjectOf(q)).name)}</span>
+          <span class="qsubject">${esc(sn(subjectOf(q)).name)}${q.ai ? ` <span class="ai-badge" title="${esc(t("aiCaution"))}">✨ ${t("aiBadge")}</span>` : ""}</span>
           <div class="qnav">
             <button class="arrow" id="prevBtn" ${idx === 0 ? "disabled" : ""} aria-label="${t("prev")}" title="${t("prev")}">${ARROW_L}</button>
             <button class="arrow ${last ? "submit" : ""} ${locked && !last ? "pulse" : ""}" id="nextBtn" aria-label="${last ? t("reviewSubmit") : t("next")}" title="${last ? t("reviewSubmit") : t("next")}">${ARROW_R}</button>
@@ -783,7 +1131,7 @@
       setTimeout(() => pct >= PASSING
         ? pet().cheer(pct === 100 ? t("petPerfect") : t("petPass", { p: pct }))
         : pet().cry(pct >= 60 ? t("petNear", { p: pct }) : t("petLow", { p: pct })), 300);
-      const saveable = !S.key.endsWith(":retry") && S.key !== "starred";
+      const saveable = !S.key.endsWith(":retry") && !["starred", "review"].includes(S.key) && !S.key.startsWith("ai:");
       if (saveable && (best[S.key] == null || pct > best[S.key])) { best[S.key] = pct; store.set("cscoach.best", best); }
     }
 
@@ -870,7 +1218,7 @@
     analytics, subjects: SUBJECTS, passing: PASSING,
     subjName: id => sn(SUBJECTS.find(s => s.id === id)),
     profile: () => profile,
-    startSubject, startMock, startStarred,
+    startSubject, startMock, startStarred, startReview,
     // Current question for the coach. The answer key is included only after it's revealed.
     current: () => {
       if (!session || session.done) return null;

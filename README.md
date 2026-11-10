@@ -3,10 +3,13 @@
 A study coach for the **Civil Service Exam (Professional level)**. It runs in any browser, on desktop or phone, and can be packaged as an Android APK or an iOS app.
 
 ## Features
-- Three tabs:
-  - **Learn**: short original lessons per topic (25 lessons), each followed by the questions on that topic
-  - **Practice**: subject rounds, Full Mock Exam, starred questions
-  - **Analytics**: stat tiles, accuracy-by-subject chart, score trend, weakest topics, table view
+- Four tabs:
+  - **Learn**: 25 original step-by-step lessons (intro → one key point per step → example → quick check → practice), ordered by exam importance (🔥 high-yield / ⭐ important / 📘 good to know), with a "Watch video lessons" link (YouTube search sorted by views)
+  - **Practice**: subject rounds, Full Mock Exam, Mistakes & Starred, ✨ AI-generated questions
+  - **Calendar**: exam countdown, prep-day progress, daily goal, month heatmap of questions answered per day
+  - **Analytics**: stat tiles, accuracy-by-subject chart, score trend, weakest topics, table view, "Practice mistakes & starred" button
+- Question rotation: an answered question doesn't come back for 30 days (except in Mistakes & Starred)
+- AI-generated questions (claude.ai artifact version): fresh questions on your weakest topic, validated and saved to the device
 - Interface language: **English, Tagalog or Taglish** (chosen at setup; also applies to Kiko and the AI coach). Questions stay in their exam language, as in the real CSC exam
 - First-run setup: your name and Exam mode (answers revealed after submitting) or Practice mode (instant feedback); change anytime in Settings
 - Tap a subject to jump straight into a 10-question round (new and missed questions first), or take a **Full Mock Exam**. 200+ questions in total
