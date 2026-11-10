@@ -742,3 +742,17 @@ select.input { background: var(--white); }
 .settings-form .save-row { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 4; background: var(--bg); padding: 8px 0; margin-top: 0; }
 .setup-sec { margin-bottom: 18px; }
 .setup-h { font-weight: 800; margin-bottom: 10px; }
+
+/* ===== v17: center chat tab, buddy placement ===== */
+.tabbar .tab-chat { position: relative; }
+.tabbar .tab-chat .tab-ico { width: 54px; height: 54px; margin-top: -22px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--blue)); box-shadow: 0 6px 16px rgba(29,78,216,.35); border: 3px solid var(--white); display: grid; place-items: center; overflow: hidden; }
+.tabbar .tab-chat .tab-ico .kiko-mini { width: 46px; height: 46px; background: transparent; }
+.tabbar .tab-chat .tab-label { color: var(--blue); }
+.tabbar .tab-chat::before { display: none; }
+.tab-ico.react-happy { animation: tabCheer .5s ease-in-out 3; }
+.tab-ico.react-sad { animation: tabSad .6s ease-in-out 2; filter: saturate(.6); }
+@keyframes tabCheer { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.1); } }
+@keyframes tabSad { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+/* the chat tab replaces the floating chat button; keep the button only during a quiz when the buddy is at home */
+.coach-fab { display: none !important; }
+body.no-pet:not(.has-tabbar) .coach-fab { display: flex !important; }

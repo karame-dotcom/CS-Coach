@@ -132,9 +132,15 @@
     }
   }
 
+  // Where the buddy lives: "walk" (wanders), "still" (stays put), "home" (only in the chat tab).
+  // While the student is answering or in a lesson ("busy"), it never walks or pops up invites.
+  let mode = "still", busy = false;
+  try { const p = JSON.parse(localStorage.getItem("cscoach.profile")); if (p) mode = p.petMode || (p.pet === false ? "home" : "still"); } catch (_) {}
+  function park() { x = 0; root.style.transform = "translateX(0)"; pet.classList.remove("walking"); }
+
   // Wander left and right along the bottom of the screen
   function wander() {
-    if (!pet.classList.contains("idle")) return;
+    if (mode !== "walk" || busy || !pet.classList.contains("idle")) return;
     const max = window.innerWidth < 480 ? 40 : Math.min(140, window.innerWidth * 0.28);
     const nx = Math.round(Math.random() * max);
     facing = nx >= x ? 1 : -1;
@@ -163,19 +169,36 @@
   // Now and then, invite the student to ask a question
   const invite = () => {
     const I = window.I18N;
-    if (chatOpen || root.classList.contains("hidden") || !pet.classList.contains("idle") || !bubble.classList.contains("hidden") || !I) return;
+    if (busy || mode === "home" || chatOpen || root.classList.contains("hidden") || !pet.classList.contains("idle") || !bubble.classList.contains("hidden") || !I) return;
     const list = I.t("askMe");
     say(list[Math.floor(Math.random() * list.length)], 3500);
   };
   setTimeout(invite, 9000);
   setInterval(invite, 40000);
 
+  function homeReact(kind) {
+    const tabIco = document.querySelector(".tab-chat .tab-ico");
+    if (!tabIco) return;
+    tabIco.classList.remove("react-happy", "react-sad"); void tabIco.offsetWidth;
+    tabIco.classList.add(kind === "happy" ? "react-happy" : "react-sad");
+    setTimeout(() => tabIco.classList.remove("react-happy", "react-sad"), 1600);
+  }
   window.Pet = {
-    cheer(msg) { setMood("happy", 2200); say(msg || pick(msgs().cheer)); burstHearts(pick(["✨", "💚", "⭐"])); },
-    cry(msg) { setMood("sad", 2800); say(msg || pick(msgs().cry), 3000); },
+    cheer(msg) { if (mode === "home") return homeReact("happy"); setMood("happy", 2200); say(msg || pick(msgs().cheer)); burstHearts(pick(["✨", "💚", "⭐"])); },
+    cry(msg) { if (mode === "home") return homeReact("sad"); setMood("sad", 2800); say(msg || pick(msgs().cry), 3000); },
     say,
     hop() { setMood("hop", 600); },
     setVisible(v) { root.classList.toggle("hidden", !v); document.body.classList.toggle("no-pet", !v); },
+    // mode: "walk" | "still" | "home"
+    setMode(m) {
+      mode = ["walk", "still", "home"].includes(m) ? m : "still";
+      root.classList.toggle("hidden", mode === "home");
+      document.body.classList.toggle("no-pet", mode === "home");
+      if (mode !== "walk") park();
+    },
+    getMode: () => mode,
+    // busy = answering questions or in a lesson: no walking, no invites, back to the corner
+    setBusy(b) { busy = !!b; if (busy) { park(); if (!bubble.classList.contains("hidden") && !pet.classList.contains("happy") && !pet.classList.contains("sad")) bubble.classList.add("hidden"); } },
     setChatOpen(v) { chatOpen = v; root.classList.toggle("chatting", v); if (v) { bubble.classList.add("hidden"); setMood("happy", 900); } },
     // small static Kiko for the chat header (unique gradient id)
     avatar() { return svgFor(current, "av" + (uidN++), "kiko-mini"); },
@@ -189,3 +212,6 @@
     }
   };
 })();
+
+// apply the saved mode once the page is ready
+(function () { try { const m = window.Pet.getMode(); window.Pet.setMode(m); } catch (_) {} })();

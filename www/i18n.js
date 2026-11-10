@@ -448,6 +448,15 @@
     installedShort: ["✅ Installed", "✅ Naka-install", "✅ Installed"],
     aiBuiltInShort: ["✅ Built in here", "✅ May AI na rito", "✅ Built-in dito"],
     aiOffShort: ["Not connected", "Hindi nakakonekta", "Hindi connected"],
+    // v17: chat tab + buddy placement
+    tabChat: ["Kiko", "Kiko", "Kiko"],
+    petModeLabel: ["Where Kiko stays", "Saan mananatili si Kiko", "Saan mag-stay si Kiko"],
+    petModeHome: ["🏠 At home", "🏠 Nasa bahay", "🏠 At home"],
+    petModeHomeDesc: ["Off the screen. Visit Kiko in the center chat tab.", "Wala sa screen. Bisitahin si Kiko sa gitnang chat tab.", "Wala sa screen. Puntahan si Kiko sa center chat tab."],
+    petModeStill: ["🧘 Stay still", "🧘 Nakatigil lang", "🧘 Stay still"],
+    petModeStillDesc: ["Sits quietly in the corner and only reacts to your answers.", "Tahimik sa sulok at sumasagot lang sa iyong mga sagot.", "Tahimik lang sa corner at nagre-react lang sa answers mo."],
+    petModeWalk: ["🚶 Walk around", "🚶 Naglalakad", "🚶 Walk around"],
+    petModeWalkDesc: ["Wanders around. Always stops while you study.", "Naglalakad-lakad. Laging tumitigil habang nag-aaral ka.", "Naglalakad-lakad. Laging humihinto habang nag-aaral ka."],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 

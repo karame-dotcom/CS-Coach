@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.16.0";
+  const APP_VERSION = "1.17.0";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -307,12 +307,19 @@
   function paintTabbar() {
     tabbar.querySelectorAll("[data-tab]").forEach(b => {
       b.classList.toggle("active", b.dataset.tab === tab);
-      b.querySelector(".tab-label").textContent = t({ learn: "tabLearn", practice: "tabPractice", calendar: "tabCalendar", analytics: "tabAnalytics" }[b.dataset.tab]);
+      b.querySelector(".tab-label").textContent = t({ learn: "tabLearn", practice: "tabPractice", chat: "tabChat", calendar: "tabCalendar", analytics: "tabAnalytics" }[b.dataset.tab]);
+      if (b.dataset.tab === "chat") { b.classList.remove("active"); const ico = b.querySelector(".tab-ico"); if (window.Pet && Pet.avatar && !ico.dataset.char) { ico.innerHTML = Pet.avatar(); ico.dataset.char = "1"; } }
     });
   }
-  tabbar.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => openTab(b.dataset.tab)));
+  tabbar.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.tab === "chat") return window.CoachUI && window.CoachUI.toggle();
+    openTab(b.dataset.tab);
+  }));
+  // refresh the chat tab's face when the character changes
+  document.addEventListener("cscoach:pet", () => { const ico = tabbar.querySelector(".tab-chat .tab-ico"); if (ico) { delete ico.dataset.char; paintTabbar(); } });
   function openTab(name) {
     settingsDirty = () => false;
+    pet().setBusy && pet().setBusy(false);
     tab = name || tab;
     session = null;
     paintTabbar(); showTabbar(true);
@@ -368,7 +375,7 @@
     });
   }
   const CHAR_KEYS = { sprout: "charSprout", kitty: "charKitty", bunny: "charBunny", puppy: "charPuppy", chick: "charChick" };
-  const settingsSnap = p => JSON.stringify({ name: p.name || "", instant: !!p.instant, examDate: p.examDate || "", pet: p.pet !== false, lang: p.lang || "en", dailyGoal: +p.dailyGoal || 20, petChar: p.petChar || "sprout", petName: p.petName || "Kiko" });
+  const settingsSnap = p => JSON.stringify({ name: p.name || "", instant: !!p.instant, examDate: p.examDate || "", pet: p.pet !== false, lang: p.lang || "en", dailyGoal: +p.dailyGoal || 20, petChar: p.petChar || "sprout", petName: p.petName || "Kiko", petMode: p.petMode || (p.pet === false ? "home" : "still") });
 
   // Settings sections are collapsible (tap the header). Open sections stay open on re-render.
   const openSecs = new Set();
@@ -427,7 +434,7 @@
           <label class="field-label" for="dailyGoal" style="margin-top:18px">${t("dailyGoal")}</label>
           <input id="dailyGoal" class="input" type="number" min="5" max="200" step="5" value="${esc(p.dailyGoal || 20)}" />`, firstRun)}
 
-        ${sec("buddy", "🐾", t("buddySection"), esc((p.petName || "Kiko") + " · " + t(CHAR_KEYS[p.petChar || "sprout"])), `
+        ${sec("buddy", "🐾", t("buddySection"), esc((p.petName || "Kiko") + " · " + t(CHAR_KEYS[p.petChar || "sprout"]) + " · " + t({ home: "petModeHome", still: "petModeStill", walk: "petModeWalk" }[p.petMode || (p.pet === false ? "home" : "still")])), `
           <div class="muted small" style="margin-bottom:8px">${t("buddyChar")}</div>
           <div class="char-row">
             ${Object.keys(CHAR_KEYS).map(k => `
@@ -439,7 +446,12 @@
           </div>
           <label class="field-label" for="petName" style="margin-top:12px">${t("buddyName")}</label>
           <input id="petName" class="input" type="text" maxlength="16" placeholder="Kiko" value="${esc(p.petName || "Kiko")}" />
-          <label class="check-row"><input type="checkbox" id="petOn" ${p.pet !== false ? "checked" : ""} /> ${t("showPet")}</label>`, firstRun)}
+          <div class="field-label" style="margin-top:16px">${t("petModeLabel")}</div>
+          ${["home", "still", "walk"].map(m => {
+            const cur = p.petMode || (p.pet === false ? "home" : "still");
+            const key = { home: "petModeHome", still: "petModeStill", walk: "petModeWalk" }[m];
+            return `<label class="mode-opt"><input type="radio" name="petMode" value="${m}" ${cur === m ? "checked" : ""} /><div><b>${t(key)}</b><span>${t(key + "Desc")}</span></div></label>`;
+          }).join("")}`, firstRun)}
 
         <div class="actions save-row"><span class="unsaved-badge hidden" id="unsavedBadge">● ${t("unsavedBadge")}</span><button class="btn" type="submit">${firstRun ? t("startReviewing") : t("saveSettings")}</button></div>
       </form>
@@ -455,7 +467,8 @@
       name: document.getElementById("name").value.trim(),
       instant: app.querySelector("input[name=mode]:checked").value === "instant",
       examDate: document.getElementById("examDate").value,
-      pet: document.getElementById("petOn").checked,
+      petMode: (app.querySelector("input[name=petMode]:checked") || {}).value || "still",
+      pet: ((app.querySelector("input[name=petMode]:checked") || {}).value || "still") !== "home",
       lang: app.querySelector("input[name=lang]:checked").value,
       dailyGoal: Math.max(5, Math.min(200, +document.getElementById("dailyGoal").value || 20)),
       petChar: (app.querySelector("input[name=petChar]:checked") || {}).value || "sprout",
@@ -475,7 +488,7 @@
     saveSettingsNow = () => {
       profile = read();
       I.setLang(profile.lang); I.petName = profile.petName;
-      pet().setVisible(profile.pet);
+      if (window.Pet && Pet.setMode) Pet.setMode(profile.petMode || "still"); else pet().setVisible(profile.pet);
       if (window.Pet && Pet.setCharacter) Pet.setCharacter(profile.petChar);
       store.set("cscoach.profile", profile);
       settingsDirty = () => false;
@@ -862,6 +875,7 @@
     const steps = ["intro", ...l.points.map((_, k) => "p" + k), "example", "check", "done"];
     const kind = steps[step];
     if (kind === "done") { lessonsRead.add(l.id); store.set("cscoach.lessonsRead", [...lessonsRead]); }
+    pet().setBusy && pet().setBusy(kind !== "done");
     setBack(() => renderLessonList(sid));
     showTabbar(true);
     const go = n => renderLesson(sid, i, n);
@@ -1406,6 +1420,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
       done: false
     };
     showTabbar(false);
+    pet().setBusy && pet().setBusy(true);
     renderQuestion(true);
   }
 
@@ -1635,6 +1650,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   function renderResults(filter) {
     const S = session;
     S.done = true;
+    pet().setBusy && pet().setBusy(false);
     setBack(S.exitTo || goHome);
     const rows = S.items.map((q, i) => {
       const ans = S.answers[i];
@@ -1773,7 +1789,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   if (!profile) renderSettings(true);
   else {
     openTab("learn");
-    pet().setVisible(profile.pet !== false);
+    if (window.Pet && Pet.setMode) Pet.setMode(profile.petMode || (profile.pet === false ? "home" : "still")); else pet().setVisible(profile.pet !== false);
     const lastExport = store.get("cscoach.lastExport", 0);
     const remind = history.length >= 5 && Date.now() - lastExport > 14 * DAY;
     setTimeout(() => pet().say(remind ? t("backupRemind") : t("petHi", { name: profile.name ? " " + profile.name : "" }), remind ? 5000 : 3200), 700);
