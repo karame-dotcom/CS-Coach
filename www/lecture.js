@@ -2,7 +2,7 @@
 // Kiko (in a graduation cap) talks through the hint on a chalkboard: text is
 // "written" in chalk, doodles are drawn, and the browser's speech engine reads
 // it aloud. It never reveals the answer.
-// API: Lecture.mount(el, { q, subjectId, subjectName, hint, tips, lang, labels, onDone }) -> stop()
+// API: Lecture.mount(el, { q, hint, lang, labels }) -> stop()
 (function () {
   "use strict";
 
@@ -23,9 +23,6 @@
     checkTalk: ["Before you pick, do a quick check.", "Bago pumili, mabilis na suriin.", "Bago ka pumili, quick check muna."],
     avgCheck: ["The average is always between the smallest and the biggest number.", "Laging nasa pagitan ng pinakamaliit at pinakamalaking numero ang average.", "Laging nasa pagitan ng pinakamaliit at pinakamalaking number ang average."],
     avgCheck2: ["So it must be between {a} and {b}.", "Kaya dapat nasa pagitan ito ng {a} at {b}.", "So dapat nasa pagitan siya ng {a} at {b}."],
-    tipsLabel: ["Strategy for {s}", "Estratehiya sa {s}", "Strategy para sa {s}"],
-    tipsTalk: ["Now, some strategies that work for every {s} question.", "Ngayon, mga estratehiyang gumagana sa bawat tanong sa {s}.", "Next, mga strategy na gagana sa lahat ng {s} questions."],
-    tipN: ["Tip {n}.", "Tip bilang {n}.", "Tip number {n}."],
     outro: ["Your turn!", "Ikaw na!", "Ikaw na!"],
     outroTalk: ["You've got this. Go back and try it!", "Kaya mo 'yan. Bumalik ka at subukan mo!", "Kaya mo 'yan! Balikan mo ang question at try mo!"],
     outroNote: ["The coach guides you but won't give the answer away.", "Gagabayan ka ng coach pero hindi nito ibibigay ang sagot.", "Gu-guide-an ka ng coach pero hindi niya ibibigay ang sagot."],
@@ -90,21 +87,7 @@
     law: () => P("M40 18 h70 v86 h-70 z M110 18 h70 v86 h-70 z", "w") + P("M52 40 h46 M52 52 h46 M52 64 h30 M122 40 h46 M122 52 h46 M122 64 h30", "w", .6) + T(110, 116, "Art. III", "y", 1.2, 13),
     word: () => T(70, 56, "word", "w", 0, 22) + P("M42 64 h58", "y", .5) + P("M118 44 a18 18 0 1 0 0.1 0 M131 74 l14 14", "y", .8) + T(110, 104, "context → meaning", "g", 1.2, 13),
     grammar: () => T(60, 50, "Subject", "b", 0, 18) + T(160, 50, "Verb", "g", .3, 18) + P("M92 44 H132 m-8 -6 l8 6 -8 6", "y", .6) + T(60, 86, "1", "b", .9, 18) + T(160, 86, "1", "g", 1, 18) + P("M98 80 l8 8 16 -18", "y", 1.2),
-    eliminate: () => ["A", "B", "C", "D"].map((l, i) => P(`M${36 + i * 48} 50 a16 16 0 1 0 0.1 0`, "w", i * .15) + T(36 + i * 48, 72, l, "w", .2 + i * .15, 16)).join("") +
-      P("M74 54 l24 24 m0 -24 l-24 24 M170 54 l24 24 m0 -24 l-24 24", "p", 1) + P("M128 48 a22 22 0 1 0 0.1 0", "g", 1.5),
-    given: () => T(30, 40, "Given:", "y", 0, 16, "start") + P("M96 34 h90", "w", .4) + T(30, 76, "Find:", "y", .6, 16, "start") + T(96, 76, "?", "p", .9, 20, "start") + P("M30 96 h160", "w", 1.1, true),
-    estimate: () => P("M14 80 H206", "w") + T(110, 46, "≈", "y", .4, 30) + P("M110 72 v16", "y", .6) + P("M24 64 l12 12 m0 -12 l-12 12 M186 64 l12 12 m0 -12 l-12 12", "p", 1) + T(110, 108, "near → keep", "g", 1.3, 13),
-    plug: () => T(40, 64, "B", "y", 0, 22) + P("M60 58 H96 m-8 -6 l8 6 -8 6", "w", .4) + P("M104 40 h70 v36 h-70 z", "w", .7) + T(139, 64, "□ = ?", "w", 1, 16) + P("M186 58 l8 8 16 -18", "g", 1.3),
-    idiom: () => P("M30 20 h150 v54 h-110 l-16 16 v-16 h-24 z", "w") + T(105, 44, "literal ✗", "p", .7, 16) + T(105, 66, "meaning ✓", "g", 1, 16),
-    rules: () => T(110, 34, "nang / ng", "y", 0, 18) + T(110, 64, "raw / daw", "w", .4, 18) + T(110, 94, "rin / din", "b", .8, 18),
-    table: () => P("M30 20 H190 V100 H30 Z M30 46 H190 M30 73 H190 M100 20 V100", "w") + T(65, 38, "Post", "y", .8, 12) + T(145, 38, "Term", "y", .9, 12),
-    link: () => T(50, 40, "RA 6713", "y", 0, 15) + T(50, 84, "RA 9003", "y", .3, 15) + P("M86 36 C120 36 120 36 140 36 M86 80 H140", "w", .6) + T(178, 40, "ethics", "g", 1, 15) + T(178, 84, "waste", "g", 1.2, 15),
     cheer: () => P("M70 60 l22 22 50 -52", "g") + P("M30 30 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z", "y", .8) + P("M180 20 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z", "y", 1) + P("M186 86 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z", "b", 1.2)
-  };
-  const TIP_ART = {
-    verbal: ["word", "grammar", "analogy", "eliminate"], filipino: ["word", "idiom", "rules", "eliminate"],
-    numerical: ["given", "estimate", "series", "plug"], analytical: ["venn", "letters", "compass", "family"],
-    geninfo: ["law", "table", "link", "eliminate"]
   };
   function hintArt(q) {
     const s = (q.q + " " + q.h).toLowerCase();
@@ -254,12 +237,6 @@
         sl.push({ label: tr("check"), talk: tr("checkTalk"), lines: [{ t: tr("avgCheck") }, { t: tr("avgCheck2", { a: Math.min(...v), b: Math.max(...v) }), c: "g" }], art: svg(D.rangeCheck(q)), point: true });
       }
     }
-    const arts = TIP_ART[o.subjectId] || [];
-    (o.tips || []).forEach((tip, i) => sl.push({
-      label: tr("tipsLabel", { s: o.subjectName }) + ` · ${i + 1}/${o.tips.length}`,
-      talk: (i === 0 ? tr("tipsTalk", { s: o.subjectName }) + " " : "") + tr("tipN", { n: i + 1 }),
-      lines: [{ t: tip }], art: svg(D[arts[i] || "bulb"](q)), point: true
-    }));
     sl.push({ label: tr("outro"), talk: tr("outroTalk"), lines: [{ t: tr("outro"), c: "y", big: true }, { t: o.note || tr("outroNote") }], art: svg(D.cheer()), cheer: true });
     return sl;
   }
