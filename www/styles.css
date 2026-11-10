@@ -643,3 +643,14 @@ body.no-pet .coach-fab { display: flex; }
 .seg u { text-decoration-thickness: 2px; text-underline-offset: 5px; text-decoration-color: var(--blue); }
 .seg b { margin-top: 6px; font-size: .82rem; font-weight: 800; color: var(--blue); }
 .point-text.qtext { margin-bottom: 12px; }
+
+/* ===== v11: compact question toolbar, chat typing mode ===== */
+.qrow { flex-wrap: nowrap; }
+.qtools { margin-top: 0; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tool.icon { width: 34px; height: 34px; padding: 0; justify-content: center; border-radius: 10px; font-size: 1.05rem; }
+.qnav { gap: 6px; flex: none; }
+.arrow { width: 34px; height: 34px; border-radius: 10px; }
+.arrow svg { width: 18px; height: 18px; }
+.qrow + .qtext { margin-top: 12px; }
+.qrow .qsubject { font-size: .72rem; }
+.coach-panel.typing .coach-chips { display: none; }

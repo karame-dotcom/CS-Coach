@@ -1206,6 +1206,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     const isStar = starred.has(q.id);
     const isUnsure = S.unsure.has(idx);
     const last = idx === items.length - 1;
+    const mixed = new Set(items.map(it => it.sid)).size > 1;
 
     app.innerHTML = `
       <div class="quiz-sticky" id="quizSticky">
@@ -1230,15 +1231,16 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
 
       <div class="qcard qcard-top">
         <div class="qrow">
-          <span class="qsubject">${esc(sn(subjectOf(q)).name)}${q.ai ? ` <span class="ai-badge" title="${esc(t("aiCaution"))}">✨ ${t("aiBadge")}</span>` : ""}</span>
+          <div class="qtools">
+            <button class="tool icon ${isStar ? "on" : ""}" id="starBtn" aria-pressed="${isStar}" aria-label="${t("star")}" title="${t("starTitle")}">${isStar ? "★" : "☆"}</button>
+            <button class="tool icon help" id="helpBtn" aria-label="${t("helpMe")}" title="${t("helpTitle")}">💡</button>
+            ${mixed ? `<span class="qsubject">${subjectOf(q).icon} ${esc(sn(subjectOf(q)).short)}</span>` : ""}
+            ${q.ai ? `<span class="ai-badge" title="${esc(t("aiCaution"))}">✨ ${t("aiBadge")}</span>` : ""}
+          </div>
           <div class="qnav">
             <button class="arrow" id="prevBtn" ${idx === 0 ? "disabled" : ""} aria-label="${t("prev")}" title="${t("prev")}">${ARROW_L}</button>
             <button class="arrow ${last ? "submit" : ""} ${locked && !last ? "pulse" : ""}" id="nextBtn" aria-label="${last ? t("reviewSubmit") : t("next")}" title="${last ? t("reviewSubmit") : t("next")}">${ARROW_R}</button>
           </div>
-        </div>
-        <div class="qtools">
-          <button class="tool ${isStar ? "on" : ""}" id="starBtn" aria-pressed="${isStar}" title="${t("starTitle")}">${isStar ? "★" : "☆"} <span>${t("star")}</span></button>
-          <button class="tool help" id="helpBtn" title="${t("helpTitle")}">💡 <span>${t("helpMe")}</span></button>
         </div>
         <div class="qtext">${qHtml(q)}</div>
       </div>

@@ -22,10 +22,10 @@
     </div>
     <div class="coach-msgs" id="coachMsgs"></div>
     <div class="coach-chips" id="coachChips"></div>
-    <form class="coach-input" id="coachForm">
-      <input id="coachText" type="text" autocomplete="off" />
-      <button type="submit" aria-label="Send">➤</button>
-    </form>`;
+    <div class="coach-input" id="coachForm" role="group">
+      <input id="coachText" type="text" name="kiko-chat-message" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="send" inputmode="text" aria-autocomplete="none" data-lpignore="true" data-form-type="other" />
+      <button type="button" aria-label="Send">➤</button>
+    </div>`;
   document.body.append(fab, panel);
   const msgs = panel.querySelector("#coachMsgs");
   const chips = panel.querySelector("#coachChips");
@@ -61,7 +61,8 @@
     if (!msgs.children.length) greet();
     renderChips();
     if (kind) { addMsg("user", esc(chipLabel(kind)), chipLabel(kind)); reply(builtIn(kind)); }
-    else setTimeout(() => input.focus(), 50);
+    // On phones don't pop the keyboard right away, so the quick questions stay visible
+    else if (!window.matchMedia("(pointer: coarse)").matches) setTimeout(() => input.focus(), 50);
   }
   function close() { focus = null; document.body.classList.remove("chat-open"); panel.classList.add("hidden"); fitPanel(); fab.classList.remove("open"); if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(false); }
   const toggle = () => panel.classList.contains("hidden") ? open() : close();
@@ -80,7 +81,12 @@
   // Keep the phone keyboard open after sending: the Send button never steals focus
   const sendBtn = panel.querySelector(".coach-input button");
   ["pointerdown", "mousedown", "touchstart"].forEach(ev => sendBtn.addEventListener(ev, e => e.preventDefault(), { passive: false }));
-  sendBtn.addEventListener("touchend", e => { e.preventDefault(); panel.querySelector("#coachForm").requestSubmit(); }, { passive: false });
+  sendBtn.addEventListener("touchend", e => { e.preventDefault(); send(); }, { passive: false });
+  sendBtn.addEventListener("click", send);
+  input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); send(); } });
+  // Hide the quick-question buttons while typing (keyboard open) to save space
+  input.addEventListener("focus", () => panel.classList.add("typing"));
+  input.addEventListener("blur", () => panel.classList.remove("typing"));
 
   // Freeze the chat header on phones: fit the panel to the visible area above the keyboard
   const vv = window.visualViewport;
@@ -298,9 +304,8 @@ ${JSON.stringify(context)}`;
     }
   }
 
-  panel.querySelector("#coachForm").addEventListener("submit", e => {
-    // explanations requested by typing also use the three-part format
-    e.preventDefault();
+  // The chat box is not a <form>, so browsers don't show their autofill bar (passwords, cards, addresses)
+  function send() {
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
@@ -308,5 +313,5 @@ ${JSON.stringify(context)}`;
     addMsg("user", esc(text), text);
     const wants = !!ctxQ() && /explain|gets|maintindihan|paliwanag|bakit|paano|why|how|confus|gulo|step/i.test(text);
     if (sample) askAI(text, wants); else reply(builtIn("text", text));
-  });
+  }
 })();
