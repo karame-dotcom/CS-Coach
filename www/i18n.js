@@ -1,0 +1,291 @@
+// CS Coach interface translations: English (en), Tagalog (tl), Taglish (tg).
+// Exam questions stay in their original exam language (English / Filipino),
+// just like the real CSC exam.
+(function () {
+  "use strict";
+  // key: [English, Tagalog, Taglish]
+  const D = {
+    // setup / settings
+    welcome: ["Welcome to CS Coach! 👋", "Maligayang pagdating sa CS Coach! 👋", "Welcome sa CS Coach! 👋"],
+    settings: ["Settings", "Mga Setting", "Settings"],
+    setupSub: ["Let's set up your reviewer. You can change these anytime in Settings (⚙️).", "Ihanda natin ang iyong reviewer. Mababago mo ang mga ito anumang oras sa Mga Setting (⚙️).", "I-set up natin ang reviewer mo. Pwede mo itong palitan anytime sa Settings (⚙️)."],
+    settingsSub: ["Your profile and how quizzes behave.", "Ang iyong profile at kung paano gumagana ang mga pagsusulit.", "Ang profile mo at kung paano gagana ang mga quiz."],
+    language: ["Main language", "Pangunahing wika", "Main language"],
+    languageNote: ["Used for buttons, coaching, Kiko and the AI coach. Exam questions stay in English or Filipino, like the real exam.", "Gagamitin sa mga button, coaching, kay Kiko at sa AI coach. Mananatili sa Ingles o Filipino ang mga tanong, gaya ng tunay na eksamen.", "Para sa buttons, coaching, kay Kiko at sa AI coach. English o Filipino pa rin ang mga tanong, gaya ng actual exam."],
+    yourName: ["Your name", "Ang iyong pangalan", "Name mo"],
+    namePh: ["e.g. Juan", "hal. Juan", "e.g. Juan"],
+    revealQ: ["When should answers be revealed?", "Kailan ipapakita ang mga sagot?", "Kailan ipapakita ang answers?"],
+    examMode: ["Exam mode", "Exam mode", "Exam mode"],
+    recommended: ["Recommended", "Inirerekomenda", "Recommended"],
+    examModeDesc: ["Answer all questions first, like the real exam. You can change answers, flag questions you're unsure of, and see results only after you submit.", "Sagutin muna ang lahat ng tanong, gaya ng tunay na eksamen. Maaari mong palitan ang sagot, markahan ang hindi sigurado, at makikita ang resulta pagkatapos mong ipasa.", "Sagutin mo muna lahat ng questions, parang actual exam. Pwede mong palitan ang sagot, i-mark ang hindi ka sure, at makikita mo lang ang results after mag-submit."],
+    practiceMode: ["Practice mode", "Practice mode", "Practice mode"],
+    practiceModeDesc: ["See right away if each answer is correct, with an explanation. Answers lock once chosen.", "Makikita agad kung tama ang bawat sagot, may kasamang paliwanag. Hindi na mababago ang sagot kapag napili na.", "Makikita mo agad kung tama ang sagot mo, with explanation. Locked na ang sagot once napili mo."],
+    examDate: ["Exam date (optional)", "Petsa ng eksamen (opsiyonal)", "Exam date (optional)"],
+    examDateNote: ["The AI coach uses this to plan your review schedule.", "Gagamitin ito ng AI coach para planuhin ang iyong iskedyul ng pagrerebyu.", "Gagamitin ito ng AI coach para i-plan ang review schedule mo."],
+    showPet: ["Show Kiko, my study buddy 🌱", "Ipakita si Kiko, ang aking kasama sa pag-aaral 🌱", "Ipakita si Kiko, ang study buddy ko 🌱"],
+    startReviewing: ["Start reviewing →", "Magsimulang magrebyu →", "Start na mag-review →"],
+    saveSettings: ["Save settings", "I-save ang mga setting", "I-save ang settings"],
+    resetProgress: ["Reset progress", "I-reset ang progreso", "I-reset ang progress"],
+    resetDesc: ["Clears your scores, analytics and starred questions on this device.", "Buburahin ang iyong mga iskor, analytics at mga naka-star na tanong sa device na ito.", "Mabubura ang scores, analytics at starred questions mo sa device na ito."],
+    resetConfirm: ["Reset all scores, analytics and starred questions?", "I-reset ang lahat ng iskor, analytics at mga naka-star na tanong?", "I-reset lahat ng scores, analytics at starred questions?"],
+    reset: ["Reset", "I-reset", "I-reset"],
+    profileNote: ["Your profile is saved only on this device.", "Sa device na ito lamang naka-save ang iyong profile.", "Sa device na ito lang naka-save ang profile mo."],
+    cancel: ["Cancel", "Kanselahin", "Cancel"],
+    leave: ["Leave", "Umalis", "Leave"],
+    leaveQuiz: ["Leave this quiz? Your answers in this session will be lost.", "Aalis ka na ba sa pagsusulit? Mawawala ang iyong mga sagot sa sesyong ito.", "Aalis ka na sa quiz? Mawawala ang mga sagot mo sa session na ito."],
+    leaveForSettings: ["Leave this quiz to open Settings? Your answers in this session will be lost.", "Aalis sa pagsusulit para buksan ang Mga Setting? Mawawala ang iyong mga sagot sa sesyong ito.", "Aalis sa quiz para buksan ang Settings? Mawawala ang mga sagot mo sa session na ito."],
+
+    // home
+    hi: ["Hi, {name}! ", "Kumusta, {name}! ", "Hi, {name}! "],
+    chooseSubject: ["Choose a subject", "Pumili ng asignatura", "Pumili ng subject"],
+    homeSub: ["Tap a subject to start a {n}-question round. New and missed questions come first. Passing rate: {p}%.", "Pindutin ang asignatura para magsimula ng {n} tanong. Uunahin ang mga bago at mga namali. Passing rate: {p}%.", "I-tap ang subject para mag-start ng {n}-question round. Uunahin ang mga bago at mga namali mo. Passing rate: {p}%."],
+    questions: ["Questions", "Mga Tanong", "Questions"],
+    starred: ["Starred", "Naka-star", "Starred"],
+    avgBest: ["Avg. best score", "Avg. pinakamataas na iskor", "Avg. best score"],
+    modePracticeChip: ["⚡ Practice mode: answers shown right away", "⚡ Practice mode: ipinapakita agad ang sagot", "⚡ Practice mode: makikita agad ang answers"],
+    modeExamChip: ["📝 Exam mode: answers shown after you submit", "📝 Exam mode: ipapakita ang sagot pagkatapos ipasa", "📝 Exam mode: makikita ang answers after mag-submit"],
+    change: ["Change", "Baguhin", "Palitan"],
+    mockTitle: ["Full Mock Exam", "Buong Mock Exam", "Full Mock Exam"],
+    mockDesc: ["{n} random questions from all subjects, like the real Professional exam.", "{n} random na tanong mula sa lahat ng asignatura, gaya ng tunay na Professional exam.", "{n} random questions mula sa lahat ng subjects, parang actual Professional exam."],
+    items: ["{n} items", "{n} aytem", "{n} items"],
+    best: ["Best: {p}%", "Pinakamataas: {p}%", "Best: {p}%"],
+    notTaken: ["Not taken yet", "Hindi pa nasusubukan", "Hindi pa natatry"],
+    starredTitle: ["Starred Questions", "Mga Naka-star na Tanong", "Starred Questions"],
+    starredDesc: ["Practice the questions you starred to come back to.", "Sanayin ang mga tanong na minarkahan mo para balikan.", "I-practice ang mga questions na ni-star mo para balikan."],
+    practiced: ["{a}/{b} practiced", "{a}/{b} nasanay", "{a}/{b} na-practice"],
+    accuracy: ["{p}% accuracy", "{p}% tama", "{p}% accuracy"],
+    notStarted: ["Not started", "Hindi pa nasisimulan", "Hindi pa nag-start"],
+    disclaimer: ["ℹ️ These are practice questions written to match the coverage and format of the CSC Professional exam. The Civil Service Commission does not publish actual exam questions.", "ℹ️ Ang mga ito ay mga tanong-pagsasanay na isinulat ayon sa saklaw at anyo ng CSC Professional exam. Hindi inilalathala ng Civil Service Commission ang aktuwal na mga tanong sa eksamen.", "ℹ️ Practice questions ang mga ito na ginawa base sa coverage at format ng CSC Professional exam. Hindi nire-release ng Civil Service Commission ang actual exam questions."],
+
+    // quiz
+    quizCount: ["Question {i} of {n} · {a} answered", "Tanong {i} sa {n} · {a} nasagutan", "Question {i} of {n} · {a} nasagutan"],
+    hideOverview: ["Hide overview", "Itago ang buod", "Hide overview"],
+    showOverview: ["Show overview", "Ipakita ang buod", "Show overview"],
+    correct: ["Correct", "Tama", "Tama"],
+    wrong: ["Wrong", "Mali", "Mali"],
+    answered: ["Answered", "Nasagutan", "Nasagutan"],
+    notSure: ["Not sure", "Hindi sigurado", "Not sure"],
+    unanswered: ["Unanswered", "Hindi nasagutan", "Walang sagot"],
+    prev: ["Previous", "Nakaraan", "Previous"],
+    next: ["Next", "Susunod", "Next"],
+    reviewSubmit: ["Review & Submit", "Suriin at Ipasa", "Review & Submit"],
+    starTitle: ["Star this question to come back to it", "Markahan ang tanong na ito para balikan", "I-star ang question para balikan mo"],
+    star: ["Star", "Star", "Star"],
+    helpTitle: ["Get coaching on how to answer", "Magpaturo kung paano sasagutin", "Magpa-coach kung paano sasagutin"],
+    helpMe: ["Help me", "Tulungan mo ako", "Help me"],
+    correctFb: ["✅ Correct!", "✅ Tama!", "✅ Tama!"],
+    wrongFb: ["❌ Not quite. The answer is {x}", "❌ Hindi tama. Ang sagot ay {x}", "❌ Hindi tama. Ang sagot ay {x}"],
+    unsureToggle: ["Not sure yet. Mark this to come back to it before submitting.", "Hindi pa sigurado. Markahan para balikan bago ipasa.", "Not sure pa. I-mark ito para balikan bago mag-submit."],
+    finishSubmit: ["Finish & submit all", "Tapusin at ipasa lahat", "Tapusin at i-submit lahat"],
+    coach: ["Coach", "Coach", "Coach"],
+    howApproach: ["How to approach this question", "Paano lapitan ang tanong na ito", "Paano i-approach ang question na ito"],
+    generalStrategy: ["General strategy for {s}", "Pangkalahatang estratehiya sa {s}", "General strategy para sa {s}"],
+    coachNote: ["The coach guides you toward the answer but won't give it away. Try it yourself!", "Gagabayan ka ng coach pero hindi nito ibibigay ang sagot. Subukan mo!", "Gu-guide-an ka ng coach pero hindi niya ibibigay ang sagot. Try mo!"],
+    gotIt: ["Got it", "Sige, nakuha ko", "Gets ko na"],
+    readySubmit: ["Ready to submit?", "Handa ka na bang ipasa?", "Ready ka na mag-submit?"],
+    beforeSubmit: ["Before you submit…", "Bago ka magpasa…", "Bago ka mag-submit…"],
+    allAnswered: ["You've answered all {n} questions. Once you submit, you'll see your score and a review.", "Nasagutan mo na ang lahat ng {n} tanong. Kapag ipinasa mo, makikita mo ang iyong iskor at ang pagsusuri.", "Nasagutan mo na lahat ng {n} questions. Pag nag-submit ka, makikita mo ang score at review mo."],
+    markedNotSure: ["Marked \"not sure\"", "Minarkahang \"hindi sigurado\"", "Naka-mark na \"not sure\""],
+    tapNumber: ["Tap a number to go back to that question.", "Pindutin ang numero para bumalik sa tanong na iyon.", "I-tap ang number para balikan ang question."],
+    countWrong: [" Unanswered questions count as wrong.", " Ang mga hindi nasagutan ay ituturing na mali.", " Counted as mali ang mga walang sagot."],
+    keepReviewing: ["Keep reviewing", "Magpatuloy sa pagsusuri", "Review pa"],
+    submit: ["Submit", "Ipasa", "Submit"],
+    submitAnyway: ["Submit anyway", "Ipasa pa rin", "Submit na rin"],
+
+    // results
+    passed: ["🎉 Passed! Great job{name}.", "🎉 Pasado! Magaling{name}.", "🎉 Pasado! Great job{name}."],
+    keepGoing: ["Keep going. You need {p}% to pass.", "Tuloy lang. Kailangan mo ng {p}% para pumasa.", "Tuloy lang. Kailangan mo ng {p}% para pumasa."],
+    nCorrect: ["{n} correct", "{n} tama", "{n} tama"],
+    nWrong: ["{n} wrong", "{n} mali", "{n} mali"],
+    nUnanswered: ["{n} unanswered", "{n} walang sagot", "{n} walang sagot"],
+    retryMissed: ["Retry {n} missed", "Ulitin ang {n} namali", "Retry ang {n} namali"],
+    nextRound: ["Next round", "Susunod na round", "Next round"],
+    takeAgain: ["Take again", "Subukan ulit", "Take again"],
+    done: ["Done", "Tapos na", "Done"],
+    reviewAll: ["📖 Review all answers", "📖 Suriin ang lahat ng sagot", "📖 I-review lahat ng sagot"],
+    all: ["All", "Lahat", "All"],
+    yourAnswer: ["Your answer", "Iyong sagot", "Sagot mo"],
+    noAnswer: ["No answer", "Walang sagot", "Walang sagot"],
+    correctAnswer: ["Correct answer", "Tamang sagot", "Tamang sagot"],
+    nothingHere: ["Nothing here.", "Walang laman.", "Wala dito."],
+    retry: ["retry", "ulit", "retry"],
+
+    // pet
+    petStarred: ["Starred! ⭐ We'll come back to it.", "Naka-star na! ⭐ Babalikan natin 'yan.", "Starred! ⭐ Babalikan natin 'yan."],
+    petUnsure: ["Okay! We'll come back to this one 👍", "Sige! Babalikan natin ito 👍", "Okay! Babalikan natin 'to 👍"],
+    petPerfect: ["PERFECT! You're amazing! 🏆", "PERPEKTO! Ang galing mo! 🏆", "PERFECT! Ang galing mo! 🏆"],
+    petPass: ["Passed! {p}%! 🎉", "Pasado! {p}%! 🎉", "Pasado! {p}%! 🎉"],
+    petNear: ["Almost there! {p}%… we can do this! 💪", "Malapit na! {p}%… kaya natin 'to! 💪", "Malapit na! {p}%… kaya natin 'to! 💪"],
+    petLow: ["Aww… {p}%. Let's review together 💙", "Huhu… {p}%. Magrebyu tayo nang sabay 💙", "Huhu… {p}%. Review tayo together 💙"],
+    petHi: ["Hi{name}! Ready to review? 🌱", "Kumusta{name}! Handa ka na bang magrebyu? 🌱", "Hi{name}! Ready ka na mag-review? 🌱"],
+
+    // coach chat
+    coachTitle: ["AI Coach", "AI Coach", "AI Coach"],
+    coachSub: ["Analyzes your progress and builds your plan", "Sinusuri ang iyong progreso at gumagawa ng plano", "Ina-analyze ang progress mo at gumagawa ng plan"],
+    coachSubAI: ["Powered by Claude · knows your analytics", "Pinapagana ng Claude · alam ang iyong analytics", "Powered by Claude · alam ang analytics mo"],
+    askPh: ["Ask your coach anything…", "Magtanong sa iyong coach…", "Itanong mo kahit ano sa coach…"],
+    chipAnalyze: ["📊 Analyze my performance", "📊 Suriin ang aking performance", "📊 I-analyze ang performance ko"],
+    chipPlan: ["🗓️ Make my study plan", "🗓️ Gawan ako ng study plan", "🗓️ Gawan mo ako ng study plan"],
+    chipFocus: ["🎯 What should I focus on?", "🎯 Ano ang dapat kong pagtuunan?", "🎯 Ano dapat ang focus ko?"],
+    chipHint: ["💡 Help with this question", "💡 Tulong sa tanong na ito", "💡 Help sa question na ito"],
+    chipTips: ["🧠 Exam-day tips", "🧠 Mga tip sa araw ng eksamen", "🧠 Exam-day tips"],
+    chipMotivate: ["💪 Motivate me", "💪 Palakasin ang loob ko", "💪 I-motivate mo ako"],
+    greet: ["Hi{name}! 👋 I'm your AI Coach. I look at your scores and tell you exactly what to focus on.", "Kumusta{name}! 👋 Ako ang iyong AI Coach. Titingnan ko ang iyong mga iskor at sasabihin ko kung ano ang dapat mong pagtuunan.", "Hi{name}! 👋 Ako ang AI Coach mo. Titingnan ko ang scores mo at sasabihin ko kung saan ka dapat mag-focus."],
+    greetStats: ["So far you've answered <b>{n}</b> questions with <b>{p}%</b> accuracy.", "Sa ngayon, nakasagot ka na ng <b>{n}</b> tanong na may <b>{p}%</b> na tama.", "So far, naka-<b>{n}</b> questions ka na with <b>{p}%</b> accuracy."],
+    greetNoData: ["Answer a few rounds first so I can find your strong and weak subjects.", "Sumagot muna ng ilang round para malaman ko ang iyong malakas at mahinang asignatura.", "Sagot ka muna ng ilang rounds para makita ko ang strong at weak subjects mo."],
+    greetTap: ["Tap a question below or type your own.", "Pindutin ang isang tanong sa ibaba o i-type ang sarili mong tanong.", "I-tap ang question sa baba o mag-type ka ng sarili mo."],
+    noData: ["I don't have data yet. Take one round per subject (10 questions each) and I'll analyze you. 📊", "Wala pa akong datos. Sumagot ng isang round bawat asignatura (10 tanong bawat isa) at susuriin kita. 📊", "Wala pa akong data. Mag-isang round ka per subject (10 questions each) at i-analyze kita. 📊"],
+    perfTitle: ["📊 Your performance", "📊 Ang iyong performance", "📊 Performance mo"],
+    overall: ["Overall: <b>{p}%</b> on {n} answers · {d} day(s) active · 🔥 {s}-day streak", "Kabuuan: <b>{p}%</b> sa {n} sagot · {d} araw na aktibo · 🔥 {s}-araw na sunod-sunod", "Overall: <b>{p}%</b> sa {n} answers · {d} day(s) active · 🔥 {s}-day streak"],
+    notYet: ["not yet", "wala pa", "wala pa"],
+    strongest: ["Strongest", "Pinakamalakas", "Strongest"],
+    needsWork: ["Needs work", "Kailangang pagbutihin", "Needs work"],
+    notTried: ["not tried yet", "hindi pa nasusubukan", "hindi pa natatry"],
+    abovePass: ["You're above the 80% passing mark overall. Keep it consistent! 🎉", "Lampas ka na sa 80% na passing mark. Panatilihin mo! 🎉", "Above 80% passing mark ka na overall. Keep it consistent! 🎉"],
+    belowPass: ["You're {n} points below the 80% passing mark. Very doable with daily practice.", "{n} puntos ka pa mula sa 80% na passing mark. Kayang-kaya sa araw-araw na pagsasanay.", "{n} points ka pa below sa 80% passing mark. Kayang-kaya with daily practice."],
+    practiceNow: ["Practice {i} now", "Magsanay sa {i} ngayon", "Practice {i} na"],
+    planTitle: ["🗓️ Your study plan", "🗓️ Ang iyong study plan", "🗓️ Study plan mo"],
+    daysUntil: [" · <b>{n} day(s)</b> until your exam", " · <b>{n} araw</b> bago ang iyong eksamen", " · <b>{n} day(s)</b> na lang bago ang exam mo"],
+    diagnostic: ["Since I don't have your scores yet, start with a diagnostic: one round of each subject this week. Then ask me again for a sharper plan.", "Dahil wala pa akong iskor mo, magsimula sa diagnostic: isang round bawat asignatura ngayong linggo. Pagkatapos, tanungin mo ulit ako para sa mas eksaktong plano.", "Since wala pa akong scores mo, mag-diagnostic ka muna: isang round per subject this week. Tapos tanong ka ulit for a sharper plan."],
+    daily: ["Daily ({n} questions, about {m} min):", "Araw-araw ({n} tanong, mga {m} minuto):", "Daily ({n} questions, mga {m} mins):"],
+    qCount: ["{n} questions", "{n} tanong", "{n} questions"],
+    untested: ["untested", "hindi pa nasusubukan", "untested"],
+    retryStarred: ["⭐ Re-try your starred and missed questions (5 min)", "⭐ Ulitin ang mga naka-star at namaling tanong (5 minuto)", "⭐ I-retry ang starred at namaling questions (5 mins)"],
+    weekly: ["<b>Weekly:</b> one 📝 Full Mock Exam {f} to track your score.", "<b>Lingguhan:</b> isang 📝 Buong Mock Exam {f} para masubaybayan ang iskor.", "<b>Weekly:</b> isang 📝 Full Mock Exam {f} para ma-track ang score mo."],
+    every3: ["every 3 days", "tuwing ikatlong araw", "every 3 days"],
+    sunday: ["every Sunday", "tuwing Linggo", "every Sunday"],
+    focusWeek: ["Focus this week", "Pagtuunan ngayong linggo", "Focus this week"],
+    goal: ["Goal", "Layunin", "Goal"],
+    goalText: ["get every subject to 80%+.", "maabot ang 80%+ sa bawat asignatura.", "ma-80%+ lahat ng subjects."],
+    belowCount: ["You have {n} subject(s) below that now.", "May {n} asignatura kang mas mababa pa roon.", "May {n} subject(s) ka pa na below doon."],
+    thereNow: ["You're there. Now keep it steady! 🌟", "Naroon ka na. Panatilihin mo! 🌟", "Nandoon ka na. Keep it steady! 🌟"],
+    finalWeek: ["⏰ <b>Final week:</b> focus on reviewing and mock exams, not new topics. Sleep well before exam day.", "⏰ <b>Huling linggo:</b> magtuon sa pagrerebyu at mock exam, hindi sa bagong paksa. Matulog nang maayos bago ang eksamen.", "⏰ <b>Final week:</b> focus sa review at mock exams, hindi sa new topics. Matulog nang maayos bago ang exam day."],
+    addDate: ["Tip: add your exam date in ⚙️ Settings and I'll plan around it.", "Tip: ilagay ang petsa ng eksamen sa ⚙️ Mga Setting at doon ko iaayon ang plano.", "Tip: ilagay mo ang exam date sa ⚙️ Settings para ma-plan ko around it."],
+    startToday: ["Start today's {i}", "Simulan ang {i} ngayon", "Start today's {i}"],
+    mockBtn: ["📝 Mock exam", "📝 Mock exam", "📝 Mock exam"],
+    focusNoData: ["Start with <b>Numerical Ability</b> and <b>Analytical Ability</b>. Many examinees lose the most points there. Take one round of each, then ask me again.", "Magsimula sa <b>Kakayahang Numerikal</b> at <b>Kakayahang Analitikal</b>. Dito madalas nawawalan ng puntos ang marami. Sumagot ng isang round bawat isa, saka magtanong ulit.", "Start ka sa <b>Numerical</b> at <b>Analytical</b>. Dito madalas nawawalan ng points ang maraming examinees. Isang round each, tapos tanong ka ulit."],
+    focusOn: ["🎯 Focus on <b>{s}</b>", "🎯 Pagtuunan ang <b>{s}</b>", "🎯 Mag-focus ka sa <b>{s}</b>"],
+    focusAcc: [" ({p}% accuracy).", " ({p}% tama).", " ({p}% accuracy)."],
+    focusUntried: [" (you haven't tried it yet).", " (hindi mo pa ito nasusubukan).", " (hindi mo pa natatry)."],
+    lastWrong: ["You have <b>{n}</b> question(s) there you last got wrong. They'll come first in your next round.", "May <b>{n}</b> tanong doon na huli mong namali. Uunahin ang mga ito sa susunod mong round.", "May <b>{n}</b> question(s) ka doon na namali mo last time. Uunahin 'yon sa next round mo."],
+    howImprove: ["How to improve:", "Paano mapagbubuti:", "Paano mag-improve:"],
+    aim5: ["Aim for <b>5 questions a day</b> in this subject until you're consistently above 80%.", "Layuning <b>5 tanong araw-araw</b> sa asignaturang ito hanggang palagi ka nang lampas 80%.", "Target mo ang <b>5 questions a day</b> dito hanggang consistent ka nang above 80%."],
+    openFirst: ["Open a question first, then ask me for help with it. 🙂", "Magbukas muna ng tanong, saka humingi ng tulong sa akin. 🙂", "Open ka muna ng question, tapos ask mo ako. 🙂"],
+    hintTitle: ["💡 Coaching for this question", "💡 Gabay sa tanong na ito", "💡 Coaching para sa question na ito"],
+    strategyFor: ["Strategy for {s}:", "Estratehiya sa {s}:", "Strategy para sa {s}:"],
+    whyAnswer: ["Why the answer is \"{a}\":", "Bakit \"{a}\" ang sagot:", "Bakit \"{a}\" ang sagot:"],
+    wontReveal: ["I won't reveal the answer, but you've got this!", "Hindi ko ibibigay ang sagot, pero kaya mo 'yan!", "Hindi ko ire-reveal ang sagot, pero kaya mo 'yan!"],
+    tipsTitle: ["🧠 Exam-day tips", "🧠 Mga tip sa araw ng eksamen", "🧠 Exam-day tips"],
+    examTips: [
+      ["Answer the easy questions first. Don't get stuck: mark hard ones and come back.", "Never leave a blank. There's no penalty for guessing, so eliminate choices and pick the best one.", "Budget your time: roughly 1 minute per question.", "Shade carefully and double-check that your item number matches.", "Bring valid ID, black ballpen, and your Notice of School Assignment. Arrive early.", "Sleep well the night before. A rested brain scores higher than a crammed one."],
+      ["Unahin ang madadaling tanong. Huwag magtagal: markahan ang mahirap at balikan.", "Huwag mag-iwan ng blangko. Walang bawas sa maling hula, kaya alisin ang mga maling pagpipilian at piliin ang pinakamainam.", "Hatiin ang oras: humigit-kumulang 1 minuto bawat tanong.", "Mag-shade nang maingat at tiyaking tugma ang numero ng aytem.", "Magdala ng valid ID, itim na ballpen, at Notice of School Assignment. Dumating nang maaga.", "Matulog nang maayos sa gabi bago ang eksamen. Mas mataas ang iskor ng utak na nakapagpahinga."],
+      ["Unahin ang easy questions. 'Wag ma-stuck: i-mark ang mahihirap at balikan mo.", "'Wag mag-iwan ng blank. Walang penalty sa hula, kaya i-eliminate ang mga mali at piliin ang best answer.", "I-budget ang oras: mga 1 minute per question.", "Mag-shade nang maingat at i-double check kung tugma ang item number.", "Dalhin ang valid ID, black ballpen, at Notice of School Assignment. Dumating nang maaga.", "Matulog nang maayos the night before. Mas mataas ang score ng utak na pahinga kaysa puyat."]
+    ],
+    motiv: [
+      ["Every question you practice today is one less surprise on exam day. 💚", "You don't need to be perfect, you just need to be consistent. 🌱", "Many who pass had to try more than once. What matters is you keep going. 💪", "Small daily progress beats last-minute cramming. You're building something real. 🚀"],
+      ["Bawat tanong na sinasanay mo ngayon ay isang sorpresang naiiwasan sa araw ng eksamen. 💚", "Hindi mo kailangang maging perpekto, kailangan mo lang maging tuloy-tuloy. 🌱", "Marami sa mga pumasa ay sumubok nang higit sa isang beses. Ang mahalaga ay hindi ka sumusuko. 💪", "Mas mabisa ang maliit na progreso araw-araw kaysa sa biglaang pagrerebyu. 🚀"],
+      ["Bawat question na pina-practice mo today ay isang less surprise sa exam day. 💚", "Hindi mo kailangang maging perfect, kailangan mo lang maging consistent. 🌱", "Maraming pumasa na nag-try more than once. Ang importante, tuloy ka lang. 💪", "Mas okay ang small daily progress kaysa last-minute cramming. 🚀"]
+    ],
+    streak: ["You're on a <b>🔥 {n}-day streak</b>. Don't break it!", "Nasa <b>🔥 {n}-araw na sunod-sunod</b> ka. Huwag mong putulin!", "Naka-<b>🔥 {n}-day streak</b> ka. 'Wag mong i-break!"],
+    startStreak: ["Start a streak today with just 10 questions.", "Magsimula ng sunod-sunod ngayon sa 10 tanong lang.", "Start ka ng streak today, 10 questions lang."],
+    do10: ["Do 10 questions now", "Sumagot ng 10 tanong ngayon", "10 questions na now"],
+    canHelp: ["I can help you with:<ul><li>📊 analyzing your performance</li><li>🗓️ making a study plan</li><li>🎯 finding what to focus on</li><li>💡 coaching on a question</li><li>🧠 tips for any subject (e.g., \"tips for math\")</li></ul>", "Matutulungan kita sa:<ul><li>📊 pagsusuri ng iyong performance</li><li>🗓️ paggawa ng study plan</li><li>🎯 pagtukoy kung ano ang pagtutuunan</li><li>💡 gabay sa isang tanong</li><li>🧠 mga tip sa anumang asignatura (hal., \"tips sa math\")</li></ul>", "Kaya kitang tulungan sa:<ul><li>📊 pag-analyze ng performance mo</li><li>🗓️ paggawa ng study plan</li><li>🎯 pag-alam kung saan ka mag-focus</li><li>💡 coaching sa isang question</li><li>🧠 tips sa kahit anong subject (e.g., \"tips sa math\")</li></ul>"],
+    tipsFor: ["Tips for {s}", "Mga tip sa {s}", "Tips para sa {s}"],
+    aiBusy: ["(AI is busy right now, so here is my built-in answer.)", "(Abala ang AI ngayon, kaya narito ang built-in kong sagot.)", "(Busy ang AI ngayon, kaya ito muna ang built-in answer ko.)"],
+    // tabs, learn, analytics
+    tabLearn: ["Learn", "Aralin", "Learn"],
+    tabPractice: ["Practice", "Pagsasanay", "Practice"],
+    tabAnalytics: ["Analytics", "Analytics", "Analytics"],
+    learnTitle: ["Lectures + questions", "Mga aralin + tanong", "Lectures + questions"],
+    learnSub: ["Read a short lesson, then answer questions on that topic.", "Magbasa ng maikling aralin, saka sagutin ang mga tanong sa paksang iyon.", "Magbasa ng short lesson, tapos sagutin ang questions sa topic na 'yon."],
+    lessonsN: ["{a}/{b} lessons read", "{a}/{b} aralin nabasa", "{a}/{b} lessons nabasa"],
+    minRead: ["{n} min", "{n} min", "{n} min"],
+    readDone: ["Read", "Nabasa", "Nabasa"],
+    keyPoints: ["Key points", "Mahahalagang punto", "Key points"],
+    example: ["Example", "Halimbawa", "Example"],
+    showAnswer: ["Show answer", "Ipakita ang sagot", "Show answer"],
+    remember: ["Remember", "Tandaan", "Tandaan"],
+    practiceTopic: ["Practice this topic ({n} questions)", "Sanayin ang paksang ito ({n} tanong)", "I-practice ang topic na ito ({n} questions)"],
+    nextLesson: ["Next lesson", "Susunod na aralin", "Next lesson"],
+    lessonsLangNote: ["", "Nasa Ingles ang mga aralin para sa mga asignaturang Ingles, gaya ng eksamen.", "English ang lessons sa English subjects, gaya ng exam."],
+    analyticsTitle: ["Your analytics", "Ang iyong analytics", "Analytics mo"],
+    analyticsSub: ["Track your accuracy, find weak topics, and see your progress over time.", "Subaybayan ang iyong katumpakan, hanapin ang mahihinang paksa, at tingnan ang progreso.", "I-track ang accuracy mo, hanapin ang weak topics, at tingnan ang progress mo."],
+    answeredQ: ["Answers", "Mga sagot", "Answers"],
+    accuracyL: ["Accuracy", "Katumpakan", "Accuracy"],
+    streakL: ["Day streak", "Sunod-sunod na araw", "Day streak"],
+    daysActive: ["Days active", "Araw na aktibo", "Days active"],
+    daysToExam: ["Days to exam", "Araw bago ang eksamen", "Days bago exam"],
+    subjectsPassing: ["Subjects at 80%+", "Asignaturang 80%+", "Subjects na 80%+"],
+    accBySubject: ["Accuracy by subject", "Katumpakan bawat asignatura", "Accuracy per subject"],
+    scoreTrend: ["Score per session", "Iskor bawat sesyon", "Score per session"],
+    scoreTrendSub: ["Last {n} sessions · dashed line = 80% passing mark", "Huling {n} sesyon · putol-putol na linya = 80% passing", "Last {n} sessions · dashed line = 80% passing"],
+    target: ["80% target", "80% target", "80% target"],
+    passingTag: ["passing", "pasado", "pasado"],
+    belowTag: ["below 80%", "mababa sa 80%", "below 80%"],
+    weakTopics: ["Topics to review", "Mga paksang dapat balikan", "Topics na dapat i-review"],
+    weakTopicsSub: ["Lowest accuracy first", "Pinakamababang katumpakan muna", "Lowest accuracy muna"],
+    studyLesson: ["Study", "Pag-aralan", "Study"],
+    recentSessions: ["Recent sessions", "Mga huling sesyon", "Recent sessions"],
+    noAnalytics: ["No data yet. Answer a few questions in Learn or Practice and your analytics will appear here.", "Wala pang datos. Sumagot ng ilang tanong sa Aralin o Pagsasanay at lalabas dito ang iyong analytics.", "Wala pang data. Sumagot ka muna ng ilang questions sa Learn o Practice at lalabas dito ang analytics mo."],
+    askCoachPlan: ["💬 Ask the AI coach for a plan", "💬 Humingi ng plano sa AI coach", "💬 Magpa-plan sa AI coach"],
+    subjectCol: ["Subject", "Asignatura", "Subject"],
+    practicedCol: ["Practiced", "Nasanay", "Na-practice"],
+    attemptsCol: ["Answers", "Sagot", "Answers"],
+    dateCol: ["Date", "Petsa", "Date"],
+    scoreCol: ["Score", "Iskor", "Score"],
+    sessionCol: ["Session", "Sesyon", "Session"],
+    tableView: ["Table view", "Talahanayan", "Table view"],
+    noTopicData: ["Answer more questions to see which topics need work.", "Sumagot pa ng mga tanong para makita ang mahihinang paksa.", "Sumagot ka pa para makita ang weak topics mo."],
+    sessionN: ["Session {n}", "Sesyon {n}", "Session {n}"],
+    aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
+  };
+
+  // Subject names, descriptions and tips per language (English comes from questions.js)
+  const SUBJ = {
+    verbal: {
+      tl: { name: "Kakayahang Berbal (Ingles)", desc: "Talasalitaan, gramatika, analohiya, idyoma, baybay", tips: ["Basahin ang buong pangungusap: madalas nasa konteksto ang kahulugan ng salita.", "Sa gramatika, hanapin ang tunay na simuno at alamin kung isahan o maramihan.", "Sa analohiya, gawing pangungusap ang ugnayan (\"Ang A ay ginagamit ng B\"), saka subukan sa bawat pagpipilian.", "Alisin muna ang mga pagpipiliang tiyak na mali."] },
+      tg: { name: "Verbal Ability (English)", desc: "Vocabulary, grammar, analogy, idioms at spelling", tips: ["Basahin ang buong sentence: madalas nasa context ang meaning ng word.", "Sa grammar, hanapin ang totoong subject at check kung singular o plural.", "Sa analogy, gawing sentence ang relationship (\"A is used by B\"), tapos i-test sa bawat choice.", "I-eliminate muna ang mga choices na sure kang mali."] }
+    },
+    filipino: {
+      tl: { name: "Kakayahang Berbal (Filipino)", desc: "Talasalitaan, sawikain, wastong gamit ng salita" },
+      tg: { name: "Verbal Ability (Filipino)", desc: "Talasalitaan, sawikain, wastong gamit ng salita" }
+    },
+    numerical: {
+      tl: { name: "Kakayahang Numerikal", desc: "Aritmetika, porsiyento, serye ng numero, mga suliranin", tips: ["Isulat ang ibinigay at ang hinihingi bago magkuwenta.", "Tantiyahin muna. Kung malayo ang pagpipilian sa tantiya mo, alisin ito.", "Sa serye, tingnan muna ang diperensiya, saka ang ratio, saka ang salitang pattern.", "Maaari mong isaksak pabalik ang mga pagpipilian sa problema para masuri."] },
+      tg: { name: "Numerical Ability", desc: "Arithmetic, percentage, number series at word problems", tips: ["Isulat muna ang given at ang hinahanap bago mag-compute.", "Mag-estimate muna. Kung malayo ang choice sa estimate mo, i-eliminate.", "Sa series, check muna ang differences, tapos ratios, tapos alternating patterns.", "Pwede mong i-plug back ang choices sa problem para ma-check."] }
+    },
+    analytical: {
+      tl: { name: "Kakayahang Analitikal", desc: "Lohika, pattern, coding, direksiyon, pangangatwiran", tips: ["Sa syllogism, gumuhit ng bilog (Venn diagram). Ang tiyak na totoo lamang ang ipalagay.", "Sa serye ng letra, gawing numero ang mga letra (A=1, B=2…).", "Sa direksiyon, iguhit ang dinaanan sa scratch paper.", "Sa ugnayang pampamilya, gumuhit ng maliit na family tree."] },
+      tg: { name: "Analytical Ability", desc: "Logic, patterns, coding, direction at reasoning", tips: ["Sa syllogism, mag-drawing ng circles (Venn diagram). Ang MUST be true lang ang i-conclude.", "Sa letter series, i-convert ang letters to numbers (A=1, B=2…).", "Sa directions, i-sketch ang path sa scratch paper.", "Sa relationships, mag-drawing ng maliit na family tree."] }
+    },
+    geninfo: {
+      tl: { name: "Pangkalahatang Kaalaman", desc: "Konstitusyon, RA 6713, karapatang pantao, kapaligiran", tips: ["Alamin ang 1987 Konstitusyon ayon sa Artikulo: II (prinsipyo), III (Katipunan ng mga Karapatan), VI (Lehislatibo), VII (Ehekutibo), VIII (Hudikatura), IX (Komisyong Konstitusyonal), XI (Pananagutan), XIII (Katarungang Panlipunan at Karapatang Pantao).", "Kabisaduhin ang termino at edad na kailangan bilang talahanayan.", "Iugnay ang numero ng RA sa paksa at taon: RA 6713 (etika), RA 3019 (anti-graft), RA 9003 (solid waste), RA 8749 (malinis na hangin), RA 9275 (malinis na tubig).", "Kapag hindi sigurado, alisin ang mga pagpipiliang malinaw na kabilang sa ibang batas o ahensiya."] },
+      tg: { name: "General Information", desc: "Constitution, RA 6713, human rights at environment", tips: ["Alamin ang 1987 Constitution per Article: II (principles), III (Bill of Rights), VI (Legislative), VII (Executive), VIII (Judiciary), IX (Constitutional Commissions), XI (Accountability), XIII (Social Justice & Human Rights).", "I-memorize ang terms of office at age requirements as a table.", "I-link ang RA numbers sa topic at year: RA 6713 (ethics), RA 3019 (anti-graft), RA 9003 (solid waste), RA 8749 (clean air), RA 9275 (clean water).", "Kapag hindi sure, i-eliminate ang choices na obviously ibang law o agency."] }
+    }
+  };
+
+  const SHORT = {
+    verbal: ["Verbal (English)", "Berbal (Ingles)", "Verbal (English)"],
+    filipino: ["Verbal (Filipino)", "Berbal (Filipino)", "Verbal (Filipino)"],
+    numerical: ["Numerical", "Numerikal", "Numerical"],
+    analytical: ["Analytical", "Analitikal", "Analytical"],
+    geninfo: ["General Info", "Pangkalahatan", "General Info"]
+  };
+  const IDX = { en: 0, tl: 1, tg: 2 };
+  const I18N = {
+    lang: "en",
+    names: { en: "English", tl: "Tagalog", tg: "Taglish" },
+    setLang(l) { this.lang = IDX[l] != null ? l : "en"; document.documentElement.lang = this.lang === "en" ? "en" : "fil"; },
+    t(key, vars) {
+      const row = D[key];
+      if (!row) return key;
+      let s = row[IDX[this.lang]];
+      if (s == null) s = row[0];
+      if (vars && typeof s === "string") for (const k in vars) s = s.split("{" + k + "}").join(vars[k]);
+      return s;
+    },
+    subj(s) { const tr = SUBJ[s.id] && SUBJ[s.id][this.lang]; return { short: (SHORT[s.id] || [])[IDX[this.lang]] || s.name, name: (tr && tr.name) || s.name, desc: (tr && tr.desc) || s.desc, tips: (tr && tr.tips) || s.tips }; }
+  };
+  try { const p = JSON.parse(localStorage.getItem("cscoach.profile")); if (p && p.lang) I18N.setLang(p.lang); } catch (_) {}
+  window.I18N = I18N;
+})();

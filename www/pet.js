@@ -57,13 +57,28 @@
     </g>
   </svg>`;
 
-  const CHEERS = ["Galing mo! 🎉", "Tama! Keep it up! ✨", "Wow, ang talino! 🌟", "Yes! You got it! 💚", "Correct! Pasado 'yan! 🎊"];
-  const CRIES = ["Huhu… okay lang, matututo tayo! 💧", "Aww, sayang… next one! 🥲", "It's okay, mistakes help us learn 💙", "Iyak muna tayo… tapos bawi! 😢"];
-  const PATS = ["Hehe, kiliti! 😆", "You can do this! 💪", "Study buddy mo ako! 🌱", "Konting push pa! 🚀", "Proud of you! 💚"];
+  const MSG = {
+    en: {
+      cheer: ["Great job! 🎉", "Correct! Keep it up! ✨", "Wow, so smart! 🌟", "Yes! You got it! 💚", "Correct! That's a pass! 🎊"],
+      cry: ["Aww… it's okay, we'll learn! 💧", "So close… next one! 🥲", "It's okay, mistakes help us learn 💙", "Let me cry a bit… then we bounce back! 😢"],
+      pat: ["Hehe, that tickles! 😆", "You can do this! 💪", "I'm your study buddy! 🌱", "Just a little more push! 🚀", "Proud of you! 💚"]
+    },
+    tl: {
+      cheer: ["Ang galing mo! 🎉", "Tama! Ituloy mo lang! ✨", "Wow, ang talino! 🌟", "Oo! Nakuha mo! 💚", "Tama! Pasado 'yan! 🎊"],
+      cry: ["Huhu… ayos lang, matututo tayo! 💧", "Sayang… sa susunod! 🥲", "Ayos lang, natututo tayo sa pagkakamali 💙", "Iiyak muna ako… tapos babawi tayo! 😢"],
+      pat: ["Hehe, nakikiliti ako! 😆", "Kaya mo 'yan! 💪", "Kasama mo ako sa pag-aaral! 🌱", "Kaunting tiyaga pa! 🚀", "Ipinagmamalaki kita! 💚"]
+    },
+    tg: {
+      cheer: ["Galing mo! 🎉", "Tama! Keep it up! ✨", "Wow, ang talino! 🌟", "Yes! Nakuha mo! 💚", "Correct! Pasado 'yan! 🎊"],
+      cry: ["Huhu… okay lang, matututo tayo! 💧", "Aww, sayang… next one! 🥲", "It's okay, natututo tayo sa mistakes 💙", "Iyak muna tayo… tapos bawi! 😢"],
+      pat: ["Hehe, kiliti! 😆", "You can do this! 💪", "Study buddy mo ako! 🌱", "Konting push pa! 🚀", "Proud of you! 💚"]
+    }
+  };
+  const msgs = () => MSG[(window.I18N && window.I18N.lang) || "en"] || MSG.en;
 
   const root = document.createElement("div");
   root.className = "pet-wrap";
-  root.innerHTML = `<div class="pet-bubble hidden"></div><div class="pet idle" role="button" tabindex="0" aria-label="Kiko, your study buddy">${SVG}</div><div class="pet-hearts"></div>`;
+  root.innerHTML = `<div class="pet-bubble hidden"></div><div class="pet idle" role="button" tabindex="0" aria-label="Kiko">${SVG}</div><div class="pet-hearts"></div>`;
   document.body.appendChild(root);
   const pet = root.querySelector(".pet");
   const bubble = root.querySelector(".pet-bubble");
@@ -110,11 +125,11 @@
   }
   setInterval(wander, 5200);
 
-  pet.addEventListener("click", () => { setMood("happy", 1400); say(pick(PATS)); burstHearts(); });
+  pet.addEventListener("click", () => { setMood("happy", 1400); say(pick(msgs().pat)); burstHearts(); });
 
   window.Pet = {
-    cheer(msg) { setMood("happy", 2200); say(msg || pick(CHEERS)); burstHearts(pick(["✨", "💚", "⭐"])); },
-    cry(msg) { setMood("sad", 2800); say(msg || pick(CRIES), 3000); },
+    cheer(msg) { setMood("happy", 2200); say(msg || pick(msgs().cheer)); burstHearts(pick(["✨", "💚", "⭐"])); },
+    cry(msg) { setMood("sad", 2800); say(msg || pick(msgs().cry), 3000); },
     say,
     hop() { setMood("hop", 600); },
     setVisible(v) { root.classList.toggle("hidden", !v); }
