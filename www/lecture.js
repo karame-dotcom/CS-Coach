@@ -217,7 +217,7 @@
   function speakable(s) {
     return String(s)
       .replace(/_{2,}/g, " blank ").replace(/₱\s?([\d,.]+)/g, "$1 pesos").replace(/÷/g, " divided by ").replace(/×/g, " times ")
-      .replace(/\s=\s|=/g, " equals ").replace(/\s\+\s/g, " plus ").replace(/≈/g, " about ").replace(/[→…]/g, " ").replace(/\s{2,}/g, " ").trim();
+      .replace(/\s=\s|=/g, ", equals ").replace(/\s\+\s/g, ", plus ").replace(/≈/g, " about ").replace(/[→…]/g, " ").replace(/\s{2,}/g, " ").trim();
   }
 
   // ---------- build the slides for a question ----------
@@ -328,36 +328,57 @@
       $(".lec-voice-tip").classList.toggle("hidden", hasFil || lang === "en");
     }
 
-    const readMs = s => Math.max(1800, s.split(/\s+/).length * 330 / rate);
+    const readMs = s => Math.max(900, s.split(/\s+/).length * 330 / rate);
+    const wait = ms => new Promise(r => later(r, ms / rate));
 
-    function say(text, done) {
-      talking(true);
-      const finish = () => { talking(false); done(); };
-      if (muted || !tts) { later(finish, readMs(text)); return; }
-      synth.cancel();
-      const u = new SpeechSynthesisUtterance(speakable(text));
-      if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = lang === "en" ? "en-US" : "fil-PH";
-      u.rate = rate * 0.95; u.pitch = 1.05;   // a touch slower and brighter: calm, friendly teacher
-      const g = gen; let ended = false;
-      const end = () => { if (ended || g !== gen || stopped) return; ended = true; finish(); };
-      u.onend = end; u.onerror = end;
-      later(end, readMs(text) * 2.2 + 3000); // safety net if onend never fires
-      synth.speak(u);
+    // Speak in short phrases with real pauses between them, the way a teacher
+    // talks: a breath after each sentence, a shorter one after "Step 1:".
+    const phrases = text => speakable(text).split(/(?<=[.?!:;])\s+/).map(x => x.trim()).filter(Boolean);
+
+    function speakOne(text) {
+      return new Promise(res => {
+        const g = gen;
+        if (muted || !tts) return later(res, readMs(text));
+        const u = new SpeechSynthesisUtterance(text);
+        try { if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = lang === "en" ? "en-US" : "fil-PH"; } catch (_) {}
+        u.rate = rate * 0.92; u.pitch = 1.04;   // unhurried and warm
+        let done = false;
+        const end = () => { if (done) return; done = true; if (g === gen && !stopped) res(); };
+        u.onend = end; u.onerror = end;
+        later(end, readMs(text) * 2.5 + 2500);   // safety net if onend never fires
+        synth.speak(u);
+      });
     }
 
-    function write(lines, instant) {
+    async function say(text) {   // resolves false if the slide changed mid-way
+      const g = gen, ps = phrases(text);
+      for (let k = 0; k < ps.length; k++) {
+        talking(true);
+        await speakOne(ps[k]);
+        talking(false);
+        if (g !== gen) return false;
+        if (k < ps.length - 1) { await wait(/[:;]$/.test(ps[k]) ? 260 : 420); if (g !== gen) return false; }
+      }
+      return true;
+    }
+
+    function renderLines(lines, full) {
       textEl.innerHTML = lines.map(l => `<div class="ln${l.c ? " " + l.c : ""}${l.big ? " big" : ""}"></div>`).join("");
       textEl.classList.toggle("long", lines.reduce((a, l) => a + l.t.length, 0) > 150);
-      const els = [...textEl.children];
-      if (instant || reduce) { els.forEach((e, i) => e.textContent = lines[i].t); return Promise.resolve(); }
+      if (full || reduce) [...textEl.children].forEach((e, i) => e.textContent = lines[i].t);
+    }
+
+    // Chalk-write one line while Kiko says it.
+    function writeLine(i, line) {
+      const el = textEl.children[i];
+      if (!el || el.textContent) return Promise.resolve();
       return new Promise(res => {
-        let li = 0, ci = 0;
-        const cps = 32 * rate;
+        let ci = 0;
+        const step = Math.max(1, Math.round(26 * rate / 30));
         typer = setInterval(() => {
-          if (li >= lines.length) { clearInterval(typer); typer = null; textEl.querySelector(".lec-cursor")?.remove(); return res(); }
-          ci = Math.min(lines[li].t.length, ci + Math.max(1, Math.round(cps / 30)));
-          els[li].innerHTML = esc(lines[li].t.slice(0, ci)) + '<span class="lec-cursor"></span>';
-          if (ci >= lines[li].t.length) { els[li].textContent = lines[li].t; li++; ci = 0; }
+          ci = Math.min(line.t.length, ci + step);
+          el.innerHTML = esc(line.t.slice(0, ci)) + '<span class="lec-cursor"></span>';
+          if (ci >= line.t.length) { clearInterval(typer); typer = null; el.textContent = line.t; res(); }
         }, 33);
       });
     }
@@ -375,20 +396,27 @@
       root.querySelectorAll(".lec-dots button").forEach((d, j) => { d.classList.toggle("on", j === idx); d.classList.toggle("seen", seen.has(j) && j !== idx); });
       $('[data-a="prev"]').disabled = idx === 0;
       $('[data-a="next"]').disabled = idx === slides.length - 1;
+      renderLines(s.lines, opts.instant || !playing);
+      if (!playing) return;
       const g = gen;
-      const wrote = write(s.lines, opts.instant);
-      if (!playing) { wrote.then(() => {}); return; }
-      let spoke = false, written = false;
-      const maybeNext = () => { if (g !== gen || !spoke || !written) return; if (idx < slides.length - 1) later(() => show(idx + 1), 900); else setPlaying(false); };
-      wrote.then(() => { written = true; maybeNext(); });
-      say(s.talk + " " + s.lines.map(l => l.t).join(" "), () => { spoke = true; maybeNext(); });
+      (async () => {
+        if (!(await say(s.talk))) return;              // Kiko's intro line
+        await wait(550); if (g !== gen) return;        // beat before the board
+        for (let k = 0; k < s.lines.length; k++) {
+          const [ok] = await Promise.all([say(s.lines[k].t), writeLine(k, s.lines[k])]);
+          if (!ok || g !== gen) return;
+          await wait(480); if (g !== gen) return;      // pause between board lines
+        }
+        await wait(700); if (g !== gen) return;
+        if (idx < slides.length - 1) show(idx + 1); else setPlaying(false);
+      })();
     }
 
     function setPlaying(on) {
       playing = on;
       playBtn.textContent = on ? "❚❚" : (idx === slides.length - 1 && seen.size > 1 ? "↺" : "▶");
       playBtn.setAttribute("aria-label", on ? tr("pause") : tr("play"));
-      if (!on) { gen++; clearTimers(); if (tts) synth.cancel(); talking(false); write(slides[idx].lines, true); }
+      if (!on) { gen++; clearTimers(); if (tts) synth.cancel(); talking(false); renderLines(slides[idx].lines, true); }
     }
 
     function act(a) {
