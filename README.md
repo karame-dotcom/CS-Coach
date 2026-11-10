@@ -44,7 +44,14 @@ One-time setup: repo **Settings → Pages → Build and deployment → Source: G
 The site will be at `https://karame-dotcom.github.io/CS-Coach/`.
 On a phone, open the link and **Add to Home Screen** (iPhone: Share → Add to Home Screen; Android: ⋮ → Install app). It works offline too.
 
-## AI on the website (optional)
+## AI tutor: bring your own key
+Each user can connect AI in **Settings → ✨ AI tutor** with their own key:
+- **Google Gemini** (free tier, key from https://aistudio.google.com/app/apikey): the app picks the newest Gemini Flash model automatically.
+- **Claude** (paid per use, key from the Anthropic Console): Claude Opus 5.5 or Claude Haiku 5.5.
+
+The key is stored only on that device (not in backups) and is sent only to the chosen provider. Inside claude.ai, AI is built in and no key is needed.
+
+## AI on the website via a shared server (optional)
 Inside claude.ai the app uses Claude directly. For the public website, deploy the small proxy in `server/` (Cloudflare Worker) so your Anthropic API key stays secret:
 ```bash
 cd server

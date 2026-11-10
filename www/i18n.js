@@ -121,7 +121,7 @@
 
     // coach chat
     coachTitle: ["Kiko · your tutor buddy", "Kiko · ang iyong tutor buddy", "Kiko · tutor buddy mo"],
-    coachSub: ["Built-in tutor · AI isn't connected on this website yet", "Built-in na tutor · wala pang AI sa website na ito", "Built-in tutor · wala pang AI sa website na ito"],
+    coachSub: ["Built-in tutor · add a free AI key in ⚙️ Settings for smarter answers", "Built-in na tutor · maglagay ng libreng AI key sa ⚙️ Mga Setting", "Built-in tutor · mag-add ng free AI key sa ⚙️ Settings"],
     coachSubAI: ["AI tutor · knows your scores and progress", "AI tutor · alam ang iyong iskor at progreso", "AI tutor · alam ang scores at progress mo"],
     askMe: [
       ["Ask me! I'm your tutor buddy 💬", "Stuck? Tap me and ask! 🌱", "Want a study plan? Ask me! 🗓️", "I can tell you what to focus on 🎯", "Tap me for help anytime 💚"],
@@ -413,6 +413,32 @@
       ["Pasensya, hindi ko masyadong naintindihan 😅 Saan kita matutulungan?", "Hmm, puwede mo bang dagdagan? Halimbawa: “ipaliwanag ang tanong na ito” o “gawan ako ng study plan”.", "Nandito lang ako! 🌱 Pindutin ang isang button sa ibaba, o magtanong tungkol sa asignatura gaya ng “tips sa math”."],
       ["Sorry, hindi ko masyadong gets 😅 Saan kita matutulungan?", "Hmm, pwede mo bang i-explain pa? Halimbawa: “explain this question” o “gawan mo ako ng study plan”.", "Nandito ako! 🌱 I-tap ang isang button sa baba, o mag-ask about a subject like “tips sa math”."]
     ],
+    // v15: bring-your-own AI key
+    aiTutorTitle: ["AI tutor", "AI tutor", "AI tutor"],
+    aiTutorDesc: ["Connect an AI so Kiko can answer anything, explain in new ways, and create fresh questions. Use your own key: Google Gemini has a free tier.", "Ikonekta ang AI para masagot ni Kiko ang kahit ano, magpaliwanag sa iba't ibang paraan, at gumawa ng bagong tanong. Gamitin ang sariling key: may libreng bersiyon ang Google Gemini.", "I-connect ang AI para masagot ni Kiko ang kahit ano, mag-explain in new ways, at gumawa ng fresh questions. Gamitin ang sarili mong key: may free tier ang Google Gemini."],
+    aiBuiltIn: ["✅ AI is built in here (claude.ai). No key needed.", "✅ May AI na rito (claude.ai). Hindi kailangan ng key.", "✅ May built-in AI na dito (claude.ai). Hindi kailangan ng key."],
+    aiProvGemini: ["Google Gemini", "Google Gemini", "Google Gemini"],
+    aiProvGeminiNote: ["Free tier · no credit card", "Libre · walang credit card", "Free · walang credit card"],
+    aiProvClaude: ["Claude (Anthropic)", "Claude (Anthropic)", "Claude (Anthropic)"],
+    aiProvClaudeNote: ["Paid per use", "May bayad bawat gamit", "May bayad per use"],
+    aiKeyLabel: ["Your API key", "Ang iyong API key", "API key mo"],
+    aiKeyPh: ["Paste your key here", "I-paste dito ang key", "I-paste dito ang key"],
+    aiGetGemini: ["Get a free Gemini key (Google AI Studio)", "Kumuha ng libreng Gemini key (Google AI Studio)", "Kumuha ng free Gemini key (Google AI Studio)"],
+    aiGetClaude: ["Get a Claude key (Anthropic Console)", "Kumuha ng Claude key (Anthropic Console)", "Kumuha ng Claude key (Anthropic Console)"],
+    aiModel: ["Model", "Model", "Model"],
+    aiModelOpus: ["Claude Opus 5.5: smartest", "Claude Opus 5.5: pinakamatalino", "Claude Opus 5.5: pinaka-smart"],
+    aiModelHaiku: ["Claude Haiku 5.5: fastest, lowest cost", "Claude Haiku 5.5: pinakamabilis, pinakamura", "Claude Haiku 5.5: pinaka-mabilis, pinaka-mura"],
+    aiSaveTest: ["Save & test", "I-save at subukan", "Save & test"],
+    aiRemove: ["Remove key", "Alisin ang key", "Alisin ang key"],
+    aiTesting: ["Testing your key…", "Sinusubukan ang key…", "Tine-test ang key…"],
+    aiConnected: ["✅ Connected: {p}", "✅ Nakakonekta: {p}", "✅ Connected: {p}"],
+    aiNotConnected: ["Not connected: Kiko uses the built-in tutor.", "Hindi nakakonekta: built-in na tutor ang gamit ni Kiko.", "Hindi connected: built-in tutor ang gamit ni Kiko."],
+    aiBadKey: ["That key didn't work. Check that you copied all of it.", "Hindi gumana ang key. Tiyaking nakopya mo ang buo.", "Hindi gumana ang key. I-check kung nakopya mo lahat."],
+    aiTestFail: ["Couldn't reach the AI right now (offline or busy). Try again in a moment.", "Hindi maabot ang AI ngayon (offline o abala). Subukang muli mamaya.", "Hindi ma-reach ang AI ngayon (offline o busy). Try ulit mamaya."],
+    aiSaved: ["AI connected ✓ Ask Kiko anything!", "Nakakonekta na ang AI ✓ Magtanong kay Kiko!", "Connected na ang AI ✓ Ask si Kiko kahit ano!"],
+    aiRemoved: ["Key removed from this phone.", "Naalis ang key sa phone na ito.", "Naalis na ang key sa phone na ito."],
+    aiPrivacy: ["🔒 Your key is saved only on this phone (not in backups) and is sent only to the provider you chose.", "🔒 Sa phone na ito lang naka-save ang key mo (wala sa backup) at sa napili mong provider lang ipinapadala.", "🔒 Sa phone na ito lang naka-save ang key mo (wala sa backups) at sa provider lang na pinili mo pinapadala."],
+    aiGeminiPrivacy: ["Note: on Gemini's free tier, Google may use what you send to improve its products. Don't type personal information.", "Paalala: sa libreng Gemini, maaaring gamitin ng Google ang ipinapadala mo para pagbutihin ang kanilang produkto. Huwag maglagay ng personal na impormasyon.", "Note: sa free Gemini, pwedeng gamitin ng Google ang sinesend mo para i-improve ang products nila. 'Wag mag-type ng personal info."],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 

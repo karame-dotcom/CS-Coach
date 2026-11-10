@@ -711,3 +711,15 @@ body.no-pet .coach-fab { display: flex; }
 .ex-try li { padding: 4px 0; }
 .ex-try li.ok { color: var(--green-dark); font-weight: 700; }
 .ex-try li.no { color: var(--muted); }
+
+/* ===== v15: AI key ===== */
+.ai-panel > b { display: block; }
+.ai-status { padding: 8px 12px; border-radius: 10px; background: #eef2f6; font-size: .86rem; font-weight: 700; color: var(--muted); margin-bottom: 10px; }
+.ai-status.on { background: var(--green-soft); color: var(--green-dark); }
+.ai-provs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ai-prov { display: flex; flex-direction: column; gap: 2px; padding: 10px; border: 2px solid var(--line); border-radius: 12px; cursor: pointer; }
+.ai-prov input { position: absolute; opacity: 0; pointer-events: none; }
+.ai-prov:has(input:checked) { border-color: var(--green); background: var(--green-soft); }
+.ai-prov span { font-size: .76rem; color: var(--muted); }
+.ai-get { display: inline-block; margin-top: 10px; font-size: .88rem; font-weight: 700; color: var(--blue); }
+select.input { background: var(--white); }

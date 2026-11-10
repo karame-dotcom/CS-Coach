@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.13.0";
+  const APP_VERSION = "1.14.0";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -434,6 +434,7 @@
 
         <div class="actions save-row"><span class="unsaved-badge hidden" id="unsavedBadge">● ${t("unsavedBadge")}</span><button class="btn" type="submit">${firstRun ? t("startReviewing") : t("saveSettings")}</button></div>
       </form>
+      ${firstRun ? "" : aiPanelHtml()}
       ${firstRun ? "" : installHtml(false)}
       ${firstRun ? "" : backupPanelHtml()}
       ${firstRun ? "" : `
@@ -481,7 +482,7 @@
       if (firstRun) setTimeout(() => pet().say(t("petHi", { name: profile.name ? " " + profile.name : "" }), 3200), 400);
       else toast(t("settingsSaved"));
     });
-    if (!firstRun) { bindBackupPanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
+    if (!firstRun) { bindAiPanel(); bindBackupPanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
     const reset = document.getElementById("resetBtn");
     if (reset) reset.addEventListener("click", () => confirmBox(t("resetConfirm"), t("reset"), () => {
       autoBackup("before-reset");
@@ -707,6 +708,72 @@
     window.scrollTo(0, 0);
   }
 
+
+
+  // ---------- AI tutor: bring your own key ----------
+  function aiPanelHtml() {
+    if (window.CSAI.builtIn()) return `<div class="panel ai-panel"><b>✨ ${t("aiTutorTitle")}</b><p class="muted small" style="margin:6px 0 0">${t("aiBuiltIn")}</p></div>`;
+    const cur = window.CSAI.current() || {};
+    const prov = cur.provider || "gemini";
+    const name = cur.key ? (cur.provider === "claude" ? t("aiProvClaude") : t("aiProvGemini")) : "";
+    return `
+      <div class="panel ai-panel" id="aiPanel">
+        <b>✨ ${t("aiTutorTitle")}</b>
+        <p class="muted small" style="margin:4px 0 10px">${t("aiTutorDesc")}</p>
+        <div class="ai-status ${cur.key ? "on" : ""}">${cur.key ? t("aiConnected", { p: esc(name) }) : t("aiNotConnected")}</div>
+        <div class="ai-provs">
+          <label class="ai-prov"><input type="radio" name="aiProv" value="gemini" ${prov === "gemini" ? "checked" : ""} /><b>${t("aiProvGemini")}</b><span>${t("aiProvGeminiNote")}</span></label>
+          <label class="ai-prov"><input type="radio" name="aiProv" value="claude" ${prov === "claude" ? "checked" : ""} /><b>${t("aiProvClaude")}</b><span>${t("aiProvClaudeNote")}</span></label>
+        </div>
+        <a class="ai-get" id="aiGet" target="_blank" rel="noopener"></a>
+        <label class="field-label" for="aiKey" style="margin-top:10px">${t("aiKeyLabel")}</label>
+        <input id="aiKey" class="input" type="password" autocomplete="off" spellcheck="false" placeholder="${t("aiKeyPh")}" value="${esc(cur.key || "")}" />
+        <div id="aiModelRow" style="margin-top:10px">
+          <label class="field-label" for="aiModel">${t("aiModel")}</label>
+          <select id="aiModel" class="input">
+            <option value="claude-opus-5-5" ${cur.model !== "claude-haiku-5-5" ? "selected" : ""}>${t("aiModelOpus")}</option>
+            <option value="claude-haiku-5-5" ${cur.model === "claude-haiku-5-5" ? "selected" : ""}>${t("aiModelHaiku")}</option>
+          </select>
+        </div>
+        <div class="backup-btns" style="margin-top:12px">
+          <button class="btn" id="aiSave">${t("aiSaveTest")}</button>
+          ${cur.key ? `<button class="btn secondary" id="aiRemove">${t("aiRemove")}</button>` : ""}
+        </div>
+        <p class="muted small" style="margin:6px 0 0">${t("aiPrivacy")}</p>
+        <p class="muted small" id="aiGemNote" style="margin:4px 0 0">${t("aiGeminiPrivacy")}</p>
+      </div>`;
+  }
+  function bindAiPanel() {
+    const panel = document.getElementById("aiPanel");
+    if (!panel) return;
+    const prov = () => panel.querySelector("input[name=aiProv]:checked").value;
+    const paint = () => {
+      const g = prov() === "gemini", a = document.getElementById("aiGet");
+      a.href = g ? "https://aistudio.google.com/app/apikey" : "https://console.anthropic.com/settings/keys";
+      a.textContent = "🔑 " + (g ? t("aiGetGemini") : t("aiGetClaude")) + " ↗";
+      document.getElementById("aiModelRow").style.display = g ? "none" : "";
+      document.getElementById("aiGemNote").style.display = g ? "" : "none";
+    };
+    panel.querySelectorAll("input[name=aiProv]").forEach(r => r.addEventListener("change", paint));
+    paint();
+    const rerender = () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); };
+    document.getElementById("aiSave").onclick = async () => {
+      const cfg = { provider: prov(), key: document.getElementById("aiKey").value.trim(), model: document.getElementById("aiModel").value };
+      if (!cfg.key) return toast(t("aiBadKey"));
+      const btn = document.getElementById("aiSave"); btn.disabled = true; btn.textContent = t("aiTesting");
+      try {
+        await window.CSAI.test(cfg);
+        window.CSAI.setKey(cfg);
+        toast(t("aiSaved")); pet().cheer("✨🤖");
+        rerender();
+      } catch (e) {
+        btn.disabled = false; btn.textContent = t("aiSaveTest");
+        toast(e && e.code === "bad_key" ? t("aiBadKey") : t("aiTestFail"));
+      }
+    };
+    const rm = document.getElementById("aiRemove");
+    if (rm) rm.onclick = () => { window.CSAI.setKey(null); toast(t("aiRemoved")); rerender(); };
+  }
 
   // ---------- Install on phone ----------
   const IN = (window.claude && typeof window.claude.use === "function") ? null : window.CSInstall;   // not offered inside claude.ai
@@ -1021,6 +1088,7 @@
 
   // ---------- AI-generated questions (Claude via the artifact "sample" capability) ----------
   let sampleFn = null;
+  document.addEventListener("cscoach:ai", () => window.CSAI.get().then(fn => { sampleFn = fn; }));
   window.CSAI.get().then(fn => { sampleFn = fn; if (fn && session == null && tab === "practice" && !document.querySelector(".modal-bg")) openTab("practice"); }).catch(() => {});
   function aiReady() { return !!sampleFn; }
 

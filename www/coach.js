@@ -48,7 +48,9 @@
   document.addEventListener("cscoach:lang", () => { paintLabels(); msgs.innerHTML = ""; transcript.length = 0; });
   document.addEventListener("cscoach:pet", paintLabels);
 
-  window.CSAI.get().then(s => { sample = s; paintLabels(); }).catch(() => {});
+  const connectAI = () => window.CSAI.get().then(s => { sample = s; paintLabels(); }).catch(() => {});
+  connectAI();
+  document.addEventListener("cscoach:ai", connectAI);
 
   function open(kind) {
     panel.classList.remove("hidden");
@@ -350,7 +352,8 @@ ${JSON.stringify(context)}`;
     } catch (e) {
       bubble.remove();
       if (e && e.code === "not_granted") { sample = null; paintLabels(); }
-      reply(builtIn("text", text) + (e && e.code === "rate_limited" ? `<br><span class="muted">${t("aiBusy")}</span>` : ""));
+      const note = e && e.code === "bad_key" ? t("aiBadKey") : e && (e.code === "rate_limited" || e.code === "offline" || e.code === "error") ? t("aiBusy") : "";
+      reply(builtIn("text", text) + (note ? `<br><span class="muted">${note}</span>` : ""));
     }
   }
 
