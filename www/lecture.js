@@ -13,16 +13,31 @@
     qTalk: ["Let's read the question first.", "Basahin muna natin ang tanong.", "Basahin muna natin 'yung question."],
     approach: ["How to approach it", "Paano ito lapitan", "Paano i-approach"],
     approachTalk: ["Here's how to approach it.", "Ganito natin ito lalapitan.", "Okay, ganito natin i-approach 'to."],
-    setup: ["Let's set it up", "Ihanda natin", "I-set up natin"],
-    setupTalk: ["Let's set it up step by step. But I won't solve it for you!", "Ihanda natin nang hakbang-hakbang. Pero hindi ko ito sasagutin para sa iyo!", "Step by step natin i-set up. Pero hindi ko sasagutin para sa'yo ha!"],
-    avgS1: ["Step 1: Add them all", "Hakbang 1: Pagsamahin lahat", "Step 1: I-add lahat"],
-    avgS2: ["Step 2: Count them", "Hakbang 2: Bilangin", "Step 2: Bilangin kung ilan"],
-    avgS2b: ["{n} numbers", "{n} na numero", "{n} numbers"],
-    avgS3: ["Step 3: Divide", "Hakbang 3: Hatiin", "Step 3: I-divide"],
-    check: ["Quick check", "Mabilis na pagsuri", "Quick check"],
-    checkTalk: ["Before you pick, do a quick check.", "Bago pumili, mabilis na suriin.", "Bago ka pumili, quick check muna."],
-    avgCheck: ["The average is always between the smallest and the biggest number.", "Laging nasa pagitan ng pinakamaliit at pinakamalaking numero ang average.", "Laging nasa pagitan ng pinakamaliit at pinakamalaking number ang average."],
-    avgCheck2: ["So it must be between {a} and {b}.", "Kaya dapat nasa pagitan ito ng {a} at {b}.", "So dapat nasa pagitan siya ng {a} at {b}."],
+    // "like you're 5" average lesson: candies shared fairly between friends
+    kidQTalk: ["Hi! Let's read the question slowly together.", "Uy! May tanong tayo. Basahin natin nang dahan-dahan.", "Uy! May question tayo. Basahin natin nang dahan-dahan."],
+    kidWhat: ["What is an average?", "Ano ang average?", "Ano ba ang average?"],
+    kidWhatTalk: ["Let's pretend these numbers are candies!", "Kunwari, mga kendi ang mga numerong ito!", "Kunwari, candies ang mga numbers na 'to!"],
+    kidWhat1: ["{n} friends have candies. Some have more, some have less.", "May kendi ang {n} magkakaibigan. May marami, may kaunti.", "May candies ang {n} friends. May marami, may konti."],
+    kidWhat2: ["Average means sharing fairly 🍬", "Ang average ay patas na hatian 🍬", "Ang average ay patas na hatian 🍬"],
+    kidWhat3: ["so everyone gets the SAME amount.", "para PAREHO ang dami ng lahat.", "para PARE-PAREHO ang dami ng lahat."],
+    kidS1: ["Step 1", "Hakbang 1", "Step 1"],
+    kidS1Talk: ["First, put ALL the candies in one big jar.", "Una, ilagay ang LAHAT ng kendi sa isang malaking garapon.", "Una, ilagay natin LAHAT ng candies sa isang malaking jar."],
+    kidS1a: ["Put them all together", "Pagsamahin lahat", "Pagsamahin lahat"],
+    kidS2: ["Step 2", "Hakbang 2", "Step 2"],
+    kidS2Talk: ["Next, how many friends are sharing? Let's count!", "Sunod, ilan ang maghahati? Bilangin natin!", "Next, ilan ang maghahati-hati? Count natin!"],
+    kidS2a: ["How many friends?", "Ilan sila?", "Ilan sila?"],
+    kidS2b: ["{n} friends!", "{n} magkakaibigan!", "{n} friends!"],
+    kidS3: ["Step 3", "Hakbang 3", "Step 3"],
+    kidS3Talk: ["Last, share the big jar fairly, so each friend gets the same.", "Huli, hatiin nang patas ang garapon, para pareho ang bawat isa.", "Last, hatiin natin nang patas ang jar, para pare-pareho sila."],
+    kidS3a: ["Share fairly", "Hatiin nang patas", "Hatiin nang patas"],
+    kidS3b: ["All the candies ÷ {n} = one friend's share", "Lahat ng kendi ÷ {n} = parte ng isa", "Lahat ng candies ÷ {n} = share ng isa"],
+    kidS3c: ["That's the average!", "'Yan ang average!", "'Yan ang average!"],
+    check: ["Quick check", "Silipin natin", "Quick check"],
+    kidCheckTalk: ["Here's a little trick to check your answer.", "May maliit na trick para masuri ang sagot mo.", "May maliit na trick para i-check ang sagot mo."],
+    kidCheck1: ["When we share fairly, nobody gets less than the smallest pile, {a},", "Kapag patas ang hatian, walang bababa sa pinakamaliit, {a},", "Pag patas ang hatian, walang bababa sa pinakamaliit, {a},"],
+    kidCheck2: ["and nobody gets more than the biggest pile, {b}.", "at walang lalampas sa pinakamalaki, {b}.", "at walang lalampas sa pinakamalaki, {b}."],
+    kidRecap: ["Add ➜ Count ➜ Share", "Pagsamahin ➜ Bilangin ➜ Hatiin", "Add ➜ Count ➜ Share"],
+    kidOutroTalk: ["Now you try! Add, count, then share. You can do it!", "Ikaw naman! Pagsamahin, bilangin, saka hatiin. Kaya mo 'yan!", "Ikaw naman! Add, count, tapos share. Kaya mo 'yan!"],
     outro: ["Your turn!", "Ikaw na!", "Ikaw na!"],
     outroTalk: ["You've got this. Go back and try it!", "Kaya mo 'yan. Bumalik ka at subukan mo!", "Kaya mo 'yan! Balikan mo ang question at try mo!"],
     outroNote: ["The coach guides you but won't give the answer away.", "Gagabayan ka ng coach pero hindi nito ibibigay ang sagot.", "Gu-guide-an ka ng coach pero hindi niya ibibigay ang sagot."],
@@ -61,6 +76,48 @@
       const end = x0 + v.length * (w + gap), ly = 96 - h(mean), last = .5 + v.length * .25;
       s += P(`M8 ${ly} H${end}`, "p", last, true) + T(end + 6, ly + 4, "?", "p", last + .6, 15, "start");
       s += T(186, 34, "total", "y", last + .9, 14) + P("M162 44 h48", "y", last + 1.1) + T(186, 62, v.length, "y", last + 1.3, 16) + T(186, 90, "= ?", "p", last + 1.6, 16);
+      return s;
+    },
+    // Candy piles of different heights that even out into a fair share.
+    fairShare: v => {
+      v = v.slice(0, 6);
+      const mn = Math.min(...v), mx = Math.max(...v), span = mx - mn || 1, w = 18, gap = 10, x0 = 12;
+      const h = x => 24 + (x - mn) / span * 50, hm = v.reduce((a, x) => a + h(x), 0) / v.length;
+      const cols = ["#fda4af", "#93c5fd", "#86efac", "#fde68a", "#c4b5fd", "#fdba74"];
+      let s = P(`M6 92 H${x0 + v.length * (w + gap)}`, "w");
+      v.forEach((x, i) => {
+        const bx = x0 + i * (w + gap);
+        s += `<g class="lvl" style="--from:${(h(x) / hm).toFixed(3)};--t:${(.2 + i * .2).toFixed(2)}s"><rect x="${bx}" y="${92 - hm}" width="${w}" height="${hm}" rx="3" fill="${cols[i]}" fill-opacity=".35" stroke="${cols[i]}" stroke-width="2.5" vector-effect="non-scaling-stroke"/></g>`;
+        s += T(bx + w / 2, 106, x, "w", .3 + i * .2, 10) + T(bx + w / 2, 117, i % 2 ? "👦" : "👧", "w", .4 + i * .2, 9);
+        s += T(bx + w / 2, 88 - hm, "?", "p", 4.6, 12);
+      });
+      const end = x0 + v.length * (w + gap);
+      s += T(end + 34, 50, "🍬", "w", .8, 22) + T(end + 34, 82, "⚖️", "w", 4.4, 22);
+      return s;
+    },
+    // Every pile goes into one big jar.
+    jar: v => {
+      let s = "";
+      v.slice(0, 6).forEach((_, i) => {
+        const cx = 16 + i * 22;
+        s += `<g class="cht" style="--t:${(i * .15).toFixed(2)}s"><circle cx="${cx}" cy="98" r="5" fill="#fda4af"/><circle cx="${cx - 5}" cy="90" r="5" fill="#93c5fd"/><circle cx="${cx + 4}" cy="89" r="5" fill="#fde68a"/></g>`;
+        s += P(`M${cx} 80 Q${(cx + 165) / 2} ${20 + i * 4} 160 52`, "w", 1 + i * .15, true);
+      });
+      s += P("M152 44 h36 M150 50 q-8 8 -8 26 v24 q0 8 8 8 h40 q8 0 8 -8 v-24 q0 -18 -8 -26 z", "y", 1.8);
+      s += T(170, 88, "?", "y", 2.4, 26);
+      return s;
+    },
+    // The big jar is shared out into equal piles.
+    shareOut: n => {
+      n = Math.min(n, 6);
+      let s = P("M14 44 h34 M12 50 q-8 8 -8 26 v24 q0 8 8 8 h38 q8 0 8 -8 v-24 q0 -18 -8 -26 z", "y");
+      s += T(31, 88, "🍬", "w", .4, 18);
+      for (let i = 0; i < n; i++) {
+        const cx = 92 + i * 24, d = 1 + i * .25;
+        s += P(`M62 74 Q${(62 + cx) / 2} ${30 + i * 3} ${cx} 82`, "w", d, true);
+        s += `<g class="cht" style="--t:${(d + .4).toFixed(2)}s"><circle cx="${cx}" cy="98" r="5" fill="#fda4af"/><circle cx="${cx}" cy="88" r="5" fill="#93c5fd"/></g>`;
+        s += T(cx, 116, "?", "p", d + .6, 11);
+      }
       return s;
     },
     rangeCheck: q => {
@@ -160,6 +217,10 @@
   .lec-doodle .ch { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 1; stroke-dashoffset: 1; opacity: .92; animation: lecDraw .9s ease-out var(--t) forwards; }
   .lec-doodle .ch.dash { stroke-dasharray: .02 .02; stroke-dashoffset: 0; opacity: 0; animation: lecFade .5s var(--t) forwards; }
   .lec-doodle .cht { font-family: inherit; opacity: 0; animation: lecFade .45s var(--t) forwards; }
+  .lec-doodle .lvl rect { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0);
+    animation: lecGrow .6s ease-out var(--t) forwards, lecLevel 1.4s ease-in-out 3.2s forwards; }
+  @keyframes lecGrow { from { transform: scaleY(0); } to { transform: scaleY(var(--from)); } }
+  @keyframes lecLevel { from { transform: scaleY(var(--from)); } to { transform: scaleY(1); } }
   @keyframes lecDraw { to { stroke-dashoffset: 0; } }
   @keyframes lecFade { to { opacity: .95; } }
   .lec-tray { position: absolute; left: 0; right: 0; bottom: 0; height: 12px; background: #6b4220; }
@@ -199,7 +260,7 @@
   .lec-voice select { margin-left: 4px; max-width: 72%; font: inherit; color: #0f2a3d; padding: 5px 6px; border: 1.5px solid #dde6ee; border-radius: 8px; background: #fff; }
   .lec-note { font-size: .8rem; color: #5b6b7a; margin: 8px 0 0 6px; }
   @media (prefers-reduced-motion: reduce) {
-    .lec-doodle .ch { animation: none; stroke-dashoffset: 0; } .lec-doodle .cht, .lec-doodle .ch.dash { animation: none; opacity: .95; }
+    .lec-doodle .ch { animation: none; stroke-dashoffset: 0; } .lec-doodle .lvl rect { animation: none; transform: none; } .lec-doodle .cht, .lec-doodle .ch.dash { animation: none; opacity: .95; }
     .lec.talking .lec-kiko .lk-bod, .lec.cheer .lec-kiko .lk-bod, .lec-kiko .lk-eyes { animation: none; }
   }`;
 
@@ -212,7 +273,7 @@
   function speakable(s) {
     return String(s)
       .replace(/_{2,}/g, " blank ").replace(/₱\s?([\d,.]+)/g, "$1 pesos").replace(/÷/g, " divided by ").replace(/×/g, " times ")
-      .replace(/\s=\s|=/g, ", equals ").replace(/\s\+\s/g, ", plus ").replace(/≈/g, " about ").replace(/[→…]/g, " ").replace(/\s{2,}/g, " ").trim();
+      .replace(/\s=\s|=/g, ", equals ").replace(/\s\+\s/g, ", plus ").replace(/≈/g, " about ").replace(/\s*➜\s*/g, ", ").replace(/\p{Extended_Pictographic}\uFE0F?/gu, "").replace(/[→…]/g, " ").replace(/\s{2,}/g, " ").trim();
   }
 
   // Wrap numbers (and the ___ blank) in spans the pointer can aim at.
@@ -226,18 +287,22 @@
     const art = hintArt(q);
     const hintLines = String(o.hint || q.h).split(/(?<=[.?!])\s+/).filter(Boolean).map(t => ({ t }));
     sl.push({ label: (o.labels && o.labels.howApproach) || tr("approach"), talk: tr("approachTalk"), lines: hintLines, art: svg(D[art](q)), point: true });
-    if (art === "average") {
-      const v = nums(q.q).filter(n => n > 0);
-      if (v.length >= 2) {
-        sl.push({ label: tr("setup"), talk: tr("setupTalk"), lines: [
-          { t: tr("avgS1"), c: "y" }, { t: v.join(" + ") + " = ___", tok: true, walk: [...v.map((n, i) => (i ? "plus " : "") + n), "equals blank"] },
-          { t: tr("avgS2"), c: "y" }, { t: tr("avgS2b", { n: v.length }), count: 1 },
-          { t: tr("avgS3"), c: "y" }, { t: "Average = ___ ÷ " + v.length }
-        ], art: "" });
-        sl.push({ label: tr("check"), talk: tr("checkTalk"), lines: [{ t: tr("avgCheck") }, { t: tr("avgCheck2", { a: Math.min(...v), b: Math.max(...v) }), c: "g" }], art: svg(D.rangeCheck(q)), point: true });
-      }
+    const v = nums(q.q).filter(n => n > 0);
+    const kid = art === "average" && v.length >= 2;
+    if (kid) {
+      // Taught like to a 5-year-old: the numbers are candies, the average is a fair share.
+      const n = v.length, kids = [..."👧👦".repeat(n)].slice(0, n).join("");
+      sl[0].talk = tr("kidQTalk");
+      sl[1] = { label: tr("kidWhat"), talk: tr("kidWhatTalk"), lines: [{ t: tr("kidWhat1", { n }) }, { t: tr("kidWhat2"), c: "y" }, { t: tr("kidWhat3"), c: "y" }], art: svg(D.fairShare(v)), point: true };
+      sl.push({ label: tr("kidS1"), talk: tr("kidS1Talk"), art: svg(D.jar(v)), lines: [
+        { t: tr("kidS1a"), c: "y" }, { t: v.join(" + ") + " = ___", tok: true, walk: [...v.map((x, i) => (i ? "plus " : "") + x), "equals blank"] }] });
+      sl.push({ label: tr("kidS2"), talk: tr("kidS2Talk"), lines: [
+        { t: tr("kidS2a"), c: "y" }, { t: v.join("    "), tok: true, silent: true }, { t: tr("kidS2b", { n }) + " " + kids, c: "g", count: 1 }] });
+      sl.push({ label: tr("kidS3"), talk: tr("kidS3Talk"), art: svg(D.shareOut(n)), lines: [
+        { t: tr("kidS3a"), c: "y" }, { t: tr("kidS3b", { n }) }, { t: tr("kidS3c"), c: "p" }] });
+      sl.push({ label: tr("check"), talk: tr("kidCheckTalk"), lines: [{ t: tr("kidCheck1", { a: Math.min(...v) }) }, { t: tr("kidCheck2", { b: Math.max(...v) }), c: "g" }], art: svg(D.rangeCheck(q)), point: true });
     }
-    sl.push({ label: tr("outro"), talk: tr("outroTalk"), lines: [{ t: tr("outro"), c: "y", big: true }, { t: o.note || tr("outroNote") }], art: svg(D.cheer()), cheer: true });
+    sl.push({ label: tr("outro"), talk: kid ? tr("kidOutroTalk") : tr("outroTalk"), lines: [{ t: tr("outro"), c: "y", big: true }, ...(kid ? [{ t: tr("kidRecap"), c: "g" }] : []), { t: o.note || tr("outroNote") }], art: svg(D.cheer()), cheer: true });
     return sl;
   }
 
@@ -411,6 +476,11 @@
         await wait(550); if (g !== gen) return;        // beat before the board
         for (let k = 0; k < s.lines.length; k++) {
           const l = s.lines[k];
+          if (l.silent) {
+            await writeLine(k, l); if (g !== gen) return;
+            await wait(300); if (g !== gen) return;
+            continue;
+          }
           if (l.walk) {
             // write it, then read it piece by piece with the arrow on each number
             await writeLine(k, l); if (g !== gen) return;
