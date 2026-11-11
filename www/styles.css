@@ -807,3 +807,25 @@ body.no-pet:not(.has-tabbar) .coach-fab { display: flex !important; }
 .caught-ico { font-size: 2.6rem; }
 .sim-choices { margin: 4px 0 10px; padding-left: 22px; font-size: .9rem; line-height: 1.5; }
 .sim-ask { width: 100%; margin: 4px 0 8px; }
+
+/* ===== v21: guided tour ===== */
+.tour { position: fixed; inset: 0; z-index: 90; }
+.tour-spot { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(15,42,61,.68); transition: all .3s ease; pointer-events: none; }
+.tour-spot::after { content: ""; position: absolute; inset: -3px; border-radius: 16px; border: 3px solid #fcd34d; animation: tourPulse 1.4s ease-in-out infinite; }
+@keyframes tourPulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(1.04); } }
+.tour-card { position: fixed; width: min(340px, calc(100vw - 20px)); background: var(--white); border-radius: 18px; padding: 16px; box-shadow: 0 16px 40px rgba(15,42,61,.35); animation: pop .25s ease-out; }
+.tour-card.center { left: 50% !important; top: 50% !important; bottom: auto !important; transform: translate(-50%, -50%); }
+.tour-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.tour-face { width: 46px; height: 46px; flex: none; }
+.tour-face .kiko-mini { width: 46px; height: 46px; }
+.tour-card.center .tour-face, .tour-card.center .tour-face .kiko-mini { width: 64px; height: 64px; }
+.tour-head b { font-size: 1.08rem; }
+.tour-card p { margin: 0 0 12px; line-height: 1.5; }
+.tour-dots { display: flex; gap: 5px; justify-content: center; margin-bottom: 12px; }
+.tour-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.tour-dots span.done { background: var(--green); }
+.tour-dots span.on { background: var(--blue); width: 18px; border-radius: 4px; }
+.tour-btns { display: flex; align-items: center; gap: 8px; }
+.tour-gap { flex: 1; }
+.tour-btns .btn { flex: none; min-width: 0; padding: 10px 16px; }
+body.touring .pet-wrap { display: none; }

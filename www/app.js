@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.21.0";
+  const APP_VERSION = "1.22.0";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -283,7 +283,8 @@
   let guard = false;
   const modalOpen = () => document.querySelector(".modal-bg");
   const chatIsOpen = () => !!(window.CoachUI && window.CoachUI.isOpen && window.CoachUI.isOpen());
-  const canGoBack = () => !!(modalOpen() || chatIsOpen() || onBack || (profile && tab !== "learn"));
+  const tourOpen = () => document.querySelector(".tour");
+  const canGoBack = () => !!(tourOpen() || modalOpen() || chatIsOpen() || onBack || (profile && tab !== "learn"));
   // Chrome skips history entries a page adds without a user tap, so only add one
   // while the user is interacting (right after a tap/click/keypress).
   const userActive = () => !navigator.userActivation || navigator.userActivation.isActive;
@@ -297,7 +298,8 @@
   window.addEventListener("popstate", () => {
     guard = false;
     const m = modalOpen();
-    if (m) m.remove();
+    if (tourOpen()) endTour();
+    else if (m) m.remove();
     else if (chatIsOpen()) window.CoachUI.close();
     else if (onBack) onBack();
     else if (profile && tab !== "learn") openTab("learn");
@@ -468,6 +470,7 @@
       ${firstRun ? "" : sec("ai", "✨", t("aiTutorTitle"), aiSummary(), aiPanelHtml())}
       ${firstRun ? "" : (IN ? sec("install", "📲", t("installShort"), IN.isStandalone() ? t("installedShort") : "", installHtml(false)) : "")}
       ${firstRun ? "" : sec("backup", "🛡️", t("backupTitle"), "", backupPanelHtml())}
+      ${firstRun ? "" : sec("tour", "🧭", t("tourAgain"), "", `<p class="muted small" style="margin:0 0 10px">${t("tourAgainDesc")}</p><button class="btn" id="tourBtn">${t("tourAgain")}</button>`)}
       ${firstRun ? "" : sec("reset", "🗑️", t("resetProgress"), "", `
           <p class="sub" style="margin:0 0 12px">${t("resetDesc")}</p>
           <button class="btn secondary" id="resetBtn">${t("resetProgress")}</button>`)}
@@ -508,10 +511,11 @@
       e.preventDefault();
       saveSettingsNow();
       openTab(firstRun ? "learn" : tab);
-      if (firstRun) setTimeout(() => pet().say(t("petHi", { name: profile.name ? " " + profile.name : "" }), 3200), 400);
+      if (firstRun) setTimeout(startTour, 500);
       else toast(t("settingsSaved"));
     });
     app.querySelectorAll("details.set-sec").forEach(d => d.addEventListener("toggle", () => { d.open ? openSecs.add(d.dataset.sec) : openSecs.delete(d.dataset.sec); }));
+    const tb = document.getElementById("tourBtn"); if (tb) tb.onclick = () => { if (settingsDirty()) return guardLeave(startTour); startTour(); };
     if (!firstRun) { bindAiPanel(); bindBackupPanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
     const reset = document.getElementById("resetBtn");
     if (reset) reset.addEventListener("click", () => confirmBox(t("resetConfirm"), t("reset"), () => {
@@ -795,6 +799,85 @@
   // show the banner on Learn at most once every 3 days until installed
   const showInstallBanner = () => IN && !IN.isStandalone() && Date.now() - (store.get("cscoach.installLater", 0) || 0) > 3 * DAY;
   if (IN) IN.onChange(() => { if (!session && tab === "learn" && document.getElementById("recLesson") !== undefined && !document.querySelector(".modal-bg")) { const slot = document.getElementById("installSlot"); if (slot) { slot.innerHTML = showInstallBanner() ? installHtml(true) : ""; bindInstall(slot, () => openTab("learn")); } } });
+
+
+  // ---------- Guided tour (first visit; replay from Settings) ----------
+  // Each step spotlights one element (or shows a centered card) with a speech bubble from the buddy.
+  const TOUR = [
+    { sel: null, k: "tour1" },
+    { sel: '.tabbar [data-tab="learn"]', k: "tour2" },
+    { sel: "#recLesson", k: "tour3" },
+    { sel: '.tabbar [data-tab="practice"]', k: "tour4" },
+    { sel: ".tabbar .tab-chat", k: "tour5" },
+    { sel: '.tabbar [data-tab="calendar"]', k: "tour6" },
+    { sel: '.tabbar [data-tab="analytics"]', k: "tour7" },
+    { sel: "#settingsBtn", k: "tour8" },
+    { sel: null, k: "tour9" }
+  ];
+  let tourStep = 0, tourEl = null;
+  function startTour() {
+    if (tourOpen()) return;
+    openTab("learn");
+    tourStep = 0;
+    tourEl = document.createElement("div");
+    tourEl.className = "tour";
+    tourEl.innerHTML = `<div class="tour-spot"></div><div class="tour-card" role="dialog" aria-live="polite"></div>`;
+    document.body.appendChild(tourEl);
+    document.body.classList.add("touring");
+    window.addEventListener("resize", placeTour);
+    ensureGuard();
+    showTourStep();
+  }
+  function endTour() {
+    if (!tourEl) return;
+    tourEl.remove(); tourEl = null;
+    document.body.classList.remove("touring");
+    window.removeEventListener("resize", placeTour);
+    store.set("cscoach.tourDone", true);
+  }
+  const visible = el => el && el.offsetParent !== null && el.getBoundingClientRect().width > 0;
+  function showTourStep() {
+    // skip steps whose target isn't on screen (e.g. no recommended lesson)
+    while (TOUR[tourStep] && TOUR[tourStep].sel && !visible(document.querySelector(TOUR[tourStep].sel))) tourStep++;
+    if (tourStep >= TOUR.length) return endTour();
+    const st = TOUR[tourStep], last = tourStep === TOUR.length - 1, n = TOUR.length;
+    const card = tourEl.querySelector(".tour-card");
+    const face = window.Pet && Pet.preview ? Pet.preview((profile && profile.petChar) || "sprout") : "";
+    card.innerHTML = `
+      <div class="tour-head"><span class="tour-face">${face}</span><b>${t(st.k + "t")}</b></div>
+      <p>${t(st.k, { name: profile && profile.name ? " " + esc(profile.name) : "" })}</p>
+      <div class="tour-dots">${TOUR.map((_, i) => `<span class="${i === tourStep ? "on" : i < tourStep ? "done" : ""}"></span>`).join("")}</div>
+      <div class="tour-btns">
+        ${last ? "" : `<button class="link" data-skip>${t("tourSkip")}</button>`}
+        <span class="tour-gap"></span>
+        ${tourStep > 0 ? `<button class="btn secondary" data-prev>${t("back")}</button>` : ""}
+        <button class="btn" data-next>${last ? t("tourDone") : tourStep === 0 ? t("tourStart") : t("next")}</button>
+      </div>`;
+    card.querySelector("[data-next]").onclick = () => { tourStep++; if (tourStep >= n) { endTour(); pet().cheer("🎉"); } else showTourStep(); };
+    const pv = card.querySelector("[data-prev]"); if (pv) pv.onclick = () => { do { tourStep--; } while (tourStep > 0 && TOUR[tourStep].sel && !visible(document.querySelector(TOUR[tourStep].sel))); showTourStep(); };
+    const sk = card.querySelector("[data-skip]"); if (sk) sk.onclick = endTour;
+    placeTour();
+    const target = st.sel && document.querySelector(st.sel);
+    if (target && target.scrollIntoView) target.scrollIntoView({ block: "center", behavior: "smooth" });
+    setTimeout(placeTour, 350);
+  }
+  function placeTour() {
+    if (!tourEl) return;
+    const st = TOUR[tourStep], spot = tourEl.querySelector(".tour-spot"), card = tourEl.querySelector(".tour-card");
+    const target = st && st.sel && document.querySelector(st.sel);
+    if (!target) {   // centered card, dimmed screen
+      spot.style.cssText = "left:50%;top:50%;width:0;height:0;";
+      card.classList.add("center"); card.style.top = ""; card.style.left = ""; card.style.bottom = "";
+      return;
+    }
+    card.classList.remove("center");
+    const r = target.getBoundingClientRect(), pad = 6;
+    spot.style.cssText = `left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px;`;
+    const ch = card.offsetHeight, below = r.bottom + 14 + ch < innerHeight;
+    card.style.left = Math.max(10, Math.min(innerWidth - card.offsetWidth - 10, r.left + r.width / 2 - card.offsetWidth / 2)) + "px";
+    if (below) { card.style.top = (r.bottom + 14) + "px"; card.style.bottom = ""; }
+    else { card.style.top = ""; card.style.bottom = (innerHeight - r.top + 14) + "px"; }
+  }
 
   // ---------- LEARN tab: lectures + questions ----------
   // Syllabus order: official topic number, then lesson order
@@ -1998,6 +2081,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     if (window.Pet && Pet.setMode) Pet.setMode(profile.petMode || (profile.pet === false ? "home" : "still")); else pet().setVisible(profile.pet !== false);
     const lastExport = store.get("cscoach.lastExport", 0);
     const remind = history.length >= 5 && Date.now() - lastExport > 14 * DAY;
-    setTimeout(() => pet().say(remind ? t("backupRemind") : t("petHi", { name: profile.name ? " " + profile.name : "" }), remind ? 5000 : 3200), 700);
+    if (!store.get("cscoach.tourDone", false)) setTimeout(startTour, 700);
+    else setTimeout(() => pet().say(remind ? t("backupRemind") : t("petHi", { name: profile.name ? " " + profile.name : "" }), remind ? 5000 : 3200), 700);
   }
 })();
