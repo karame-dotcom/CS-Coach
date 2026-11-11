@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.27.0";
+  const APP_VERSION = "1.27.1";
   const REPORT_EMAIL = "sharematerials2026@gmail.com";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
@@ -275,6 +275,9 @@
   // ---------- navigation ----------
   let onBack = null;
   const HOME = "practice";   // the home tab (Learn now lives inside Settings)
+  // Lessons are still being written: shown as "Coming soon" and not openable.
+  // Set to true to turn the Learn section (and every link to it) back on.
+  const LESSONS_ON = false;
   let tab = HOME;
   function setBack(fn) { onBack = fn; backBtn.classList.toggle("hidden", !fn); ensureGuard(); }
 
@@ -421,11 +424,6 @@
     app.innerHTML = `
       <h2>${firstRun ? t("welcome") : t("settings")}</h2>
       <p class="sub">${firstRun ? t("setupSub") : t("settingsSub")}</p>
-      ${firstRun ? "" : `
-        <button class="learn-card" id="openLearn" type="button">
-          <span class="lc-ico">📖</span>
-          <span class="lc-txt"><b>${t("learnTitle")}</b><small>${t("learnCardDesc")}</small></span><span>→</span>
-        </button>`}
       <form id="setupForm" class="${firstRun ? "panel" : "settings-form"}">
         ${sec("profile", "👤", t("secProfile"), esc((p.name ? p.name + " · " : "") + I.names[p.lang || "en"]), `
           <div class="field-label">${t("language")}</div>
@@ -439,6 +437,12 @@
           <input id="name" class="input" type="text" maxlength="40" placeholder="${t("namePh")}" value="${esc(p.name || "")}" autocomplete="given-name" />`, firstRun)}
 
         ${sec("quiz", "📝", t("secQuiz"), esc((p.instant ? t("practiceMode") : t("examMode")) + (p.examDate ? " · " + p.examDate : "") + " · " + (p.dailyGoal || 20) + "/" + t("perDay")), `
+          ${firstRun ? "" : `
+          <button class="learn-card ${LESSONS_ON ? "" : "soon"}" id="openLearn" type="button" ${LESSONS_ON ? "" : `disabled aria-disabled="true"`}>
+            <span class="lc-ico">📖</span>
+            <span class="lc-txt"><b>${t("learnTitle")}</b><small>${t("learnCardDesc")}</small></span>
+            ${LESSONS_ON ? "<span>→</span>" : `<span class="soon-badge">${t("comingSoon")}</span>`}
+          </button>`}
           <div class="field-label">${t("revealQ")}</div>
           <label class="mode-opt">
             <input type="radio" name="mode" value="exam" ${!p.instant ? "checked" : ""} />
@@ -528,7 +532,7 @@
     });
     app.querySelectorAll("details.set-sec").forEach(d => d.addEventListener("toggle", () => { d.open ? openSecs.add(d.dataset.sec) : openSecs.delete(d.dataset.sec); }));
     const ol = document.getElementById("openLearn");
-    if (ol) ol.onclick = () => settingsDirty() ? guardLeave(() => openTab("learn")) : openTab("learn");
+    if (ol && LESSONS_ON) ol.onclick = () => settingsDirty() ? guardLeave(() => openTab("learn")) : openTab("learn");
     const tb = document.getElementById("tourBtn"); if (tb) tb.onclick = () => { if (settingsDirty()) return guardLeave(startTour); startTour(); };
     if (!firstRun) { bindAiPanel(); bindBackupPanel(); bindReportPanel(); bindDonatePanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
     const reset = document.getElementById("resetBtn");
@@ -1020,6 +1024,7 @@
   }
 
   function renderLearn() {
+    if (!LESSONS_ON) return openTab("settings");
     setBack(() => openTab("settings"));
     const rec = recommendedLesson();
     app.innerHTML = `
@@ -1535,8 +1540,8 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     if (!a.overall.attempts) {
       app.innerHTML = `<h2>📊 ${t("analyticsTitle")}</h2><p class="sub">${t("analyticsSub")}</p>
         <div class="panel empty-state"><div class="empty-ico">📈</div><p>${t("noAnalytics")}</p>
-        <div class="actions"><button class="btn" id="goLearn">📖 ${t("tabLearn")}</button><button class="btn blue" id="goPractice">✏️ ${t("tabPractice")}</button></div></div>`;
-      document.getElementById("goLearn").onclick = () => openTab("learn");
+        <div class="actions">${LESSONS_ON ? `<button class="btn" id="goLearn">📖 ${t("tabLearn")}</button>` : ""}<button class="btn blue" id="goPractice">✏️ ${t("tabPractice")}</button></div></div>`;
+      const gl = document.getElementById("goLearn"); if (gl) gl.onclick = () => openTab("learn");
       document.getElementById("goPractice").onclick = () => openTab("practice");
       return;
     }
@@ -1591,7 +1596,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
           return `<div class="topic-row">
             <span class="topic-name">${s.icon} ${esc(w.title)}<br><span class="imp-chip imp${w.importance}">${impLabel(w.importance)}</span></span>
             <span class="badge ${w.acc >= PASSING ? "" : "blue"}">${w.acc}%</span>
-            <button class="btn-mini" data-study="${w.sid}|${w.id}">${t("studyLesson")} →</button>
+            ${LESSONS_ON ? `<button class="btn-mini" data-study="${w.sid}|${w.id}">${t("studyLesson")} →</button>` : ""}
           </div>`;
         }).join("")}</div>` : `<p class="muted small">${t("noTopicData")}</p>`}
       </div>
@@ -2199,7 +2204,8 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     // donation reminder for the chat (only when a GCash/Maya number is configured)
     donate: { enabled: () => hasDonate(), open() { openSecs.add("donate"); renderSettings(false); setTimeout(() => { const d = document.querySelector('details[data-sec="donate"]'); if (d) d.scrollIntoView({ block: "start", behavior: "smooth" }); }, 50); } },
     _similar(id) { const q = byId.get(id), r = q && similarExample(q); return r ? (r.html ? r.q.q : r.q) : null; },
-    openLesson(lid) { const l = lessonById.get(lid); if (!l) return; session = null; tab = "learn"; paintTabbar(); showTabbar(true); renderLesson(l.sid, LESSONS[l.sid].indexOf(l), 0); },
+    lessonsOn: LESSONS_ON,
+    openLesson(lid) { const l = lessonById.get(lid); if (!l || !LESSONS_ON) return; session = null; tab = "learn"; paintTabbar(); showTabbar(true); renderLesson(l.sid, LESSONS[l.sid].indexOf(l), 0); },
     // Current question for the coach. The answer key is included only after it's revealed.
     current: () => {
       if (!session || session.done) return null;

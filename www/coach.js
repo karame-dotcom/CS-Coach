@@ -276,7 +276,7 @@
       }
       explainLevel[key] = 0;   // next request starts over
       return `${t("exStill")}
-        <div class="cacts">${br.lesson ? btn("lesson:" + br.lesson.id, t("openLesson")) : ""}${btn("s:" + c.sid, t("practiceNow", { i: SUB(c.sid).icon }))}</div>`;
+        <div class="cacts">${br.lesson && A().lessonsOn ? btn("lesson:" + br.lesson.id, t("openLesson")) : ""}${btn("s:" + c.sid, t("practiceNow", { i: SUB(c.sid).icon }))}</div>`;
     }
 
     if (kind === "tips") return `<b>${t("tipsTitle")}</b><ul>${t("examTips").map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
