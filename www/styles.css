@@ -830,3 +830,10 @@ body.no-pet:not(.has-tabbar) .coach-fab { display: flex !important; }
 .tour-btns .btn { flex: none; min-width: 0; padding: 10px 16px; }
 body.touring .pet-wrap { display: none; }
 textarea.input { resize: vertical; font: inherit; font-size: 16px; line-height: 1.4; }
+
+/* ===== v24: report pictures ===== */
+.rp-pics { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.rp-pic { position: relative; width: 84px; height: 84px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+.rp-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rp-pic button { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(15,42,61,.7); color: #fff; font-size: .75rem; cursor: pointer; }
+.rp-add { width: 100%; }

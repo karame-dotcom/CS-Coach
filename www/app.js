@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.23.0";
+  const APP_VERSION = "1.24.0";
   const REPORT_EMAIL = "sharematerials2026@gmail.com";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
@@ -568,15 +568,46 @@
       </select>
       <label class="field-label" for="rpMsg" style="margin-top:14px">${t("reportMsg")}</label>
       <textarea id="rpMsg" class="input" rows="5" maxlength="1500" placeholder="${esc(t("reportPh"))}"></textarea>
+      <label class="field-label" style="margin-top:14px">${t("reportPic")}</label>
+      <div class="rp-pics" id="rpPics"></div>
+      <label class="btn secondary file-btn rp-add" id="rpAddWrap">📷 ${t("reportPicBtn")}<input type="file" id="rpFile" accept="image/*" multiple hidden /></label>
       <div class="actions" style="margin-top:12px"><button class="btn" type="button" id="rpSend">${t("reportSend")}</button></div>
       <p class="muted small" style="margin:12px 0 4px">${t("reportNoApp")} <b>${REPORT_EMAIL}</b></p>
       <button class="btn secondary" type="button" id="rpCopy">${t("reportCopy")}</button>
       <p class="muted small" style="margin:10px 0 0">${t("reportPrivacy")}</p>`;
   }
+  // Pictures for the report: shrunk to max 1600 px JPEG so they send quickly
+  let rpFiles = [];
+  function shrinkImage(file) {
+    return new Promise(resolve => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(b => resolve(b ? new File([b], "cs-coach-report-" + (rpFiles.length + 1) + ".jpg", { type: "image/jpeg" }) : file), "image/jpeg", 0.85);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+  function paintPics() {
+    const box = document.getElementById("rpPics"); if (!box) return;
+    box.innerHTML = rpFiles.map((f, i) => `<span class="rp-pic"><img src="${URL.createObjectURL(f)}" alt=""><button type="button" data-rm="${i}" aria-label="${t("reportPicRemove")}">✕</button></span>`).join("");
+    box.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { rpFiles.splice(+b.dataset.rm, 1); paintPics(); });
+    document.getElementById("rpAddWrap").style.display = rpFiles.length >= 3 ? "none" : "";
+  }
   function bindReportPanel() {
     const send = document.getElementById("rpSend");
     if (!send) return;
-    send.onclick = () => {
+    paintPics();
+    document.getElementById("rpFile").onchange = async e => {
+      for (const f of [...e.target.files].slice(0, 3 - rpFiles.length)) if (f.type.startsWith("image/")) rpFiles.push(await shrinkImage(f));
+      e.target.value = "";
+      paintPics();
+    };
+    send.onclick = async () => {
       const msg = document.getElementById("rpMsg").value.trim();
       if (!msg) { toast(t("reportEmpty")); return document.getElementById("rpMsg").focus(); }
       const type = document.getElementById("rpType").value;
@@ -586,7 +617,17 @@
         "\nInstalled as app: " + (IN && IN.isStandalone() ? "yes" : "no") +
         "\nScreen: " + screen.width + "x" + screen.height +
         "\nDevice: " + navigator.userAgent +
-        "\n\n(You can attach a screenshot to this email.)";
+        (rpFiles.length ? "" : "\n\n(You can attach a screenshot to this email.)");
+      if (rpFiles.length && navigator.canShare && navigator.canShare({ files: rpFiles })) {
+        try { await navigator.clipboard.writeText(REPORT_EMAIL); } catch (_) {}
+        toast(t("reportShareHint", { e: REPORT_EMAIL }));
+        try {
+          await navigator.share({ title: subject, text: "To: " + REPORT_EMAIL + "\n" + subject + "\n\n" + body, files: rpFiles });
+          rpFiles = []; paintPics(); document.getElementById("rpMsg").value = "";
+        } catch (err) { if (err && err.name !== "AbortError") toast(t("reportAttachManual")); }
+        return;
+      }
+      if (rpFiles.length) toast(t("reportAttachManual"));
       const url = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
       try { const w = window.open(url, "_top"); if (!w) location.href = url; } catch (_) { location.href = url; }
       toast(t("reportOpened"));

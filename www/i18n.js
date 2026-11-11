@@ -520,6 +520,12 @@
     tourSkip: ["Skip tour", "Laktawan", "Skip tour"],
     tourAgain: ["Take the tour again", "Ulitin ang tour", "Ulitin ang tour"],
     tourAgainDesc: ["A one-minute walkthrough of the app's main features.", "Isang minutong paglilibot sa mga pangunahing bahagi ng app.", "Isang minutong walkthrough ng main features ng app."],
+    // v24: report pictures
+    reportPic: ["Picture (optional)", "Larawan (opsiyonal)", "Picture (optional)"],
+    reportPicBtn: ["Attach a screenshot or photo", "Maglakip ng screenshot o larawan", "Mag-attach ng screenshot o picture"],
+    reportPicRemove: ["Remove picture", "Alisin ang larawan", "Alisin ang picture"],
+    reportShareHint: ["Choose your email app (e.g. Gmail). The address {e} is copied: paste it in “To”.", "Piliin ang email app (hal. Gmail). Nakopya ang address na {e}: i-paste ito sa “To”.", "Piliin ang email app mo (e.g. Gmail). Na-copy ang address na {e}: i-paste sa “To”."],
+    reportAttachManual: ["Your email app will open. Please attach the picture there before sending.", "Bubukas ang email app. Ilakip doon ang larawan bago ipadala.", "Bubukas ang email app mo. I-attach doon ang picture bago i-send."],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 
