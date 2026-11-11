@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.26.0";
+  const APP_VERSION = "1.27.0";
   const REPORT_EMAIL = "sharematerials2026@gmail.com";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
@@ -274,7 +274,8 @@
 
   // ---------- navigation ----------
   let onBack = null;
-  let tab = "learn";
+  const HOME = "practice";   // the home tab (Learn now lives inside Settings)
+  let tab = HOME;
   function setBack(fn) { onBack = fn; backBtn.classList.toggle("hidden", !fn); ensureGuard(); }
 
   // ---------- Phone back button / back gesture ----------
@@ -285,7 +286,7 @@
   const modalOpen = () => document.querySelector(".modal-bg");
   const chatIsOpen = () => !!(window.CoachUI && window.CoachUI.isOpen && window.CoachUI.isOpen());
   const tourOpen = () => document.querySelector(".tour");
-  const canGoBack = () => !!(tourOpen() || modalOpen() || chatIsOpen() || onBack || (profile && tab !== "learn"));
+  const canGoBack = () => !!(tourOpen() || modalOpen() || chatIsOpen() || onBack || (profile && tab !== HOME));
   // Chrome skips history entries a page adds without a user tap, so only add one
   // while the user is interacting (right after a tap/click/keypress).
   const userActive = () => !navigator.userActivation || navigator.userActivation.isActive;
@@ -303,7 +304,9 @@
     else if (m) m.remove();
     else if (chatIsOpen()) window.CoachUI.close();
     else if (onBack) onBack();
-    else if (profile && tab !== "learn") openTab("learn");
+    else if (profile && tab === "settings" && settingsDirty()) guardLeave(() => openTab(HOME));
+    else if (profile && tab === "learn") openTab("settings");
+    else if (profile && tab !== HOME) openTab(HOME);
     else { try { window.history.back(); } catch (_) {} return; }   // nothing left: leave the app
     setTimeout(ensureGuard, 0);
   });
@@ -319,13 +322,14 @@
   }
   function paintTabbar() {
     tabbar.querySelectorAll("[data-tab]").forEach(b => {
-      b.classList.toggle("active", b.dataset.tab === tab);
-      b.querySelector(".tab-label").textContent = t({ learn: "tabLearn", practice: "tabPractice", chat: "tabChat", calendar: "tabCalendar", analytics: "tabAnalytics" }[b.dataset.tab]);
+      b.classList.toggle("active", b.dataset.tab === (tab === "learn" ? "settings" : tab));
+      b.querySelector(".tab-label").textContent = t({ learn: "tabLearn", practice: "tabPractice", chat: "tabChat", calendar: "tabCalendar", analytics: "tabAnalytics", settings: "tabSettings" }[b.dataset.tab]);
       if (b.dataset.tab === "chat") { b.classList.remove("active"); const ico = b.querySelector(".tab-ico"); if (window.Pet && Pet.avatar && !ico.dataset.char) { ico.innerHTML = Pet.avatar(); ico.dataset.char = "1"; } }
     });
   }
   tabbar.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
     if (b.dataset.tab === "chat") return window.CoachUI && window.CoachUI.toggle();
+    if (tab === "settings" && settingsDirty()) return guardLeave(() => openTab(b.dataset.tab));
     openTab(b.dataset.tab);
   }));
   // refresh the chat tab's face when the character changes
@@ -337,8 +341,8 @@
     session = null;
     paintTabbar(); showTabbar(true);
     setTimeout(ensureGuard, 0);
-    settingsBtn.classList.remove("hidden");
     if (tab === "learn") renderLearn();
+    else if (tab === "settings") renderSettings(false);
     else if (tab === "analytics") renderAnalytics();
     else if (tab === "calendar") renderCalendar();
     else renderPractice();
@@ -402,9 +406,9 @@
 
   function renderSettings(firstRun, draft) {
     // Leaving with unsaved changes asks first
-    setBack(firstRun ? null : () => guardLeave(goHome));
-    showTabbar(false);
-    settingsBtn.classList.toggle("hidden", !!firstRun);
+    setBack(null);
+    if (firstRun) showTabbar(false);
+    else { tab = "settings"; paintTabbar(); showTabbar(true); }
     const p = draft || profile || { name: "", instant: false, examDate: "", pet: true, lang: "en", dailyGoal: 20, petChar: "sprout", petName: "Kiko" };
     I.setLang(p.lang || "en");
     I.petName = (p.petName || "Kiko").trim() || "Kiko";
@@ -417,6 +421,11 @@
     app.innerHTML = `
       <h2>${firstRun ? t("welcome") : t("settings")}</h2>
       <p class="sub">${firstRun ? t("setupSub") : t("settingsSub")}</p>
+      ${firstRun ? "" : `
+        <button class="learn-card" id="openLearn" type="button">
+          <span class="lc-ico">📖</span>
+          <span class="lc-txt"><b>${t("learnTitle")}</b><small>${t("learnCardDesc")}</small></span><span>→</span>
+        </button>`}
       <form id="setupForm" class="${firstRun ? "panel" : "settings-form"}">
         ${sec("profile", "👤", t("secProfile"), esc((p.name ? p.name + " · " : "") + I.names[p.lang || "en"]), `
           <div class="field-label">${t("language")}</div>
@@ -513,11 +522,13 @@
     document.getElementById("setupForm").addEventListener("submit", e => {
       e.preventDefault();
       saveSettingsNow();
-      openTab(firstRun ? "learn" : tab);
+      openTab(firstRun ? HOME : "settings");
       if (firstRun) setTimeout(startTour, 500);
       else toast(t("settingsSaved"));
     });
     app.querySelectorAll("details.set-sec").forEach(d => d.addEventListener("toggle", () => { d.open ? openSecs.add(d.dataset.sec) : openSecs.delete(d.dataset.sec); }));
+    const ol = document.getElementById("openLearn");
+    if (ol) ol.onclick = () => settingsDirty() ? guardLeave(() => openTab("learn")) : openTab("learn");
     const tb = document.getElementById("tourBtn"); if (tb) tb.onclick = () => { if (settingsDirty()) return guardLeave(startTour); startTour(); };
     if (!firstRun) { bindAiPanel(); bindBackupPanel(); bindReportPanel(); bindDonatePanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
     const reset = document.getElementById("resetBtn");
@@ -919,26 +930,24 @@
   }
   // show the banner on Learn at most once every 3 days until installed
   const showInstallBanner = () => IN && !IN.isStandalone() && Date.now() - (store.get("cscoach.installLater", 0) || 0) > 3 * DAY;
-  if (IN) IN.onChange(() => { if (!session && tab === "learn" && document.getElementById("recLesson") !== undefined && !document.querySelector(".modal-bg")) { const slot = document.getElementById("installSlot"); if (slot) { slot.innerHTML = showInstallBanner() ? installHtml(true) : ""; bindInstall(slot, () => openTab("learn")); } } });
+  if (IN) IN.onChange(() => { if (!session && tab === HOME && !document.querySelector(".modal-bg")) { const slot = document.getElementById("installSlot"); if (slot) { slot.innerHTML = showInstallBanner() ? installHtml(true) : ""; bindInstall(slot, () => openTab(HOME)); } } });
 
 
   // ---------- Guided tour (first visit; replay from Settings) ----------
   // Each step spotlights one element (or shows a centered card) with a speech bubble from the buddy.
   const TOUR = [
     { sel: null, k: "tour1" },
-    { sel: '.tabbar [data-tab="learn"]', k: "tour2" },
-    { sel: "#recLesson", k: "tour3" },
     { sel: '.tabbar [data-tab="practice"]', k: "tour4" },
+    { sel: '.tabbar [data-tab="analytics"]', k: "tour7" },
     { sel: ".tabbar .tab-chat", k: "tour5" },
     { sel: '.tabbar [data-tab="calendar"]', k: "tour6" },
-    { sel: '.tabbar [data-tab="analytics"]', k: "tour7" },
-    { sel: "#settingsBtn", k: "tour8" },
+    { sel: '.tabbar [data-tab="settings"]', k: "tour8" },
     { sel: null, k: "tour9" }
   ];
   let tourStep = 0, tourEl = null;
   function startTour() {
     if (tourOpen()) return;
-    openTab("learn");
+    openTab(HOME);
     tourStep = 0;
     tourEl = document.createElement("div");
     tourEl.className = "tour";
@@ -1011,12 +1020,11 @@
   }
 
   function renderLearn() {
-    setBack(null);
+    setBack(() => openTab("settings"));
     const rec = recommendedLesson();
     app.innerHTML = `
       <h2>📖 ${t("learnTitle")}</h2>
       <p class="sub">${t("learnSub")}</p>
-      <div id="installSlot">${showInstallBanner() ? installHtml(true) : ""}</div>
       ${rec ? `
         <button class="rec-card" id="recLesson">
           <span class="rec-kicker">${t("recommendedLesson")} · ${impLabel(rec.imp)}</span>
@@ -1043,7 +1051,7 @@
       </div>
     `;
     document.getElementById("wordBank").onclick = renderWordBank;
-    bindInstall(app, () => openTab("learn"));
+
     const rc = document.getElementById("recLesson");
     if (rc) rc.addEventListener("click", () => renderLesson(rec.sid, LESSONS[rec.sid].indexOf(rec)));
     app.querySelectorAll("[data-sid]").forEach(b => b.addEventListener("click", () => renderLessonList(b.dataset.sid)));
@@ -1213,6 +1221,7 @@
     app.innerHTML = `
       <h2>${profile && profile.name ? t("hi", { name: esc(profile.name) }) : ""}${t("chooseSubject")}</h2>
       <p class="sub">${t("homeSub", { n: ROUND_SIZE, p: PASSING })}</p>
+      <div id="installSlot">${showInstallBanner() ? installHtml(true) : ""}</div>
       <div class="mode-chip">${profile.instant ? t("modePracticeChip") : t("modeExamChip")} · <button class="link" id="changeMode">${t("change")}</button></div>
       <div class="grid">
         <button class="card mock" data-id="mock">
@@ -1253,7 +1262,8 @@
       <p class="note">🔄 ${t("rotationNote")}</p>
       <p class="note">${t("disclaimer")}</p>
     `;
-    document.getElementById("changeMode").addEventListener("click", () => renderSettings(false));
+    document.getElementById("changeMode").addEventListener("click", () => { openSecs.add("quiz"); openTab("settings"); });
+    bindInstall(app, () => openTab(HOME));
     app.querySelectorAll(".card").forEach(btn => btn.addEventListener("click", () => {
       const id = btn.dataset.id;
       if (id === "mock") return startMock();
@@ -2200,7 +2210,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
 
   if (!profile) renderSettings(true);
   else {
-    openTab("learn");
+    openTab(HOME);
     if (window.Pet && Pet.setMode) Pet.setMode(profile.petMode || (profile.pet === false ? "home" : "still")); else pet().setVisible(profile.pet !== false);
     const lastExport = store.get("cscoach.lastExport", 0);
     const remind = history.length >= 5 && Date.now() - lastExport > 14 * DAY;

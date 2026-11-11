@@ -512,7 +512,7 @@
     tour7t: ["📊 Analytics", "📊 Analytics", "📊 Analytics"],
     tour7: ["See your accuracy per subject, your score trend, and the topics you should review.", "Tingnan ang katumpakan bawat asignatura, takbo ng iskor, at mga paksang dapat balikan.", "Makikita mo ang accuracy per subject, score trend, at topics na dapat i-review."],
     tour8t: ["⚙️ Settings", "⚙️ Mga Setting", "⚙️ Settings"],
-    tour8: ["Change your language, connect a free AI key, choose your buddy, and download backups of your progress.", "Palitan ang wika, ikonekta ang libreng AI key, piliin ang buddy, at mag-download ng backup ng progreso.", "Palitan ang language, i-connect ang free AI key, piliin ang buddy mo, at mag-download ng backup."],
+    tour8: ["Lessons live here too (📖 Learn), plus your language, free AI key, buddy, and backups.", "Nandito rin ang mga aralin (📖 Aralin), pati ang wika, libreng AI key, buddy, at backup.", "Nandito rin ang lessons (📖 Learn), pati language, free AI key, buddy mo, at backups."],
     tour9t: ["💡 Two handy tricks", "💡 Dalawang teknik", "💡 Two handy tricks"],
     tour9: ["Long-press any word to see its meaning and Tagalog. Stuck on a question? Tap 💡 for a hint and a similar example. Good luck{name}! 🍀", "Pindutin nang matagal ang anumang salita para sa kahulugan at salin. Nahihirapan? Pindutin ang 💡 para sa pahiwatig at katulad na halimbawa. Good luck{name}! 🍀", "I-long-press ang kahit anong word para sa meaning at Tagalog. Stuck? I-tap ang 💡 para sa hint at similar example. Good luck{name}! 🍀"],
     tourStart: ["Show me", "Ipakita mo", "Show me"],
@@ -537,6 +537,9 @@
     donQr: ["Save or screenshot this QR, then use “Pay QR” in your app.", "I-save o i-screenshot ang QR na ito, saka gamitin ang “Pay QR” sa app.", "I-save o i-screenshot ang QR, tapos gamitin ang “Pay QR” sa app mo."],
     donSteps: ["How: tap Copy number → open your GCash or Maya app → Send Money → paste the number → enter any amount.", "Paano: pindutin ang Kopyahin → buksan ang GCash o Maya → Send Money → i-paste ang numero → ilagay ang kahit anong halaga.", "Paano: i-tap ang Copy number → buksan ang GCash o Maya → Send Money → i-paste ang number → ilagay ang kahit anong amount."],
     donChat: ["💚 CS Coach is free! If it's helping you prepare, any amount via GCash or Maya is appreciated: it keeps the app going. Salamat!", "💚 Libre ang CS Coach! Kung nakatutulong ito sa paghahanda mo, malaking bagay ang kahit anong halaga sa GCash o Maya para magpatuloy ang app. Salamat!", "💚 Libre ang CS Coach! Kung nakakatulong ito sa review mo, any amount via GCash o Maya is appreciated para tuloy-tuloy ang app. Salamat!"],
+    // v27: Settings tab, Learn inside Settings
+    tabSettings: ["Settings", "Setting", "Settings"],
+    learnCardDesc: ["Step-by-step lessons for every official exam topic, plus the Word Bank", "Hakbang-hakbang na aralin sa bawat opisyal na paksa, at ang Bangko ng Salita", "Step-by-step lessons sa bawat official topic, pati Word Bank"],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 
