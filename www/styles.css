@@ -860,3 +860,4 @@ textarea.input { resize: vertical; font: inherit; font-size: 16px; line-height: 
 .learn-card.soon { background: #e5e7eb; color: var(--muted); box-shadow: none; cursor: not-allowed; filter: grayscale(1); margin-bottom: 16px; }
 .learn-card.soon .lc-txt b { color: var(--ink); opacity: .7; }
 .soon-badge { flex: none; font-size: .72rem; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: var(--white); color: var(--muted); border: 1px solid var(--line); }
+.card.ai-card { grid-column: 1 / -1; }

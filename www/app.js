@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.27.1";
+  const APP_VERSION = "1.27.2";
   const REPORT_EMAIL = "sharematerials2026@gmail.com";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
@@ -1229,26 +1229,6 @@
       <div id="installSlot">${showInstallBanner() ? installHtml(true) : ""}</div>
       <div class="mode-chip">${profile.instant ? t("modePracticeChip") : t("modeExamChip")} · <button class="link" id="changeMode">${t("change")}</button></div>
       <div class="grid">
-        <button class="card mock" data-id="mock">
-          <span class="ico">📝</span>
-          <h3>${t("mockTitle")}</h3>
-          <p>${t("mockDesc", { n: MOCK_SIZE })}</p>
-          <div class="meta"><span class="badge">${t("items", { n: MOCK_SIZE })}</span><span>${best.mock != null ? t("best", { p: best.mock }) : t("notTaken")}</span></div>
-        </button>
-        ${reviewQs().length ? `
-          <button class="card starred-card" data-id="review">
-            <span class="ico">🎯</span>
-            <h3>${t("reviewTitle")}</h3>
-            <p>${t("reviewDesc")}</p>
-            <div class="meta"><span class="badge blue">${t("reviewCounts", { m: mistakeIds().length, s: starred.size })}</span></div>
-          </button>` : ""}
-        ${aiReady() ? `
-          <button class="card ai-card" data-id="ai">
-            <span class="ico">✨</span>
-            <h3>${t("aiTitle")}</h3>
-            <p>${t("aiDesc")}</p>
-            <div class="meta"><span class="badge">${t("aiCount", { n: aiBank.length })}</span></div>
-          </button>` : ""}
         ${a.subjects.map(x => {
           const s = SUBJECTS.find(y => y.id === x.id), tr = sn(s);
           return `
@@ -1263,6 +1243,26 @@
             </div>
           </button>`;
         }).join("")}
+        ${reviewQs().length ? `
+          <button class="card starred-card" data-id="review">
+            <span class="ico">🎯</span>
+            <h3>${t("reviewTitle")}</h3>
+            <p>${t("reviewDesc")}</p>
+            <div class="meta"><span class="badge blue">${t("reviewCounts", { m: mistakeIds().length, s: starred.size })}</span></div>
+          </button>` : ""}
+        <button class="card mock" data-id="mock">
+          <span class="ico">📝</span>
+          <h3>${t("mockTitle")}</h3>
+          <p>${t("mockDesc", { n: MOCK_SIZE })}</p>
+          <div class="meta"><span class="badge">${t("items", { n: MOCK_SIZE })}</span><span>${best.mock != null ? t("best", { p: best.mock }) : t("notTaken")}</span></div>
+        </button>
+        ${aiReady() ? `
+          <button class="card ai-card" data-id="ai">
+            <span class="ico">✨</span>
+            <h3>${t("aiTitle")}</h3>
+            <p>${t("aiDesc")}</p>
+            <div class="meta"><span class="badge">${t("aiCount", { n: aiBank.length })}</span></div>
+          </button>` : ""}
       </div>
       <p class="note">🔄 ${t("rotationNote")}</p>
       <p class="note">${t("disclaimer")}</p>
