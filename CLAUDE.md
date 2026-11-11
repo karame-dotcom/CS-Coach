@@ -2,21 +2,31 @@
 
 ## Daily routine
 
-When I say "eod" or "good night":
-1. Make sure the project builds (or for a skill, runs) successfully.
-2. Write .claude/session-handoff.md with: what we finished, files changed,
-   decisions made, anything unfinished or buggy, and the next step.
-   Include the current branch name.
-3. Commit everything and push this branch.
-4. Tell me in 2-3 lines what we did and whether this branch is ready
-   to merge into main.
+Each task has its own short name (for example: chat-language).
 
-When I say "good morning":
-1. Read .claude/session-handoff.md. If it isn't on this branch, check
-   the most recently pushed branches for it and tell me which branch
-   has it and whether I should switch.
-2. Summarize where we left off and the next step in 2-3 lines.
-3. Wait for me to say go before making changes.
+When I say "good night" or "eod":
+1. Make sure the project builds successfully.
+2. Write .claude/handoffs/<task-name>.md with: what we finished, files
+   changed, decisions made, anything unfinished or buggy, the next step,
+   and the branch name.
+3. Commit and push this branch.
+4. Tell me in 2-3 lines what we did and whether it's ready to merge
+   into main.
+
+When I say "good morning <task-name>":
+1. Find .claude/handoffs/<task-name>.md on its branch and switch to
+   that branch.
+2. Check whether main has new changes since; if so, bring them in first.
+3. Summarize where we left off and the next step in 2-3 lines, then
+   wait for me to say go.
+
+When I say "new task <task-name>":
+1. Start a new branch from the latest main.
+2. Ask me what the task is before making changes.
+
+When I say "done <task-name>":
+1. Make sure it builds, then open a pull request into main.
+2. Delete .claude/handoffs/<task-name>.md in that pull request.
 
 ## Safety rules
 
