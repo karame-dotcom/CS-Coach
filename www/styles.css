@@ -861,3 +861,35 @@ textarea.input { resize: vertical; font: inherit; font-size: 16px; line-height: 
 .learn-card.soon .lc-txt b { color: var(--ink); opacity: .7; }
 .soon-badge { flex: none; font-size: .72rem; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: var(--white); color: var(--muted); border: 1px solid var(--line); }
 .card.ai-card { grid-column: 1 / -1; }
+
+/* ===== v33: friendly "chat with your smartest friend" look (chat first) ===== */
+:root { --chat-blue: #1f5cf5; --chat-blue-dark: #1442b8; --chat-bg: #eef4ff; --chat-line: #cfdcf7; --chat-ink: #1b2a4e; }
+.coach-panel, .coach-panel button, .coach-panel textarea { font-family: "Nunito", ui-rounded, "Segoe UI", system-ui, sans-serif; }
+.coach-panel { background: var(--chat-bg); border-radius: 26px; color: var(--chat-ink); }
+.coach-head { background: var(--chat-blue); padding: 14px 16px 22px; position: relative; }
+.coach-head::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 12px; background: radial-gradient(circle at 12px 0, var(--chat-blue) 11px, transparent 12px) 0 0 / 24px 12px repeat-x; transform: translateY(100%); }
+.coach-head b { font-size: 1.15rem; font-weight: 900; }
+.coach-head span { font-weight: 700; opacity: .9; }
+.coach-avatar { width: 48px; height: 48px; border-radius: 16px; box-shadow: 0 3px 0 rgba(0,0,0,.18); }
+.coach-x { background: rgba(255,255,255,.22); border-radius: 50%; }
+.coach-msgs { background: var(--chat-bg); padding: 22px 14px 14px; gap: 14px; }
+.cmsg { font-size: 1rem; font-weight: 600; line-height: 1.5; border-radius: 22px; padding: 12px 16px; max-width: 92%; }
+.cmsg.bot { background: #fff; border: 2px solid var(--chat-line); border-bottom-left-radius: 22px; color: var(--chat-ink); }
+.cmsg.user { background: var(--chat-blue); border-bottom-right-radius: 8px; box-shadow: 0 3px 0 var(--chat-blue-dark); font-weight: 700; }
+.chead { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.cav { width: 28px; height: 28px; border-radius: 50%; background: var(--chat-bg); overflow: hidden; display: grid; place-items: center; flex: none; }
+.cav .kiko-mini { width: 28px; height: 28px; }
+.cname { color: var(--chat-blue); font-weight: 900; font-size: .95rem; }
+.cmsg b { font-weight: 900; }
+.cbtn { background: var(--chat-blue); box-shadow: 0 3px 0 var(--chat-blue-dark); font-weight: 800; padding: 8px 14px; }
+.cbtn + .cbtn { background: #fff; color: var(--chat-blue); border: 2px solid var(--chat-line); box-shadow: 0 3px 0 var(--chat-line); }
+.coach-chips { border-top: 2px solid var(--chat-line); background: #fff; padding: 10px; gap: 8px; }
+.chip-q { border: 0; background: var(--chat-bg); color: var(--chat-ink); font: inherit; font-weight: 800; font-size: .88rem; padding: 9px 14px; border-radius: 999px; white-space: nowrap; cursor: pointer; }
+.coach-input { background: #fff; padding: 10px 12px 12px; border-top: 2px solid var(--chat-line); }
+.coach-chips + .coach-input { border-top: 0; padding-top: 2px; }
+.coach-input textarea { background: var(--chat-bg); border: 2px solid var(--chat-line); border-radius: 24px; font-weight: 600; color: var(--chat-ink); }
+.coach-input textarea:focus { border-color: var(--chat-blue); }
+.coach-input button { background: var(--chat-blue); width: 48px; height: 44px; border-radius: 16px; box-shadow: 0 3px 0 var(--chat-blue-dark); }
+.typing i { background: var(--chat-blue); }
+.tabbar .tab-chat .tab-ico { background: var(--chat-blue); box-shadow: 0 4px 0 var(--chat-blue-dark); }
+.tabbar .tab-chat .tab-label { color: var(--chat-blue); font-weight: 900; }

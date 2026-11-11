@@ -1,7 +1,7 @@
 // CS Coach: floating AI coach chat.
 // Uses Claude via the artifact `sample` capability when available; otherwise a
 // built-in coach that reasons over your local analytics. Built-in replies follow
-// the language chosen in Settings; AI replies are always short, savage Taglish.
+// the language chosen in Settings; AI replies are always short, friendly Taglish.
 (function () {
   "use strict";
   const A = () => window.CSApp;
@@ -106,10 +106,12 @@
   if (vv) { vv.addEventListener("resize", fitPanel); vv.addEventListener("scroll", fitPanel); }
   window.addEventListener("resize", fitPanel);
 
+  // every Kiko message gets the rounded avatar + name on top, like a chat with a friend
+  const botHead = () => `<div class="chead"><span class="cav">${window.Pet && window.Pet.avatar ? window.Pet.avatar() : "🌱"}</span><span class="cname">${esc((window.I18N && window.I18N.petName) || "Kiko")}</span></div>`;
   function addMsg(role, html, text) {
     const div = document.createElement("div");
     div.className = "cmsg " + role;
-    div.innerHTML = html;
+    div.innerHTML = role === "bot" ? botHead() + `<div class="cbody">${html}</div>` : html;
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
     if (text !== undefined) transcript.push({ role, text });
@@ -328,14 +330,13 @@
       } : null,
       today: new Date().toDateString()
     };
-    const instructions = `You are Kiko, the student's savage best friend (barkada) and study buddy inside CS Coach, a reviewer app for the Philippine Civil Service Exam (Professional level, passing rate 80%). Subjects: Verbal Ability (English and Filipino), Numerical Ability, Analytical Ability, General Information (1987 Constitution, RA 6713, peace and human rights, environment).
-LANGUAGE: Always reply in casual Taglish, like texting a close Filipino friend (e.g. "ay nako", "edi wag", "charot", "lol").
-PERSONALITY: Sarcastic, savage roasting, the way close friends tease each other. Example: student says "ayoko mag-aral" → "Edi wag, try mo na lang ulit next life 😂". Roast their excuses and laziness, then nudge them back to studying. Never insult their looks, family, or intelligence, and no slurs or swearing at them.
-EXCEPTION: if the student sounds truly hopeless, close to giving up, very stressed, sad, or burnt out (not just lazy), drop the sarcasm for that reply and be genuinely kind and encouraging, still short.
+    const instructions = `You are Kiko, the student's smartest friend and study bestie inside CS Coach, a reviewer app for the Philippine Civil Service Exam (Professional level, passing rate 80%). Subjects: Verbal Ability (English and Filipino), Numerical Ability, Analytical Ability, General Information (1987 Constitution, RA 6713, peace and human rights, environment).
+LANGUAGE: Reply in casual, natural Taglish, like texting a close friend who happens to be really good at this stuff.
+PERSONALITY: Warm, playful, upbeat and chill. It should feel like chatting, never like studying or being tested. Celebrate small wins, tease lightly and kindly only when it fits (e.g. "ayy bitin, isa pa?"), never shame, roast, or lecture. If they sound tired, stressed, sad or ready to quit, be extra gentle and encouraging.
 LENGTH: 1-2 short sentences, like a chat message, not an essay. Use 1-2 emojis per message. No headings. Use a short bullet list only when actually giving a list (e.g. a study plan or targets); keep each bullet a few words.
-Use the student's analytics below when relevant: roast or praise them with real numbers (weak/strong subjects, accuracy, streak, days left before the exam). Mention the "Mistakes & Starred" review set when they have mistakes. The app has tabs: Practice, Analytics, Kiko (chat), Calendar, Settings.
+Use the student's analytics below when relevant: mention real numbers (weak/strong subjects, accuracy, streak, days left before the exam). Mention the "Mistakes & Starred" review set when they have mistakes. The app has tabs: Practice, Analytics, Kiko (chat), Calendar, Settings.
 IMPORTANT: if currentQuestion.answerRevealed is false, NEVER reveal or hint at which choice is correct. Only coach the method. If it is true, you may explain the answer.
-EXPLAIN FORMAT: when the student asks you to explain, says they don't get it (e.g. "hindi ko gets", "di ko maintindihan", "bakit", "paano", "explain further"), or asks about currentQuestion, give a short step-by-step: one quick sassy line, then at most 3 numbered steps (one short sentence each) showing how to get the answer, then one line starting with "💡 Trick:" for similar questions. Under 80 words. If they answered wrong, point out where they went off. If answerRevealed is false, stop right before naming the correct choice.
+EXPLAIN FORMAT: when the student asks you to explain, says they don't get it (e.g. "hindi ko gets", "di ko maintindihan", "bakit", "paano", "explain further"), or asks about currentQuestion, give a short step-by-step: one quick friendly line, then at most 3 numbered steps (one short sentence each) showing how to get the answer, then one line starting with "💡 Trick:" for similar questions. Under 80 words. If they answered wrong, point out where they went off. If answerRevealed is false, stop right before naming the correct choice.
 Do not claim the app's questions are actual past CSC exam questions; they are practice items.
 
 APP DATA (JSON):
@@ -352,11 +353,11 @@ ${JSON.stringify(context)}`;
     if (wantExplain && merged.length) merged[merged.length - 1].content += "\n(Please use the EXPLAIN FORMAT for currentQuestion.)";
     const bubble = addMsg("bot", `<span class="typing"><i></i><i></i><i></i></span>`);
     try {
-      const res = await sample(merged, { cache: false, onText: ({ text }) => { bubble.innerHTML = mdLite(text); msgs.scrollTop = msgs.scrollHeight; } });
-      bubble.innerHTML = mdLite(res.text);
+      const res = await sample(merged, { cache: false, onText: ({ text }) => { bubble.querySelector(".cbody").innerHTML = mdLite(text); msgs.scrollTop = msgs.scrollHeight; } });
+      bubble.querySelector(".cbody").innerHTML = mdLite(res.text);
       transcript.push({ role: "bot", text: res.text });
       const r = ranked(a)[0];
-      bubble.insertAdjacentHTML("beforeend", `<div class="cacts">${btn("s:" + r.id, t("practiceNow", { i: SUB(r.id).icon }))}${btn("mock", t("mockBtn"))}</div>`);
+      bubble.querySelector(".cbody").insertAdjacentHTML("beforeend", `<div class="cacts">${btn("s:" + r.id, t("practiceNow", { i: SUB(r.id).icon }))}${btn("mock", t("mockBtn"))}</div>`);
       bubble.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => act(b.dataset.act)));
     } catch (e) {
       bubble.remove();
