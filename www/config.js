@@ -7,8 +7,8 @@ window.CS_AI_ENDPOINT = "";
 // Donations (Settings → Support CS Coach). The section stays hidden until a number is set.
 // These values are public: anyone can read them in the website's code.
 window.CS_DONATE = {
-  name: "",     // account name shown to donors, e.g. "Karen M."
-  gcash: "",    // GCash number, e.g. "0917 123 4567"
+  name: "KA**N M** I.",   // as shown by GCash on the QR
+  gcash: "0967 610 9767",
   maya: "",     // Maya number (leave empty to hide)
-  qr: ""        // optional QR image file in www/, e.g. "icons/gcash-qr.png"
+  qr: "icons/gcash-qr.png"
 };
