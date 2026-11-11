@@ -128,6 +128,7 @@
       ["Magtanong ka! Ako ang iyong tutor buddy 💬", "Nahihirapan? Pindutin mo ako! 🌱", "Gusto mo ng study plan? Itanong mo! 🗓️", "Sasabihin ko kung ano ang dapat pagtuunan 🎯", "Pindutin mo ako kapag kailangan mo ng tulong 💚"],
       ["Ask me! Tutor buddy mo ako 💬", "Stuck ka? I-tap mo ako! 🌱", "Gusto mo ng study plan? Ask mo ako! 🗓️", "Sasabihin ko kung saan ka mag-focus 🎯", "Tap mo lang ako for help 💚"]
     ],
+    chatClearConfirm: ["Clear your chat with Kiko? This can't be undone.", "Burahin ang usapan ninyo ni Kiko? Hindi na ito maibabalik.", "I-clear ang chat with Kiko? Di na ito maibabalik."],
     askPh: ["Ask Kiko anything…", "Magtanong kay Kiko…", "Ask mo si Kiko kahit ano…"],
     chipAnalyze: ["📊 Analyze my performance", "📊 Suriin ang aking performance", "📊 I-analyze ang performance ko"],
     chipPlan: ["🗓️ Make my study plan", "🗓️ Gawan ako ng study plan", "🗓️ Gawan mo ako ng study plan"],

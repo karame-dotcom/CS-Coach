@@ -18,6 +18,7 @@
     <div class="coach-head">
       <div class="coach-avatar">${window.Pet && window.Pet.avatar ? window.Pet.avatar() : "🌱"}</div>
       <div><b id="coachTitle"></b><span id="coachSub"></span></div>
+      <button class="coach-clear" aria-label="Clear chat">🗑️</button>
       <button class="coach-x" aria-label="Close">✕</button>
     </div>
     <div class="coach-msgs" id="coachMsgs"></div>
@@ -32,6 +33,23 @@
   const input = panel.querySelector("#coachText");
   const transcript = []; // { role, text }
 
+  // Chat history is saved on this device (localStorage "cscoach.chat") so it survives
+  // closing the app. New key only: no existing progress data is read or changed.
+  const CHAT_KEY = "cscoach.chat", CHAT_MAX = 60;
+  let saved = [];   // { role, html, text }
+  function saveChat() {
+    let list = saved.slice(-CHAT_MAX);
+    while (list.length) {
+      try { localStorage.setItem(CHAT_KEY, JSON.stringify(list)); saved = list; return; }
+      catch (_) { list = list.slice(Math.ceil(list.length / 2)); }   // storage full: keep the newer half
+    }
+  }
+  function remember(role, html, text) { saved.push({ role, html, text }); saveChat(); }
+  function clearChat() {
+    msgs.innerHTML = ""; transcript.length = 0; saved = [];
+    try { localStorage.removeItem(CHAT_KEY); } catch (_) {}
+  }
+
   let sample = null;
   let focus = null;   // a specific question the student asked about (e.g. from the review list)
   const ctxQ = () => focus || (A() && A().current());
@@ -45,7 +63,7 @@
     renderChips();
   }
   paintLabels();
-  document.addEventListener("cscoach:lang", () => { paintLabels(); msgs.innerHTML = ""; transcript.length = 0; });
+  document.addEventListener("cscoach:lang", paintLabels);
   document.addEventListener("cscoach:pet", paintLabels);
 
   const connectAI = () => window.CSAI.get().then(s => { sample = s; paintLabels(); }).catch(() => {});
@@ -69,6 +87,10 @@
   const toggle = () => panel.classList.contains("hidden") ? open() : close();
   fab.addEventListener("click", toggle);
   panel.querySelector(".coach-x").addEventListener("click", close);
+  panel.querySelector(".coach-clear").addEventListener("click", () => {
+    if (!msgs.children.length || !window.confirm(t("chatClearConfirm"))) return;
+    clearChat(); greet(); renderChips();
+  });
   // Explain a specific question (from the review list) step by step
   function explain(ctx) {
     focus = ctx;
@@ -112,7 +134,7 @@
     div.innerHTML = html;
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
-    if (text !== undefined) transcript.push({ role, text });
+    if (text !== undefined) { transcript.push({ role, text }); remember(role, html, text); }
     div.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => act(b.dataset.act)));
     return div;
   }
@@ -357,6 +379,7 @@ ${JSON.stringify(context)}`;
       transcript.push({ role: "bot", text: res.text });
       const r = ranked(a)[0];
       bubble.insertAdjacentHTML("beforeend", `<div class="cacts">${btn("s:" + r.id, t("practiceNow", { i: SUB(r.id).icon }))}${btn("mock", t("mockBtn"))}</div>`);
+      remember("bot", bubble.innerHTML, res.text);
       bubble.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => act(b.dataset.act)));
     } catch (e) {
       bubble.remove();
@@ -376,4 +399,13 @@ ${JSON.stringify(context)}`;
     const wants = !!ctxQ() && /explain|gets|maintindihan|paliwanag|bakit|paano|why|how|confus|gulo|step/i.test(text);
     if (sample) askAI(text, wants); else reply(builtIn("text", text));
   }
+
+  // ---------- restore saved chat ----------
+  (function restore() {
+    let list = [];
+    try { list = JSON.parse(localStorage.getItem(CHAT_KEY)) || []; } catch (_) {}
+    if (!Array.isArray(list)) return;
+    list.filter(m => m && (m.role === "user" || m.role === "bot") && typeof m.html === "string" && typeof m.text === "string")
+      .slice(-CHAT_MAX).forEach(m => addMsg(m.role, m.html, m.text));
+  })();
 })();
