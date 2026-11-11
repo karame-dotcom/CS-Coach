@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.24.0";
+  const APP_VERSION = "1.25.0";
   const REPORT_EMAIL = "sharematerials2026@gmail.com";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
@@ -473,6 +473,7 @@
       ${firstRun ? "" : sec("backup", "🛡️", t("backupTitle"), "", backupPanelHtml())}
       ${firstRun ? "" : sec("tour", "🧭", t("tourAgain"), "", `<p class="muted small" style="margin:0 0 10px">${t("tourAgainDesc")}</p><button class="btn" id="tourBtn">${t("tourAgain")}</button>`)}
       ${firstRun ? "" : sec("report", "🐞", t("reportTitle"), t("reportSummary"), reportPanelHtml())}
+      ${firstRun || !hasDonate() ? "" : sec("donate", "💚", t("donTitle"), t("donAny"), donatePanelHtml())}
       ${firstRun ? "" : sec("reset", "🗑️", t("resetProgress"), "", `
           <p class="sub" style="margin:0 0 12px">${t("resetDesc")}</p>
           <button class="btn secondary" id="resetBtn">${t("resetProgress")}</button>`)}
@@ -518,7 +519,7 @@
     });
     app.querySelectorAll("details.set-sec").forEach(d => d.addEventListener("toggle", () => { d.open ? openSecs.add(d.dataset.sec) : openSecs.delete(d.dataset.sec); }));
     const tb = document.getElementById("tourBtn"); if (tb) tb.onclick = () => { if (settingsDirty()) return guardLeave(startTour); startTour(); };
-    if (!firstRun) { bindAiPanel(); bindBackupPanel(); bindReportPanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
+    if (!firstRun) { bindAiPanel(); bindBackupPanel(); bindReportPanel(); bindDonatePanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
     const reset = document.getElementById("resetBtn");
     if (reset) reset.addEventListener("click", () => confirmBox(t("resetConfirm"), t("reset"), () => {
       autoBackup("before-reset");
@@ -858,6 +859,42 @@
     };
     const rm = document.getElementById("aiRemove");
     if (rm) rm.onclick = () => { window.CSAI.setKey(null); toast(t("aiRemoved")); rerender(); };
+  }
+
+
+  // ---------- SUPPORT / DONATIONS (GCash, Maya) ----------
+  const DON = window.CS_DONATE || {};
+  const hasDonate = () => !!(DON.gcash || DON.maya);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  // Android intent: opens the wallet app (or its Play Store page if it isn't installed)
+  const appLink = pkg => `intent://#Intent;package=${pkg};S.browser_fallback_url=${encodeURIComponent("https://play.google.com/store/apps/details?id=" + pkg)};end`;
+  function donatePanelHtml() {
+    const row = (key, label, num, pkg, color) => num ? `
+      <div class="don-row" style="--don:${color}">
+        <div class="don-top"><span class="don-logo">${label}</span><span class="don-num">${esc(num)}</span></div>
+        ${DON.name ? `<div class="muted small">${t("donName")}: <b>${esc(DON.name)}</b></div>` : ""}
+        <div class="backup-btns" style="margin:8px 0 0">
+          <button class="btn secondary" type="button" data-copynum="${esc(num.replace(/\s/g, ""))}">📋 ${t("donCopy")}</button>
+          ${isAndroid ? `<a class="btn" href="${appLink(pkg)}" data-open="${key}">${t("donOpen", { a: label })}</a>` : ""}
+        </div>
+      </div>` : "";
+    return `
+      <p class="sub" style="margin:0 0 10px">${t("donDesc")}</p>
+      <div class="don-note">💚 ${t("donAny")}</div>
+      ${row("gcash", "GCash", DON.gcash, "com.globe.gcash.android", "#0a5bd8")}
+      ${row("maya", "Maya", DON.maya, "com.paymaya", "#0b8a3a")}
+      ${DON.qr ? `<div class="don-qr"><img src="${esc(DON.qr)}" alt="QR"><span class="muted small">${t("donQr")}</span></div>` : ""}
+      <p class="muted small" style="margin:10px 0 0">${t("donSteps")}</p>`;
+  }
+  function bindDonatePanel() {
+    app.querySelectorAll("[data-copynum]").forEach(b => b.onclick = async () => {
+      try { await navigator.clipboard.writeText(b.dataset.copynum); toast(t("donCopied")); } catch (_) { toast(b.dataset.copynum); }
+    });
+    app.querySelectorAll("[data-open]").forEach(a => a.addEventListener("click", async () => {
+      // copy the number first, so it's ready to paste in Send Money
+      const n = a.closest(".don-row").querySelector("[data-copynum]").dataset.copynum;
+      try { await navigator.clipboard.writeText(n); } catch (_) {}
+    }));
   }
 
   // ---------- Install on phone ----------

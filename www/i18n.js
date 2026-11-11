@@ -526,6 +526,16 @@
     reportPicRemove: ["Remove picture", "Alisin ang larawan", "Alisin ang picture"],
     reportShareHint: ["Choose your email app (e.g. Gmail). The address {e} is copied: paste it in “To”.", "Piliin ang email app (hal. Gmail). Nakopya ang address na {e}: i-paste ito sa “To”.", "Piliin ang email app mo (e.g. Gmail). Na-copy ang address na {e}: i-paste sa “To”."],
     reportAttachManual: ["Your email app will open. Please attach the picture there before sending.", "Bubukas ang email app. Ilakip doon ang larawan bago ipadala.", "Bubukas ang email app mo. I-attach doon ang picture bago i-send."],
+    // v25: donations
+    donTitle: ["Support CS Coach", "Suportahan ang CS Coach", "Support CS Coach"],
+    donDesc: ["CS Coach is free. If it helps you, you can send a small donation through GCash or Maya to keep it going.", "Libre ang CS Coach. Kung nakatulong ito sa iyo, maaari kang magpadala ng maliit na donasyon sa GCash o Maya para magpatuloy ito.", "Libre ang CS Coach. Kung nakatulong ito sa'yo, pwede kang mag-send ng small donation via GCash o Maya para tuloy-tuloy ito."],
+    donAny: ["Any amount is appreciated. Salamat!", "Malaking tulong ang kahit anong halaga. Salamat!", "Any amount is appreciated. Salamat!"],
+    donName: ["Account name", "Pangalan sa account", "Account name"],
+    donCopy: ["Copy number", "Kopyahin ang numero", "Copy number"],
+    donCopied: ["Number copied ✓ Paste it in Send Money.", "Nakopya ang numero ✓ I-paste sa Send Money.", "Na-copy ang number ✓ I-paste sa Send Money."],
+    donOpen: ["Open {a}", "Buksan ang {a}", "Open {a}"],
+    donQr: ["Save or screenshot this QR, then use “Pay QR” in your app.", "I-save o i-screenshot ang QR na ito, saka gamitin ang “Pay QR” sa app.", "I-save o i-screenshot ang QR, tapos gamitin ang “Pay QR” sa app mo."],
+    donSteps: ["How: tap Copy number → open your GCash or Maya app → Send Money → paste the number → enter any amount.", "Paano: pindutin ang Kopyahin → buksan ang GCash o Maya → Send Money → i-paste ang numero → ilagay ang kahit anong halaga.", "Paano: i-tap ang Copy number → buksan ang GCash o Maya → Send Money → i-paste ang number → ilagay ang kahit anong amount."],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 
