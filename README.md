@@ -20,6 +20,7 @@ A study coach for the **Civil Service Exam (Professional level)**. It runs in an
 - Per-subject analytics (accuracy and progress) saved on the device
 - **AI Coach** floating chat: analyzes your stats, finds weak subjects, and builds a daily study plan around your exam date. Uses Claude when the page runs as a claude.ai artifact; otherwise a built-in coach answers from your local analytics
 - **Kiko**, an animated study buddy that wanders, cheers when you get it right and cries with you when you miss (in Exam mode it reacts to your final score so answers stay hidden)
+- **Report a problem** (Settings → 🐞): testers pick a type (wrong answer, bug, suggestion, other) and describe it; their email app opens with the report addressed to sharematerials2026@gmail.com, including the app version and phone type
 - Green, blue and white theme; works on phones and can be installed as an app (PWA)
 
 > The CSC does not publish actual exam questions. The bank in `www/questions.js` contains practice items modeled on the official exam coverage. Add more by following the same format: `{ q, c: [choices], a: correctIndex, e: explanation, h: coaching hint }`.

@@ -829,3 +829,4 @@ body.no-pet:not(.has-tabbar) .coach-fab { display: flex !important; }
 .tour-gap { flex: 1; }
 .tour-btns .btn { flex: none; min-width: 0; padding: 10px 16px; }
 body.touring .pet-wrap { display: none; }
+textarea.input { resize: vertical; font: inherit; font-size: 16px; line-height: 1.4; }

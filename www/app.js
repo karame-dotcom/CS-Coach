@@ -81,7 +81,8 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.22.0";
+  const APP_VERSION = "1.23.0";
+  const REPORT_EMAIL = "sharematerials2026@gmail.com";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
     const data = {};
@@ -471,6 +472,7 @@
       ${firstRun ? "" : (IN ? sec("install", "📲", t("installShort"), IN.isStandalone() ? t("installedShort") : "", installHtml(false)) : "")}
       ${firstRun ? "" : sec("backup", "🛡️", t("backupTitle"), "", backupPanelHtml())}
       ${firstRun ? "" : sec("tour", "🧭", t("tourAgain"), "", `<p class="muted small" style="margin:0 0 10px">${t("tourAgainDesc")}</p><button class="btn" id="tourBtn">${t("tourAgain")}</button>`)}
+      ${firstRun ? "" : sec("report", "🐞", t("reportTitle"), t("reportSummary"), reportPanelHtml())}
       ${firstRun ? "" : sec("reset", "🗑️", t("resetProgress"), "", `
           <p class="sub" style="margin:0 0 12px">${t("resetDesc")}</p>
           <button class="btn secondary" id="resetBtn">${t("resetProgress")}</button>`)}
@@ -516,7 +518,7 @@
     });
     app.querySelectorAll("details.set-sec").forEach(d => d.addEventListener("toggle", () => { d.open ? openSecs.add(d.dataset.sec) : openSecs.delete(d.dataset.sec); }));
     const tb = document.getElementById("tourBtn"); if (tb) tb.onclick = () => { if (settingsDirty()) return guardLeave(startTour); startTour(); };
-    if (!firstRun) { bindAiPanel(); bindBackupPanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
+    if (!firstRun) { bindAiPanel(); bindBackupPanel(); bindReportPanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
     const reset = document.getElementById("resetBtn");
     if (reset) reset.addEventListener("click", () => confirmBox(t("resetConfirm"), t("reset"), () => {
       autoBackup("before-reset");
@@ -555,6 +557,47 @@
     try { const s = JSON.parse(decodeURIComponent(escape(atob(text.trim())))); if (s && s.app === "cs-coach" && s.data) return s; } catch (_) {}
     return null;
   }
+  // ---------- REPORT A PROBLEM (opens the user's email app) ----------
+  function reportPanelHtml() {
+    const opt = (v, k) => `<option value="${v}">${t(k)}</option>`;
+    return `
+      <p class="sub" style="margin:0 0 12px">${t("reportDesc")}</p>
+      <label class="field-label" for="rpType">${t("reportType")}</label>
+      <select id="rpType" class="input">
+        ${opt("Wrong answer", "reportWrong")}${opt("Bug", "reportBug")}${opt("Suggestion", "reportIdea")}${opt("Other", "reportOther")}
+      </select>
+      <label class="field-label" for="rpMsg" style="margin-top:14px">${t("reportMsg")}</label>
+      <textarea id="rpMsg" class="input" rows="5" maxlength="1500" placeholder="${esc(t("reportPh"))}"></textarea>
+      <div class="actions" style="margin-top:12px"><button class="btn" type="button" id="rpSend">${t("reportSend")}</button></div>
+      <p class="muted small" style="margin:12px 0 4px">${t("reportNoApp")} <b>${REPORT_EMAIL}</b></p>
+      <button class="btn secondary" type="button" id="rpCopy">${t("reportCopy")}</button>
+      <p class="muted small" style="margin:10px 0 0">${t("reportPrivacy")}</p>`;
+  }
+  function bindReportPanel() {
+    const send = document.getElementById("rpSend");
+    if (!send) return;
+    send.onclick = () => {
+      const msg = document.getElementById("rpMsg").value.trim();
+      if (!msg) { toast(t("reportEmpty")); return document.getElementById("rpMsg").focus(); }
+      const type = document.getElementById("rpType").value;
+      const subject = "CS Coach " + type + " (v" + APP_VERSION + ")";
+      const body = msg + "\n\n---\nApp: CS Coach v" + APP_VERSION +
+        "\nLanguage: " + I.lang +
+        "\nInstalled as app: " + (IN && IN.isStandalone() ? "yes" : "no") +
+        "\nScreen: " + screen.width + "x" + screen.height +
+        "\nDevice: " + navigator.userAgent +
+        "\n\n(You can attach a screenshot to this email.)";
+      const url = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+      try { const w = window.open(url, "_top"); if (!w) location.href = url; } catch (_) { location.href = url; }
+      toast(t("reportOpened"));
+    };
+    document.getElementById("rpCopy").onclick = () => {
+      const done = () => toast(t("reportCopied"));
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(REPORT_EMAIL).then(done, () => toast(REPORT_EMAIL));
+      else toast(REPORT_EMAIL);
+    };
+  }
+
   function bindBackupPanel() {
     const fileName = () => "cs-coach-backup-" + new Date().toISOString().slice(0, 10) + ".json";
     document.getElementById("bkDownload").onclick = () => {
