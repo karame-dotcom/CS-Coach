@@ -59,7 +59,7 @@
     document.body.classList.add("chat-open");
     if (window.CSBack) window.CSBack();   // phone Back closes the chat
     setTimeout(fitPanel, 0);
-    if (!msgs.children.length) greet();
+    if (!msgs.children.length) { greet(); maybeDonate(); }
     renderChips();
     if (kind) { addMsg("user", esc(chipLabel(kind)), chipLabel(kind)); reply(builtIn(kind)); }
     // On phones don't pop the keyboard right away, so the quick questions stay visible
@@ -116,8 +116,18 @@
     div.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => act(b.dataset.act)));
     return div;
   }
+  // Now and then (max once every 3 days, after a few sessions) remind that donations help
+  function maybeDonate() {
+    const D = A() && A().donate;
+    if (!D || !D.enabled()) return;
+    let last = 0; try { last = +localStorage.getItem("cscoach.donLast") || 0; } catch (_) {}
+    if (Date.now() - last < 3 * 86400000 || A().analytics().sessions < 2) return;
+    try { localStorage.setItem("cscoach.donLast", String(Date.now())); } catch (_) {}
+    setTimeout(() => addMsg("bot", `<div class="don-chat">${t("donChat")}</div><div class="cacts">${btn("donate", "💚 " + t("donTitle"))}</div>`, "donation note"), 900);
+  }
   function act(a) {
     close();
+    if (a === "donate") return A().donate.open();
     if (a.startsWith("lesson:")) return A().openLesson(a.slice(7));
     if (a === "mock") A().startMock();
     else if (a === "starred") A().startStarred();

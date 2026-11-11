@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.25.0";
+  const APP_VERSION = "1.26.0";
   const REPORT_EMAIL = "sharematerials2026@gmail.com";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
@@ -2186,6 +2186,8 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     subjName: id => sn(SUBJECTS.find(s => s.id === id)),
     profile: () => profile,
     startSubject, startMock, startStarred, startReview,
+    // donation reminder for the chat (only when a GCash/Maya number is configured)
+    donate: { enabled: () => hasDonate(), open() { openSecs.add("donate"); renderSettings(false); setTimeout(() => { const d = document.querySelector('details[data-sec="donate"]'); if (d) d.scrollIntoView({ block: "start", behavior: "smooth" }); }, 50); } },
     _similar(id) { const q = byId.get(id), r = q && similarExample(q); return r ? (r.html ? r.q.q : r.q) : null; },
     openLesson(lid) { const l = lessonById.get(lid); if (!l) return; session = null; tab = "learn"; paintTabbar(); showTabbar(true); renderLesson(l.sid, LESSONS[l.sid].indexOf(l), 0); },
     // Current question for the coach. The answer key is included only after it's revealed.

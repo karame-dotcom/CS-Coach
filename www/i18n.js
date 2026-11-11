@@ -536,6 +536,7 @@
     donOpen: ["Open {a}", "Buksan ang {a}", "Open {a}"],
     donQr: ["Save or screenshot this QR, then use “Pay QR” in your app.", "I-save o i-screenshot ang QR na ito, saka gamitin ang “Pay QR” sa app.", "I-save o i-screenshot ang QR, tapos gamitin ang “Pay QR” sa app mo."],
     donSteps: ["How: tap Copy number → open your GCash or Maya app → Send Money → paste the number → enter any amount.", "Paano: pindutin ang Kopyahin → buksan ang GCash o Maya → Send Money → i-paste ang numero → ilagay ang kahit anong halaga.", "Paano: i-tap ang Copy number → buksan ang GCash o Maya → Send Money → i-paste ang number → ilagay ang kahit anong amount."],
+    donChat: ["💚 CS Coach is free! If it's helping you prepare, any amount via GCash or Maya is appreciated: it keeps the app going. Salamat!", "💚 Libre ang CS Coach! Kung nakatutulong ito sa paghahanda mo, malaking bagay ang kahit anong halaga sa GCash o Maya para magpatuloy ang app. Salamat!", "💚 Libre ang CS Coach! Kung nakakatulong ito sa review mo, any amount via GCash o Maya is appreciated para tuloy-tuloy ang app. Salamat!"],
     aiLang: ["Reply in clear, simple English.", "Sumagot sa malinaw at simpleng Tagalog/Filipino (huwag maghalo ng Ingles maliban sa mga teknikal na termino).", "Reply in natural Taglish: a casual mix of Tagalog and English, like a friendly Filipino tutor."]
   };
 
