@@ -33,7 +33,13 @@
   const msgs = panel.querySelector("#coachMsgs");
   const chips = panel.querySelector("#coachChips");
   const input = panel.querySelector("#coachText");
-  const transcript = []; // { role, text }
+  const transcript = []; // { role, text, html }
+  // Chat history is kept on this device so it survives closing the app (new key; no older data to migrate)
+  const KEY = "cscoach.chat.v1", MAX = 60;
+  function saveChat() {
+    try { localStorage.setItem(KEY, JSON.stringify(transcript.slice(-MAX))); } catch (_) {}
+  }
+  function clearChat() { transcript.length = 0; try { localStorage.removeItem(KEY); } catch (_) {} }
 
   let sample = null;
   let focus = null;   // a specific question the student asked about (e.g. from the review list)
@@ -48,7 +54,7 @@
     renderChips();
   }
   paintLabels();
-  document.addEventListener("cscoach:lang", () => { paintLabels(); msgs.innerHTML = ""; transcript.length = 0; });
+  document.addEventListener("cscoach:lang", () => { paintLabels(); msgs.innerHTML = ""; clearChat(); });
   document.addEventListener("cscoach:pet", paintLabels);
 
   const connectAI = () => window.CSAI.get().then(s => { sample = s; paintLabels(); }).catch(() => {});
@@ -131,7 +137,7 @@
     div.innerHTML = role === "bot" ? botHead() + `<div class="cbody">${html}</div>` : html;
     msgs.appendChild(div);
     toEnd();
-    if (text !== undefined) transcript.push({ role, text });
+    if (text !== undefined) { transcript.push({ role, text, html }); saveChat(); }
     div.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => act(b.dataset.act)));
     return div;
   }
@@ -380,9 +386,9 @@ ${JSON.stringify(context)}`;
     try {
       const res = await sample(merged, { cache: false, onText: ({ text }) => { bubble.querySelector(".cbody").innerHTML = mdLite(text); toEnd(); } });
       bubble.querySelector(".cbody").innerHTML = mdLite(res.text);
-      transcript.push({ role: "bot", text: res.text });
       const r = ranked(a)[0];
       bubble.querySelector(".cbody").insertAdjacentHTML("beforeend", `<div class="cacts">${btn("s:" + r.id, t("practiceNow", { i: SUB(r.id).icon }))}${btn("mock", t("mockBtn"))}</div>`);
+      transcript.push({ role: "bot", text: res.text, html: bubble.querySelector(".cbody").innerHTML }); saveChat();
       bubble.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => act(b.dataset.act)));
       toEnd();
     } catch (e) {
@@ -392,6 +398,16 @@ ${JSON.stringify(context)}`;
       reply(builtIn("text", text) + (note ? `<br><span class="muted">${note}</span>` : ""));
     }
   }
+
+  // Restore the saved conversation
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || "[]");
+    if (Array.isArray(saved)) saved.forEach(m => {
+      if (!m || typeof m.html !== "string" || (m.role !== "user" && m.role !== "bot")) return;
+      addMsg(m.role, m.html);
+      transcript.push({ role: m.role, text: m.text, html: m.html });
+    });
+  } catch (_) {}
 
   // The chat box is not a <form>, so browsers don't show their autofill bar (passwords, cards, addresses)
   function send() {
