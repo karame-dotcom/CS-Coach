@@ -326,6 +326,8 @@
     reviewDesc: ["Practice questions you got wrong and ones you starred.", "Sanayin ang mga namaling tanong at mga naka-star.", "I-practice ang mga namali mo at mga ni-star mo."],
     reviewBtn: ["🎯 Practice mistakes & starred questions ({n})", "🎯 Sanayin ang mga mali at naka-star ({n})", "🎯 Practice mistakes & starred questions ({n})"],
     reviewCounts: ["{m} mistakes · {s} starred", "{m} mali · {s} naka-star", "{m} mistakes · {s} starred"],
+    reviewPick: ["Which subject do you want to focus on?", "Anong subject ang gusto mong pagtuunan?", "Anong subject ang gusto mong i-focus?"],
+    reviewAll: ["All subjects", "Lahat ng subject", "All subjects"],
     reviewEmpty: ["No mistakes or stars yet. Clean slate! 🎉", "Wala pang mali o star. Malinis pa! 🎉", "Wala pang mistakes o stars. Clean slate! 🎉"],
     recycled: ["You've seen every question here this month, so a few repeats are included. Try AI questions for fresh ones! ✨", "Nakita mo na ang lahat ng tanong dito ngayong buwan, kaya may ilang inulit. Subukan ang AI questions para sa bago! ✨", "Nakita mo na lahat ng questions dito this month, kaya may konting repeats. Try mo ang AI questions para sa bago! ✨"],
     freshLeft: ["{n} fresh this month", "{n} bago ngayong buwan", "{n} fresh this month"],
