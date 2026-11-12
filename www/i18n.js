@@ -57,6 +57,7 @@
     disclaimer: ["ℹ️ These are practice questions written to match the coverage and format of the CSC Professional exam. The Civil Service Commission does not publish actual exam questions.", "ℹ️ Ang mga ito ay mga tanong-pagsasanay na isinulat ayon sa saklaw at anyo ng CSC Professional exam. Hindi inilalathala ng Civil Service Commission ang aktuwal na mga tanong sa eksamen.", "ℹ️ Practice questions ang mga ito na ginawa base sa coverage at format ng CSC Professional exam. Hindi nire-release ng Civil Service Commission ang actual exam questions."],
 
     // quiz
+    timerBtnTitle: ["Turn the speed timer on or off", "I-on o i-off ang speed timer", "I-on o i-off ang speed timer"],
     timerLabel: ["Speed timer", "Speed timer", "Speed timer"],
     timerOff: ["No timer", "Walang timer", "No timer"],
     timerOffDesc: ["Take your time. No clock.", "Walang oras. Dahan-dahan lang.", "Take your time. Walang clock."],

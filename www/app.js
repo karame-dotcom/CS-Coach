@@ -1857,6 +1857,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
         <div class="qrow">
           <div class="qtools">
             <button class="tool icon ${isStar ? "on" : ""}" id="starBtn" aria-pressed="${isStar}" aria-label="${t("star")}" title="${t("starTitle")}">${isStar ? "★" : "☆"}</button>
+            <button class="tool icon clock ${S.timer !== "off" ? "on" : ""}" id="clockBtn" aria-pressed="${S.timer !== "off"}" aria-label="${t("timerLabel")}" title="${t("timerBtnTitle")}">⏱</button>
             <button class="tool icon help" id="helpBtn" aria-label="${t("helpMe")}" title="${t("helpTitle")}">💡</button>
             ${mixed ? `<span class="qsubject">${subjectOf(q).icon} ${esc(sn(subjectOf(q)).short)}</span>` : ""}
             ${q.ai ? `<span class="ai-badge" title="${esc(t("aiCaution"))}">✨ ${t("aiBadge")}</span>` : ""}
@@ -1914,6 +1915,14 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
       saveStars(); renderQuestion(false);
     });
     document.getElementById("helpBtn").addEventListener("click", () => showHelp(q));
+    document.getElementById("clockBtn").addEventListener("click", () => {
+      if (S.timer === "off") {   // start the clock now, using the Settings choice (per-question if Settings says no timer)
+        S.timer = (profile && profile.timer && profile.timer !== "off") ? profile.timer : "question";
+        S.qTime.fill(0); S.total = 0; S.lastTs = Date.now(); S.warned = false;
+        S.timerId = setInterval(() => tmTick(S), 250);
+      } else { tmFlush(S); clearInterval(S.timerId); S.timer = "off"; }
+      renderQuestion(false);
+    });
     const ub = document.getElementById("unsureBtn");
     if (ub) ub.addEventListener("click", () => {
       S.unsure.has(idx) ? S.unsure.delete(idx) : (S.unsure.add(idx), pet().say(t("petUnsure")));
