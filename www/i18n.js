@@ -327,6 +327,8 @@
     reviewBtn: ["🎯 Practice mistakes & starred questions ({n})", "🎯 Sanayin ang mga mali at naka-star ({n})", "🎯 Practice mistakes & starred questions ({n})"],
     reviewCounts: ["{m} mistakes · {s} starred", "{m} mali · {s} naka-star", "{m} mistakes · {s} starred"],
     mistakesTitle: ["Mistakes", "Mga Mali", "Mistakes"],
+    mistakesDesc: ["Questions you last got wrong.", "Mga tanong na huli mong namali.", "Questions na huli mong namali."],
+    starredDesc: ["Questions you starred to revisit.", "Mga tanong na ni-star mo para balikan.", "Questions na ni-star mo para balikan."],
     howMany: ["How many questions?", "Ilang tanong?", "Ilang questions?"],
     reviewPick: ["Which subject do you want to focus on?", "Anong subject ang gusto mong pagtuunan?", "Anong subject ang gusto mong i-focus?"],
     reviewAll: ["All subjects", "Lahat ng subject", "All subjects"],

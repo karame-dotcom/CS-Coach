@@ -1102,3 +1102,4 @@ body.chat-full .tabbar button.active:not(.tab-chat) .tab-ico { background: none;
 .cel-xp { font-family: var(--chat-display, inherit); font-weight: 800; font-size: 1.4rem; margin-top: 6px; }
 .cel-rank { margin-top: 4px; font-weight: 800; color: var(--blue); } .cel-rank.down { color: var(--wrong); }
 @media (max-width: 400px) { .topbar .tagline { display: none; } .rk-txt b { max-width: 64px; } }
+.set-num.plain, .set-item .set-num.plain { background: none; border-radius: 0; font-size: 1.6rem; }
