@@ -115,12 +115,14 @@
 
   // every Kiko message gets the rounded avatar + name on top, like a chat with a friend
   const botHead = () => `<div class="chead"><span class="cav">${window.Pet && window.Pet.avatar ? window.Pet.avatar() : "🌱"}</span><span class="cname">${esc((window.I18N && window.I18N.petName) || "Kiko")}</span></div>`;
+  // keep the newest message (and its buttons) fully visible above the input, even after fonts/images settle
+  const toEnd = () => { msgs.scrollTop = msgs.scrollHeight; requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 120); }); };
   function addMsg(role, html, text) {
     const div = document.createElement("div");
     div.className = "cmsg " + role;
     div.innerHTML = role === "bot" ? botHead() + `<div class="cbody">${html}</div>` : html;
     msgs.appendChild(div);
-    msgs.scrollTop = msgs.scrollHeight;
+    toEnd();
     if (text !== undefined) transcript.push({ role, text });
     div.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => act(b.dataset.act)));
     return div;
@@ -165,6 +167,7 @@
       typing.remove();
       addMsg("bot", html, html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
       renderChips();
+      toEnd();
     }, 450);
   }
 
@@ -367,12 +370,13 @@ ${JSON.stringify(context)}`;
     if (wantExplain && merged.length) merged[merged.length - 1].content += "\n(Please use the EXPLAIN FORMAT for currentQuestion.)";
     const bubble = addMsg("bot", `<span class="typing"><i></i><i></i><i></i></span>`);
     try {
-      const res = await sample(merged, { cache: false, onText: ({ text }) => { bubble.querySelector(".cbody").innerHTML = mdLite(text); msgs.scrollTop = msgs.scrollHeight; } });
+      const res = await sample(merged, { cache: false, onText: ({ text }) => { bubble.querySelector(".cbody").innerHTML = mdLite(text); toEnd(); } });
       bubble.querySelector(".cbody").innerHTML = mdLite(res.text);
       transcript.push({ role: "bot", text: res.text });
       const r = ranked(a)[0];
       bubble.querySelector(".cbody").insertAdjacentHTML("beforeend", `<div class="cacts">${btn("s:" + r.id, t("practiceNow", { i: SUB(r.id).icon }))}${btn("mock", t("mockBtn"))}</div>`);
       bubble.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => act(b.dataset.act)));
+      toEnd();
     } catch (e) {
       bubble.remove();
       if (e && e.code === "not_granted") { sample = null; paintLabels(); }
