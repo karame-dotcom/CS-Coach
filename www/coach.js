@@ -39,7 +39,6 @@
   function saveChat() {
     try { localStorage.setItem(KEY, JSON.stringify(transcript.slice(-MAX))); } catch (_) {}
   }
-  function clearChat() { transcript.length = 0; try { localStorage.removeItem(KEY); } catch (_) {} }
 
   let sample = null;
   let focus = null;   // a specific question the student asked about (e.g. from the review list)
@@ -54,7 +53,8 @@
     renderChips();
   }
   paintLabels();
-  document.addEventListener("cscoach:lang", () => { paintLabels(); msgs.innerHTML = ""; clearChat(); });
+  // Language changes only repaint the labels; the saved chat history is kept
+  document.addEventListener("cscoach:lang", paintLabels);
   document.addEventListener("cscoach:pet", paintLabels);
 
   const connectAI = () => window.CSAI.get().then(s => { sample = s; paintLabels(); }).catch(() => {});
