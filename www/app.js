@@ -3,6 +3,7 @@
 
   const PASSING = 80;          // CSC passing rate for the Professional level
   const MOCK_SIZE = 30;
+  const SEC_Q = 72;             // target seconds per question (3 hours for 150 items)
   const ROUND_SIZE = 10;       // questions per subject round
   const COOLDOWN_DAYS = 30;    // an answered question won't come back for this long
   const DAY = 86400000;
@@ -81,7 +82,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.29.5";
+  const APP_VERSION = "1.30.0";
   const REPORT_EMAIL = "sharematerials2026@gmail.com";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
@@ -262,10 +263,19 @@
       const ok = ans === q.a ? 1 : 0;
       const st = stats[q.id] || (stats[q.id] = { n: 0, c: 0, last: 0 });
       st.n++; st.c += ok; st.last = ok; st.t = Date.now();
+      if (S.timer && S.timer !== "off") {   // optional speed fields (older saves simply don't have them)
+        const ms = S.qTime[i], slow = ms > SEC_Q * 1000 ? 1 : 0;
+        st.tn = (st.tn || 0) + 1; st.ts = (st.ts || 0) + Math.round(ms / 1000); st.sl = (st.sl || 0) + slow; st.slast = slow;
+      }
     });
     const correct = S.items.filter((q, i) => S.answers[i] === q.a).length;
     const answered = S.answers.filter(a => a !== null).length;
-    history.push({ t: Date.now(), key: S.key, title: S.title, total: S.items.length, answered, correct, pct: Math.round(correct / S.items.length * 100) });
+    const rec = { t: Date.now(), key: S.key, title: S.title, total: S.items.length, answered, correct, pct: Math.round(correct / S.items.length * 100) };
+    if (S.timer && S.timer !== "off") {
+      rec.timer = S.timer; rec.secs = Math.round(S.total / 1000); rec.avg = Math.round(S.total / 1000 / Math.max(1, answered));
+      rec.slow = S.qTime.filter(ms => ms > SEC_Q * 1000).length; if (S.timedOut) rec.timedOut = 1;
+    }
+    history.push(rec);
     history = history.slice(-100);
     store.set("cscoach.stats", stats); store.set("cscoach.history", history);
     const b = store.get("cscoach.backups", []);
@@ -396,7 +406,7 @@
     });
   }
   const CHAR_KEYS = { sprout: "charSprout", kitty: "charKitty", bunny: "charBunny", puppy: "charPuppy", chick: "charChick" };
-  const settingsSnap = p => JSON.stringify({ name: p.name || "", instant: !!p.instant, examDate: p.examDate || "", pet: p.pet !== false, lang: p.lang || "en", dailyGoal: +p.dailyGoal || 20, petChar: p.petChar || "sprout", petName: p.petName || "Kiko", petMode: p.petMode || (p.pet === false ? "home" : "still") });
+  const settingsSnap = p => JSON.stringify({ name: p.name || "", instant: !!p.instant, examDate: p.examDate || "", pet: p.pet !== false, lang: p.lang || "en", dailyGoal: +p.dailyGoal || 20, timer: p.timer || "off", petChar: p.petChar || "sprout", petName: p.petName || "Kiko", petMode: p.petMode || (p.pet === false ? "home" : "still") });
 
   // Settings sections are collapsible (tap the header). Open sections stay open on re-render.
   const openSecs = new Set();
@@ -437,7 +447,7 @@
           <label class="field-label" for="name" style="margin-top:18px">${t("yourName")}</label>
           <input id="name" class="input" type="text" maxlength="40" placeholder="${t("namePh")}" value="${esc(p.name || "")}" autocomplete="given-name" />`, firstRun)}
 
-        ${sec("quiz", "📝", t("secQuiz"), esc((p.instant ? t("practiceMode") : t("examMode")) + (p.examDate ? " · " + p.examDate : "") + " · " + (p.dailyGoal || 20) + "/" + t("perDay")), `
+        ${sec("quiz", "📝", t("secQuiz"), esc((p.instant ? t("practiceMode") : t("examMode")) + (p.examDate ? " · " + p.examDate : "") + " · " + (p.dailyGoal || 20) + "/" + t("perDay") + (p.timer === "question" ? " · ⏱ " + t("timerSumQ") : p.timer === "set" ? " · ⏱ " + t("timerSumSet") : "")), `
           ${firstRun ? "" : `
           <button class="learn-card ${LESSONS_ON ? "" : "soon"}" id="openLearn" type="button" ${LESSONS_ON ? "" : `disabled aria-disabled="true"`}>
             <span class="lc-ico">📖</span>
@@ -459,7 +469,12 @@
           <input id="examDate" class="input" type="date" value="${esc(p.examDate || "")}" />
           <p class="muted small" style="margin:6px 0 0">${t("examDateNote")}</p>
           <label class="field-label" for="dailyGoal" style="margin-top:18px">${t("dailyGoal")}</label>
-          <input id="dailyGoal" class="input" type="number" min="5" max="200" step="5" value="${esc(p.dailyGoal || 20)}" />`, firstRun)}
+          <input id="dailyGoal" class="input" type="number" min="5" max="200" step="5" value="${esc(p.dailyGoal || 20)}" />
+          <div class="field-label" style="margin-top:18px">⏱ ${t("timerLabel")}</div>
+          <select id="timerSel" class="input" aria-label="${t("timerLabel")}">
+            ${[["off", "timerOff"], ["question", "timerQ"], ["set", "timerSet"]].map(([v, n]) => `<option value="${v}" ${(p.timer || "off") === v ? "selected" : ""}>${t(n)}</option>`).join("")}
+          </select>
+          <p class="muted small" id="timerDesc" style="margin:6px 0 0">${t({ off: "timerOffDesc", question: "timerQDesc", set: "timerSetDesc" }[p.timer || "off"], { s: SEC_Q })}</p>`, firstRun)}
 
         ${sec("buddy", "🐾", t("buddySection"), esc((p.petName || "Kiko") + " · " + t(CHAR_KEYS[p.petChar || "sprout"]) + " · " + t({ home: "petModeHome", still: "petModeStill", walk: "petModeWalk" }[p.petMode || (p.pet === false ? "home" : "still")])), `
           <div class="muted small" style="margin-bottom:8px">${t("buddyChar")}</div>
@@ -497,6 +512,7 @@
       name: document.getElementById("name").value.trim(),
       instant: app.querySelector("input[name=mode]:checked").value === "instant",
       examDate: document.getElementById("examDate").value,
+      timer: (document.getElementById("timerSel") || {}).value || "off",
       petMode: (app.querySelector("input[name=petMode]:checked") || {}).value || "still",
       pet: ((app.querySelector("input[name=petMode]:checked") || {}).value || "still") !== "home",
       lang: app.querySelector("input[name=lang]:checked").value,
@@ -507,6 +523,8 @@
     });
     // Re-render immediately in the chosen language / character (live preview)
     app.querySelectorAll("input[name=lang], input[name=petChar]").forEach(r => r.addEventListener("change", () => { const y = window.scrollY; renderSettings(firstRun, read()); window.scrollTo(0, y); }));
+    const tsel = document.getElementById("timerSel");
+    tsel.addEventListener("change", () => { document.getElementById("timerDesc").textContent = t({ off: "timerOffDesc", question: "timerQDesc", set: "timerSetDesc" }[tsel.value], { s: SEC_Q }); });
     // Track unsaved changes
     const saved = settingsSnap(profile || {});
     const badge = document.getElementById("unsavedBadge");
@@ -1255,7 +1273,7 @@
           <span class="ico">📝</span>
           <h3>${t("mockTitle")}</h3>
           <p>${t("mockDesc", { n: MOCK_SIZE })}</p>
-          <div class="meta"><span class="badge">${t("items", { n: MOCK_SIZE })}</span><span>${best.mock != null ? t("best", { p: best.mock }) : t("notTaken")}</span></div>
+          <div class="meta"><span class="badge">${t("items", { n: MOCK_SIZE })}</span><span>${best.mock != null ? t("best", { p: best.mock }) : t("notTaken")}${best["mock:t"] != null ? " · ⏱ " + best["mock:t"] + "%" : ""}</span></div>
         </button>
         ${aiReady() ? `
           <button class="card ai-card" data-id="ai">
@@ -1535,6 +1553,30 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   }
 
   // ---------- ANALYTICS tab ----------
+  // Questions that were slow the last time they were answered under a timer
+  const slowQs = () => Object.keys(stats).filter(id => stats[id].slast === 1).map(id => byId.get(id)).filter(Boolean);
+  function speedPanel() {
+    const timedH = history.filter(h => h.timer);
+    if (!timedH.length) return `<div class="panel"><div class="chart-title">${t("tmSpeedTitle")}</div><p class="muted small">${t("tmSpeedNone")}</p></div>`;
+    const avg = Math.round(timedH.reduce((a, h) => a + h.avg, 0) / timedH.length), last = timedH[timedH.length - 1].avg;
+    const slow = slowQs();
+    const subj = SUBJECTS.map(s => {
+      let n = 0, sec = 0; s.questions.forEach(q => { const st = stats[q.id]; if (st && st.tn) { n += st.tn; sec += st.ts; } });
+      return { s, avg: n ? Math.round(sec / n) : null };
+    }).filter(x => x.avg != null).sort((a, b) => b.avg - a.avg);
+    return `<div class="panel">
+      <div class="chart-title">${t("tmSpeedTitle")}</div>
+      <div class="chart-sub">${t("tmSpeedSub", { g: SEC_Q })}</div>
+      <div class="tm-grid">
+        <div class="${avg > SEC_Q ? "slow" : "fast"}"><b>${avg}s</b><span>${t("tmAvgTile")}</span></div>
+        <div class="${last > SEC_Q ? "slow" : "fast"}"><b>${last}s</b><span>${t("tmAvgL")} · last</span></div>
+        <div class="${slow.length ? "slow" : "fast"}"><b>${slow.length}</b><span>${t("tmSlowL")}</span></div>
+      </div>
+      ${subj.length ? `<div class="topic-list">${subj.map(x => `<div class="topic-row"><span class="topic-name">${x.s.icon} ${esc(sn(x.s).short)}</span><span class="badge ${x.avg > SEC_Q ? "blue" : ""}">${t("tmAvgSubj", { s: x.avg })}</span></div>`).join("")}</div>` : ""}
+      ${slow.length ? `<div class="actions"><button class="btn blue" id="speedDrill">${t("tmDrill", { n: Math.min(30, slow.length) })}</button></div>` : ""}
+    </div>`;
+  }
+
   function renderAnalytics() {
     setBack(null);
     const a = analytics();
@@ -1588,6 +1630,8 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
         <div class="chart-sub">${t("scoreTrendSub", { n: recent.length })}</div>
         <div class="line-chart" id="trendChart"></div>
       </div>` : ""}
+
+      ${speedPanel()}
 
       <div class="panel">
         <div class="chart-title">${t("weakTopics")}</div>
@@ -1644,6 +1688,8 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
       renderLesson(sid, LESSONS[sid].findIndex(l => l.id === lid));
     }));
     document.getElementById("askCoach").addEventListener("click", () => window.CoachUI && window.CoachUI.open("plan"));
+    const sd = document.getElementById("speedDrill");
+    if (sd) sd.onclick = () => { const qs = slowQs(); if (qs.length) startSession("speed", t("tmDrillTitle"), qs.slice(0, 30), () => openTab("analytics"), false, "question"); };
     const rt = document.getElementById("reviewTop");
     if (rt) rt.addEventListener("click", () => startReview(() => openTab("analytics")));
     document.getElementById("practiceReview").addEventListener("click", () => startReview(() => openTab("analytics")));
@@ -1688,10 +1734,52 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   // ---------- quiz session ----------
   let session = null;
 
-  function startSession(key, title, questions, exitTo, keepOrder) {
+  // ---------- speed timer ----------
+  // Off / per-question (72 s target, keeps counting when over) / per-set (72 s x items, auto-submits).
+  const pad2 = n => String(n).padStart(2, "0");
+  const fmtClock = ms => { const s = Math.max(0, Math.round(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? h + ":" + pad2(m) + ":" + pad2(s % 60) : m + ":" + pad2(s % 60); };
+  const fmtDur = sec => { sec = Math.max(0, Math.round(sec)); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? h + "h " + (m ? m + "m" : "") : m ? m + "m " + (sec % 60 ? sec % 60 + "s" : "") : sec + "s"; };
+  function tmFlush(S) {
+    if (!S || !S.timer || S.done) return;
+    const n = Date.now();
+    if (S.lastTs) {
+      const d = n - S.lastTs; S.total += d;
+      if (!(S.instant && S.answers[S.idx] !== null)) S.qTime[S.idx] += d;   // clock stops on an answered instant-mode item
+    }
+    S.lastTs = document.hidden ? null : n;   // paused while the app is in the background
+  }
+  document.addEventListener("visibilitychange", () => { if (session && session.timer && !session.done) tmFlush(session); });
+  // The clock is a bar that drains (no digits, so the numbers don't distract). Empty/over turns red.
+  function tmPaint() {
+    const S = session, el = document.getElementById("tmBar");
+    if (!el || !S || !S.timer) return;
+    const total = S.timer === "set" ? S.limit : SEC_Q * 1000;
+    const left = total - (S.timer === "set" ? S.total : S.qTime[S.idx]);
+    const frac = Math.max(0, Math.min(1, left / total));
+    el.className = "tm-bar " + (left <= 0 ? "bad" : frac <= 0.2 ? "low" : "ok");
+    el.querySelector(".tm-fill").style.width = (left <= 0 ? 100 : frac * 100) + "%";
+    el.setAttribute("aria-valuenow", Math.round(frac * 100));
+  }
+  function tmTick(S) {
+    if (session !== S || S.done) { clearInterval(S.timerId); return; }
+    tmFlush(S);
+    if (S.timer === "set") {
+      if (!S.warned && S.limit > 120000 && S.limit - S.total <= 60000) { S.warned = true; toast(t("tmWarn1")); }
+      if (S.total >= S.limit) {
+        clearInterval(S.timerId);
+        document.querySelectorAll(".modal-bg").forEach(m => m.remove());
+        S.timedOut = true; renderResults(); return;
+      }
+    }
+    tmPaint();
+  }
+
+  function startSession(key, title, questions, exitTo, keepOrder, timerOver) {
     const list = keepOrder ? questions : shuffle(questions);
+    const timer = timerOver || (profile && profile.timer) || "off";
     session = {
       key, title, exitTo,
+      timer, timerOver, qTime: new Array(list.length).fill(0), total: 0, limit: list.length * SEC_Q * 1000, lastTs: Date.now(),
       items: list.map(prepare),
       idx: 0,
       answers: new Array(list.length).fill(null),
@@ -1703,6 +1791,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     showTabbar(false);
     pet().setBusy && pet().setBusy(true);
     renderQuestion(true);
+    if (session.timer !== "off") { const S = session; S.timerId = setInterval(() => tmTick(S), 250); }
   }
 
   function leaveSession() {
@@ -1725,7 +1814,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   function goTo(i) {
     if (!session || session.done) return;
     if (i < 0 || i >= session.items.length) return;
-    session.idx = i; renderQuestion(true);
+    tmFlush(session); session.idx = i; renderQuestion(true);
   }
   function goNext() {
     if (session.idx === session.items.length - 1) openSubmit(); else goTo(session.idx + 1);
@@ -1744,6 +1833,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
 
     app.innerHTML = `
       <div class="quiz-sticky" id="quizSticky">
+      ${S.timer !== "off" ? `<div class="tm-bar ok" id="tmBar" role="progressbar" aria-label="${t("timerLabel")}" aria-valuemin="0" aria-valuemax="100"><div class="tm-fill"></div></div>` : ""}
       <div class="quiz-head">
         <div>
           <div class="quiz-title">${esc(S.title)}</div>
@@ -1808,6 +1898,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     app.querySelectorAll(".choice").forEach(b => b.addEventListener("click", () => {
       const i = +b.dataset.i;
       if (locked) return;
+      tmFlush(S);
       const was = S.answers[idx];
       S.answers[idx] = (!S.instant && was === i) ? null : i;   // tap again to clear (exam mode)
       if (S.instant) {
@@ -1844,6 +1935,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
         if (Math.abs(dx) > 70 && Math.abs(dy) < 45) dx < 0 ? goNext() : goTo(idx - 1);
       }, { passive: true });
     });
+    tmPaint();
     fitSticky();
 
     // Keep the current number visible in the one-line overview
@@ -1983,7 +2075,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
         <button class="btn" data-submit>${unanswered.length ? t("submitAnyway") : t("submit")}</button>
       </div>
     `, (w, close) => {
-      w.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { close(); S.idx = +b.dataset.go; renderQuestion(true); });
+      w.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { close(); tmFlush(S); S.idx = +b.dataset.go; renderQuestion(true); });
       w.querySelector("[data-back]").onclick = close;
       w.querySelector("[data-submit]").onclick = () => { close(); renderResults(); };
     });
@@ -1992,7 +2084,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
 
   // ---------- Score celebration pop-up ----------
   // ≥ passing: fireworks + dancing buddy · 60–79: sparkles + happy bounce · < 60: hearts + encouragement
-  function celebrate(pct, correct, total) {
+  function celebrate(pct, correct, total, tm) {
     const tier = pct >= PASSING ? "good" : pct >= 60 ? "mid" : "low";
     const name = profile && profile.name ? ", " + esc(profile.name) : "";
     // how many rounds just before this one landed in the same tier (history already includes this round)
@@ -2009,6 +2101,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
         <div class="cel-kiko ${tier === "low" ? "cheerup" : "happy"} ${tier === "good" ? "dance" : "bounce"}">${kiko}</div>
         <div class="cel-ring" style="--p:0"><div><span class="cel-num"><span id="celPct">0</span>%</span></div></div>
         <div class="cel-count">${t("celCorrect", { c: correct, n: total })}</div>
+        ${tm ? `<div class="cel-time">${t("tmUsed", { used: fmtDur(tm.used), limit: fmtDur(tm.allowed) })}<br>${t("tmAvg", { s: tm.avg, g: SEC_Q })}</div>` : ""}
         <h2 class="cel-title">${title}</h2>
         <p class="cel-text">${text}</p>
         <div class="actions"><button class="btn" data-see>${t("celSee")}</button></div>
@@ -2081,12 +2174,14 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   // ---------- results & review ----------
   function renderResults(filter) {
     const S = session;
+    const timed = S.timer && S.timer !== "off";
+    if (timed) { tmFlush(S); clearInterval(S.timerId); if (S.timedOut) S.total = Math.min(S.total, S.limit); }
     S.done = true;
     pet().setBusy && pet().setBusy(false);
     setBack(S.exitTo || goHome);
     const rows = S.items.map((q, i) => {
-      const ans = S.answers[i];
-      return { i, q, ans, status: ans === null ? "unanswered" : (ans === q.a ? "correct" : "wrong"), unsure: S.unsure.has(i) };
+      const ans = S.answers[i], ms = timed ? S.qTime[i] : 0;
+      return { i, q, ans, ms, slow: timed && ms > SEC_Q * 1000, status: ans === null ? "unanswered" : (ans === q.a ? "correct" : "wrong"), unsure: S.unsure.has(i) };
     });
     const score = rows.filter(r => r.status === "correct").length;
     const pct = Math.round(score / rows.length * 100);
@@ -2096,16 +2191,28 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
       wrong: rows.filter(r => r.status === "wrong").length,
       unanswered: rows.filter(r => r.status === "unanswered").length,
       unsure: rows.filter(r => r.unsure).length,
-      starred: rows.filter(r => starred.has(r.q.id)).length
+      starred: rows.filter(r => starred.has(r.q.id)).length,
+      slow: rows.filter(r => r.slow).length
     };
+    const answeredN = rows.length - counts.unanswered;
+    const tm = timed ? {
+      used: Math.round(S.total / 1000), allowed: S.timer === "set" ? Math.round(S.limit / 1000) : rows.length * SEC_Q,
+      avg: Math.round(S.total / 1000 / Math.max(1, answeredN))
+    } : null;
     const missed = rows.filter(r => r.status !== "correct");
 
     if (!S.saved) {
       S.saved = true;
       recordSession(S);
-      setTimeout(() => celebrate(pct, counts.correct, rows.length), 250);
-      const saveable = !S.key.endsWith(":retry") && !["starred", "review"].includes(S.key) && !S.key.startsWith("ai:");
-      if (saveable && (best[S.key] == null || pct > best[S.key])) { best[S.key] = pct; store.set("cscoach.best", best); }
+      const saveable = !S.key.endsWith(":retry") && !["starred", "review", "speed"].includes(S.key) && !S.key.startsWith("ai:");
+      if (saveable && timed) {   // timed results keep their own bests, so a timed run never replaces the untimed best
+        const kt = S.key + ":t", ks = S.key + ":spd";
+        if (best[kt] == null || pct > best[kt]) best[kt] = pct;
+        if (answeredN >= Math.ceil(rows.length / 2) && (best[ks] == null || tm.avg < best[ks])) best[ks] = tm.avg;
+        store.set("cscoach.best", best);
+      } else if (saveable && (best[S.key] == null || pct > best[S.key])) { best[S.key] = pct; store.set("cscoach.best", best); }
+      S.bestT = timed ? { pct: best[S.key + ":t"], spd: best[S.key + ":spd"] } : null;
+      setTimeout(() => celebrate(pct, counts.correct, rows.length, tm), 250);
     }
 
     filter = filter || "all";
@@ -2113,11 +2220,25 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
       filter === "all" ? true :
       filter === "unsure" ? r.unsure :
       filter === "starred" ? starred.has(r.q.id) :
+      filter === "slow" ? r.slow :
       r.status === filter);
 
     const tabBtn = (id, label) => counts[id] || id === "all"
       ? `<button class="tab ${filter === id ? "active" : ""}" data-f="${id}">${label} <span>${counts[id]}</span></button>` : "";
-    const statusLabel = { correct: "✅ " + t("correct"), wrong: "❌ " + t("wrong"), unanswered: "⭕ " + t("unanswered") };
+    const statusLabel = { correct: "✅ " + t("correct"), wrong: "❌ " + t("wrong"), unanswered: "⭕ " + t("unanswered") + (S.timedOut ? " · " + t("tmRanOut") : "") };
+    const bT = S.bestT || {};
+    const timeBlock = tm ? `
+        <div class="tm-result">
+          <div class="chart-title">${t("tmResTitle")}${S.timedOut ? ` <span class="badge blue">${t("tmRanOut")}</span>` : ""}</div>
+          <div class="tm-grid">
+            <div><b>${fmtDur(tm.used)}</b><span>${t("tmTimeUsed")}</span></div>
+            <div><b>${fmtDur(tm.allowed)}</b><span>${t("tmAllowed")}</span></div>
+            <div class="${tm.avg > SEC_Q ? "slow" : "fast"}"><b>${tm.avg}s</b><span>${t("tmAvgL")}</span></div>
+            <div class="${counts.slow ? "slow" : "fast"}"><b>${counts.slow}</b><span>${t("tmSlowL")}</span></div>
+          </div>
+          ${S.timedOut ? `<p class="muted small">${t("tmTimedOut")}</p>` : ""}
+          <p class="muted small">${bT.pct != null ? t("tmBestTimed", { p: bT.pct }) : ""}${bT.pct != null && bT.spd != null ? " · " : ""}${bT.spd != null ? t("tmBestSpeed", { s: bT.spd }) : ""}</p>
+        </div>` : "";
     const isSubjectRound = SUBJECTS.some(x => x.id === S.key);
 
     app.innerHTML = `
@@ -2132,6 +2253,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
           <span class="no">❌ ${t("nWrong", { n: counts.wrong })}</span>
           ${counts.unanswered ? `<span>⭕ ${t("nUnanswered", { n: counts.unanswered })}</span>` : ""}
         </div>
+        ${timeBlock}
         <div class="actions">
           ${missed.length ? `<button class="btn" id="retryWrong">${t("retryMissed", { n: missed.length })}</button>` : ""}
           <button class="btn blue" id="again">${isSubjectRound ? t("nextRound") : t("takeAgain")}</button>
@@ -2141,7 +2263,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
 
       <h3 class="review-title">${t("reviewAll")}</h3>
       <div class="tabs">
-        ${tabBtn("all", t("all"))}${tabBtn("correct", t("correct"))}${tabBtn("wrong", t("wrong"))}${tabBtn("unanswered", t("unanswered"))}${tabBtn("unsure", t("notSure"))}${tabBtn("starred", "★ " + t("starred"))}
+        ${tabBtn("all", t("all"))}${tabBtn("correct", t("correct"))}${tabBtn("wrong", t("wrong"))}${tabBtn("unanswered", t("unanswered"))}${tabBtn("unsure", t("notSure"))}${tabBtn("starred", "★ " + t("starred"))}${tabBtn("slow", "🐢 " + t("tmSlowTab"))}
       </div>
       ${shown.length ? shown.map(r => `
         <div class="review-item ${r.status}">
@@ -2154,6 +2276,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
             ? `<div class="row right">${t("yourAnswer")}: ${LETTERS[r.ans]}. ${esc(cText(r.q, r.ans))}</div>`
             : `<div class="row yours">${t("yourAnswer")}: ${r.ans === null ? t("noAnswer") : LETTERS[r.ans] + ". " + esc(cText(r.q, r.ans))}</div>
                <div class="row right">${t("correctAnswer")}: ${LETTERS[r.q.a]}. ${esc(cText(r.q, r.q.a))}</div>`}
+          ${r.slow ? `<div class="slow-note"><p class="slow-time">🐢 ${t("tmSlowTime", { took: fmtDur(r.ms / 1000), goal: fmtDur(SEC_Q) })}</p><p>${t("tmSlowNote")}</p><p><b>${r.status === "correct" ? t("tmSlowRight") : t("tmSlowWrong")}</b></p></div>` : ""}
           <div class="why">💡 ${esc(r.q.e)}</div>
           <button class="link explain-link" data-explain="${r.i}">${t("askExplain")}</button>
         </div>`).join("") : `<div class="perfect">${t("nothingHere")}</div>`}
@@ -2176,12 +2299,12 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
       const base = S.key.replace(/:retry$/, "");
       if (base === "mock") return startMock();
       if (SUBJECTS.some(x => x.id === base)) return startSubject(base);
-      startSession(base, S.title.replace(/ \(.+\)$/, ""), S.items.map(q => byId.get(q.id)), S.exitTo, false);
+      startSession(base, S.title.replace(/ \(.+\)$/, ""), S.items.map(q => byId.get(q.id)), S.exitTo, false, S.timerOver);
     });
     const rw = document.getElementById("retryWrong");
     if (rw) rw.addEventListener("click", () => {
       const base = S.key.replace(/:retry$/, "");
-      startSession(base + ":retry", S.title.replace(/ \(.+\)$/, "") + " (" + t("retry") + ")", missed.map(r => byId.get(r.q.id)), S.exitTo, false);
+      startSession(base + ":retry", S.title.replace(/ \(.+\)$/, "") + " (" + t("retry") + ")", missed.map(r => byId.get(r.q.id)), S.exitTo, false, S.timerOver);
     });
     if (!filter || filter === "all") window.scrollTo(0, 0);
   }

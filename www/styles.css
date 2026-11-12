@@ -1046,3 +1046,22 @@ body.chat-full { overflow: hidden; }
 body.chat-full .tabbar .tab-chat .tab-label { text-decoration: underline; text-underline-offset: 3px; }
 body.chat-full .tabbar button.active:not(.tab-chat) { color: var(--muted); }
 body.chat-full .tabbar button.active:not(.tab-chat) .tab-ico { background: none; transform: none; animation: none; }
+
+/* speed timer: a draining bar, no digits */
+.tm-bar { height: 24px; padding: 3px; margin-bottom: 10px; border-radius: 999px; border: 3px solid var(--ink); background: var(--white); }
+.tm-bar .tm-fill { height: 100%; border-radius: 999px; background: #f98a00; transition: width .25s linear, background .3s; }
+.tm-bar.low .tm-fill { background: #ea580c; }
+.tm-bar.bad .tm-fill { background: #dc2626; animation: tmPulse 1s ease-in-out infinite; }
+@keyframes tmPulse { 50% { opacity: .65; } }
+@media (prefers-reduced-motion: reduce) { .tm-bar .tm-fill { transition: none; animation: none !important; } }
+.tm-result { margin: 12px 0 4px; text-align: left; }
+.tm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin: 8px 0; }
+.tm-grid > div { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px; text-align: center; }
+.tm-grid b { display: block; font-size: 1.15rem; }
+.tm-grid span { font-size: .75rem; color: var(--muted); }
+.tm-grid .slow b { color: var(--wrong); }
+.tm-grid .fast b { color: var(--green-dark); }
+.slow-note p { margin: 0 0 6px; }
+.slow-note .slow-time { font-size: 1.1rem; font-weight: 800; color: var(--wrong); }
+.slow-note { margin: 8px 0; padding: 10px 12px; border-radius: 10px; background: var(--amber-soft); border: 1px solid var(--amber); font-size: .88rem; }
+.cel-time { color: var(--muted); font-size: .85rem; margin-top: 4px; }
