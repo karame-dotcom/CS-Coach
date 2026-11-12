@@ -37,7 +37,6 @@
 
     // home
     hi: ["Hey, {name}! ", "Uy, {name}! ", "Uy, {name}! "],
-    chooseSubject: ["What are we playing today?", "Ano'ng lalaruin natin ngayon?", "Ano'ng lalaruin natin today?"],
     homeSub: ["Pick a subject for a quick {n}-question round. Fresh and missed ones come first. Goal: {p}%.", "Pumili ng asignatura para sa mabilis na {n} tanong. Uunahin ang bago at mga namali. Goal: {p}%.", "Pick ng subject para sa quick {n}-question round. Uunahin ang fresh at missed. Goal: {p}%."],
     questions: ["Questions", "Mga Tanong", "Questions"],
     starred: ["Starred", "Naka-star", "Starred"],
