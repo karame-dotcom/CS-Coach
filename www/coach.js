@@ -108,7 +108,7 @@
     panel.style.top = (top + gap) + "px";
     panel.style.bottom = "auto";
     panel.style.height = (h - gap) + "px";
-    msgs.scrollTop = msgs.scrollHeight;
+    toEnd();
   }
   if (vv) { vv.addEventListener("resize", fitPanel); vv.addEventListener("scroll", fitPanel); }
   window.addEventListener("resize", fitPanel);
@@ -116,7 +116,15 @@
   // every Kiko message gets the rounded avatar + name on top, like a chat with a friend
   const botHead = () => `<div class="chead"><span class="cav">${window.Pet && window.Pet.avatar ? window.Pet.avatar() : "🌱"}</span><span class="cname">${esc((window.I18N && window.I18N.petName) || "Kiko")}</span></div>`;
   // keep the newest message (and its buttons) fully visible above the input, even after fonts/images settle
-  const toEnd = () => { msgs.scrollTop = msgs.scrollHeight; requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 120); }); };
+  // Stick to the bottom: whenever messages grow (streaming, buttons added, images) or the box resizes
+  // (phone keyboard opens/closes), scroll again, unless the student scrolled up to re-read.
+  let stick = true;
+  const atEnd = () => msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 80;
+  const jump = () => { msgs.scrollTop = msgs.scrollHeight; };
+  const toEnd = () => { stick = true; jump(); requestAnimationFrame(() => { jump(); setTimeout(jump, 150); }); };
+  msgs.addEventListener("scroll", () => { stick = atEnd(); }, { passive: true });
+  if (window.MutationObserver) new MutationObserver(() => { if (stick) { jump(); requestAnimationFrame(jump); } }).observe(msgs, { childList: true, subtree: true, characterData: true });
+  if (window.ResizeObserver) new ResizeObserver(() => { if (stick) jump(); }).observe(msgs);
   function addMsg(role, html, text) {
     const div = document.createElement("div");
     div.className = "cmsg " + role;
