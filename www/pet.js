@@ -159,7 +159,7 @@
   let chatOpen = false;
   function tap() {
     setMood("happy", 900); burstHearts();
-    if (window.CoachUI) window.CoachUI.toggle(); else say(pick(msgs().pat));
+    if (window.CoachUI) window.CoachUI.toggle(); else say(window.Tone ? Tone.pat() : pick(msgs().pat));
   }
   pet.addEventListener("click", tap);
   hint.addEventListener("click", tap);
@@ -184,8 +184,8 @@
     setTimeout(() => tabIco.classList.remove("react-happy", "react-sad"), 1600);
   }
   window.Pet = {
-    cheer(msg) { if (mode === "home") return homeReact("happy"); setMood("happy", 2200); say(msg || pick(msgs().cheer)); burstHearts(pick(["✨", "💚", "⭐"])); },
-    cry(msg) { if (mode === "home") return homeReact("sad"); setMood("sad", 2800); say(msg || pick(msgs().cry), 3000); },
+    cheer(msg) { if (!msg && window.Tone) { Tone.record(true); msg = Tone.react(true); } if (mode === "home") return homeReact("happy"); setMood("happy", 2200); say(msg || pick(msgs().cheer)); burstHearts(pick(["✨", "💚", "⭐"])); },
+    cry(msg) { if (!msg && window.Tone) { Tone.record(false); msg = Tone.react(false); } if (mode === "home") return homeReact("sad"); setMood("sad", 2800); say(msg || pick(msgs().cry), 3000); },
     say,
     hop() { setMood("hop", 600); },
     setVisible(v) { root.classList.toggle("hidden", !v); document.body.classList.toggle("no-pet", !v); },
