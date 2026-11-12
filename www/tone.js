@@ -186,11 +186,6 @@
         ]
       }
     },
-    // home screen heading: "what are we playing today?" and friends
-    heading: {
-      en: ["What are we playing today?", "What challenge do you want to overcome today?", "One step closer to passing that CSE. Where do we start?", "Which subject are we conquering today?", "Pick your battle. The CSE isn't going to pass itself.", "Ready to level up? Choose your subject.", "What's today's mission?"],
-      tg: ["Anong lalaruin natin today?", "Anong challenge ang gusto mong lampasan ngayon?", "One step closer sa pagpasa ng CSE. Saan tayo magsisimula?", "Aling subject ang sisirain natin ngayon?", "Pumili ka ng laban. Hindi papasa ang CSE nang mag-isa.", "Ready mag-level up? Pumili ng subject.", "Ano'ng mission natin ngayon?"]
-    },
     greet: {
       good: {
         en: ["You've been passing lately. I'm not saying I'm impressed, but I'm impressed 😎", "Look who's back, the one who's been acing everything 🔥", "Winning streak, huh? Let's keep it going 💚"],
@@ -267,7 +262,6 @@
       const r = pickFrom("result." + tier + (again ? "A" : ""), pool);
       return { title: r.t.split("{name}").join(name || ""), text: r.x };
     },
-    heading() { return pickFrom("heading", L.heading); },
     // one tone line for the chat greeting, based on the last few finished rounds (pcts)
     greet(pcts, passing) {
       const last = (pcts || []).slice(-2);
