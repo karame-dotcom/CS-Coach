@@ -12,3 +12,14 @@ window.CS_DONATE = {
   maya: "",     // Maya number (leave empty to hide)
   qr: "icons/gcash-qr.png"
 };
+
+// Accounts & cloud sync (Firebase). Paste the "firebaseConfig" values from
+// Firebase console → Project settings → Your apps → Web app. These are public identifiers
+// (not secrets); your data is protected by the Firestore rules in firestore.rules.
+// Leave apiKey empty to run without accounts (no sign-in popup is shown).
+window.CS_FIREBASE = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  appId: ""
+};

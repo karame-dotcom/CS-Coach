@@ -86,3 +86,17 @@ npm run ios      # opens Xcode → choose a device → Run / Archive
 ```
 
 After editing anything in `www/`, run `npm run cap:sync` to copy the changes into the native projects.
+
+## Accounts & cloud sync (Firebase) — one-time setup
+
+Without these steps the app works exactly as before (no sign-in popup is shown).
+
+1. Go to <https://console.firebase.google.com> → **Add project** (any name; Analytics not needed).
+2. **Build → Authentication → Get started → Sign-in method**: enable **Email/Password** and **Google**.
+3. **Authentication → Settings → Authorized domains**: add your site's domain (e.g. `<your-name>.github.io`). `localhost` is there by default.
+4. **Build → Firestore Database → Create database** (production mode, pick a nearby region).
+5. Firestore → **Rules** tab: paste the contents of `firestore.rules` and **Publish**. This makes each user able to read/write only their own data.
+6. **Project settings (⚙️) → Your apps → `</>` Web** → register the app, then copy the `firebaseConfig` values (`apiKey`, `authDomain`, `projectId`, `appId`) into `window.CS_FIREBASE` in `www/config.js`. These values are public identifiers, not secrets.
+7. Commit and deploy. Existing users will see the "Save your progress with an account" popup on every visit until they create an account.
+
+How data is protected: local progress is never deleted. Creating an account uploads it; logging in on another device merges the cloud copy with what is on that device (best scores = highest, stars/lessons = union, history = union). A backup is saved on the device before any merge. Signing out keeps data on the device.

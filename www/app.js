@@ -19,7 +19,7 @@
   // ---------- storage (safe: may be unavailable in some web views) ----------
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (_) { return d; } },
-    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} if (k.indexOf("cscoach.") === 0 && window.Account) window.Account.changed(k.slice(8)); }
   };
   let profile = store.get("cscoach.profile", null);           // { name, instant, examDate, pet, lang }
   let best = store.get("cscoach.best", {});                    // { key: pct }
@@ -84,7 +84,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.31.0";
+  const APP_VERSION = "1.32.0";
   const REPORT_EMAIL = "sharematerials2026@gmail.com";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap", "rank"];
   function snapshot(reason) {
@@ -109,8 +109,46 @@
     DATA_KEYS.forEach(k => {
       try { if (k in snap.data) localStorage.setItem("cscoach." + k, JSON.stringify(snap.data[k])); else localStorage.removeItem("cscoach." + k); } catch (_) {}
     });
+    if (window.Account) window.Account.changed("restore");
   }
-  // 1 + 2: backup on version change and once a day
+  // ---------- ACCOUNT SYNC helpers (used by account.js) ----------
+  // Merge two copies of the data so that nothing is ever lost: best scores = max, stars and
+  // lessons = union, per-question stats = the copy with more attempts, history = union.
+  const CLOUD_KEYS = DATA_KEYS.filter(k => k !== "qmap");   // qmap is per-device bookkeeping
+  function mergeData(a, b, preferB) {
+    a = a || {}; b = b || {};
+    const out = {};
+    CLOUD_KEYS.forEach(k => { if (k in a) out[k] = a[k]; else if (k in b) out[k] = b[k]; });
+    if (a.profile && b.profile) out.profile = preferB ? b.profile : a.profile;
+    out.best = Object.assign({}, a.best, b.best);
+    Object.keys(out.best).forEach(k => { out.best[k] = Math.max((a.best || {})[k] || 0, (b.best || {})[k] || 0); });
+    out.starred = [...new Set([...(a.starred || []), ...(b.starred || [])])];
+    out.lessonsRead = [...new Set([...(a.lessonsRead || []), ...(b.lessonsRead || [])])];
+    out.stats = Object.assign({}, a.stats);
+    Object.keys(b.stats || {}).forEach(id => {
+      const x = out.stats[id], y = b.stats[id];
+      if (!x || (y.n || 0) > (x.n || 0) || ((y.n || 0) === (x.n || 0) && (y.t || 0) > (x.t || 0))) out.stats[id] = y;
+    });
+    const seen = new Set();
+    out.history = [...(a.history || []), ...(b.history || [])].filter(h => { const j = JSON.stringify(h); if (seen.has(j)) return false; seen.add(j); return true; })
+      .sort((x, y) => (x.t || 0) - (y.t || 0)).slice(-100);
+    const ids = new Set(); out.aiq = [...(a.aiq || []), ...(b.aiq || [])].filter(q => q && !ids.has(q.id) && ids.add(q.id));
+    const ra = a.rank, rb = b.rank;
+    if (ra && rb) out.rank = (rb.xp || 0) > (ra.xp || 0) ? rb : ra;
+    Object.keys(out).forEach(k => { if (out[k] === undefined) delete out[k]; });
+    return out;
+  }
+  window.CSCloud = {
+    snapshot() { const d = snapshot("cloud").data; delete d.qmap; return d; },
+    hasData,
+    backup: autoBackup,
+    merge: mergeData,
+    // write data into this device (caller reloads the page afterwards)
+    apply(data, replace) { autoBackup("before-account-sync"); CLOUD_KEYS.forEach(k => { try { if (k in data) localStorage.setItem("cscoach." + k, JSON.stringify(data[k])); else if (replace) localStorage.removeItem("cscoach." + k); } catch (_) {} }); },
+    t: (k, v) => t(k, v), toast: m => toast(m), lang: () => I.lang
+  };
+
+    // 1 + 2: backup on version change and once a day
   (function () {
     const last = store.get("cscoach.version", null);
     if (last && last !== APP_VERSION) autoBackup("update " + last + " → " + APP_VERSION);
@@ -502,6 +540,7 @@
       </form>
       ${firstRun ? "" : sec("ai", "✨", t("aiTutorTitle"), aiSummary(), aiPanelHtml())}
       ${firstRun ? "" : (IN ? sec("install", "📲", t("installShort"), IN.isStandalone() ? t("installedShort") : "", installHtml(false)) : "")}
+      ${firstRun || !window.Account ? "" : sec("account", "☁️", window.Account.tr("secTitle"), window.Account.summary(), window.Account.panelHtml())}
       ${firstRun ? "" : sec("backup", "🛡️", t("backupTitle"), "", backupPanelHtml())}
       ${firstRun ? "" : sec("tour", "🧭", t("tourAgain"), "", `<p class="muted small" style="margin:0 0 10px">${t("tourAgainDesc")}</p><button class="btn" id="tourBtn">${t("tourAgain")}</button>`)}
       ${firstRun ? "" : sec("report", "🐞", t("reportTitle"), t("reportSummary"), reportPanelHtml())}
@@ -556,7 +595,7 @@
     const ol = document.getElementById("openLearn");
     if (ol && LESSONS_ON) ol.onclick = () => settingsDirty() ? guardLeave(() => openTab("learn")) : openTab("learn");
     const tb = document.getElementById("tourBtn"); if (tb) tb.onclick = () => { if (settingsDirty()) return guardLeave(startTour); startTour(); };
-    if (!firstRun) { bindAiPanel(); bindBackupPanel(); bindReportPanel(); bindDonatePanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
+    if (!firstRun) { bindAiPanel(); if (window.Account) window.Account.bindPanel(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); bindBackupPanel(); bindReportPanel(); bindDonatePanel(); bindInstall(app, () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); }); }
     const reset = document.getElementById("resetBtn");
     if (reset) reset.addEventListener("click", () => confirmBox(t("resetConfirm"), t("reset"), () => {
       autoBackup("before-reset");
@@ -2432,4 +2471,5 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     if (!store.get("cscoach.tourDone", false)) setTimeout(startTour, 700);
     else setTimeout(() => pet().say(remind ? t("backupRemind") : t("petHi", { name: profile.name ? " " + profile.name : "" }), remind ? 5000 : 3200), 700);
   }
+  if (window.Account) window.Account.init();
 })();
