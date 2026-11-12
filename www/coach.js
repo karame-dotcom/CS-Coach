@@ -61,9 +61,14 @@
   connectAI();
   document.addEventListener("cscoach:ai", connectAI);
 
-  function open(kind) {
+  // full = opened from the center tab: fills the screen between the top bar and the tab bar, like the other tabs
+  let full = false;
+  function open(kind, asFull) {
+    full = asFull === true;
+    panel.classList.toggle("full", full);
+    document.body.classList.toggle("chat-full", full);
     panel.classList.remove("hidden");
-    backdrop.classList.remove("hidden");
+    backdrop.classList.toggle("hidden", full);
     fab.classList.add("open");
     if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(true);
     document.body.classList.add("chat-open");
@@ -75,8 +80,9 @@
     // On phones don't pop the keyboard right away, so the quick questions stay visible
     else if (!window.matchMedia("(pointer: coarse)").matches) setTimeout(() => input.focus(), 50);
   }
-  function close() { focus = null; document.body.classList.remove("chat-open"); panel.classList.add("hidden"); backdrop.classList.add("hidden"); fitPanel(); fab.classList.remove("open"); if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(false); }
+  function close() { focus = null; full = false; panel.classList.remove("full"); document.body.classList.remove("chat-full"); document.body.classList.remove("chat-open"); panel.classList.add("hidden"); backdrop.classList.add("hidden"); fitPanel(); fab.classList.remove("open"); if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(false); }
   const toggle = () => panel.classList.contains("hidden") ? open() : close();
+  const toggleFull = () => panel.classList.contains("hidden") ? open(undefined, true) : close();
   fab.addEventListener("click", toggle);
   panel.querySelector(".coach-x").addEventListener("click", close);
   // Explain a specific question (from the review list) step by step
@@ -88,7 +94,7 @@
     if (sample) askAI(label + ": " + ctx.question, true); else reply(builtIn("explain"));
   }
   const isOpen = () => !panel.classList.contains("hidden");
-  window.CoachUI = { open, close, toggle, explain, isOpen };
+  window.CoachUI = { open, close, toggle, toggleFull, explain, isOpen };
 
   // Keep the phone keyboard open after sending: the Send button never steals focus
   const sendBtn = panel.querySelector(".coach-input button");
@@ -106,10 +112,21 @@
   // Freeze the chat header on phones: fit the panel to the visible area above the keyboard
   const vv = window.visualViewport;
   function fitPanel() {
-    if (panel.classList.contains("hidden") || window.innerWidth > 520) { panel.style.top = panel.style.height = panel.style.bottom = ""; return; }
+    const topbar = document.querySelector(".topbar"), tabbar = document.getElementById("tabbar");
+    const topH = topbar ? topbar.offsetHeight : 0, tabH = tabbar && !tabbar.classList.contains("hidden") ? tabbar.offsetHeight : 0;
+    document.documentElement.style.setProperty("--topbar-h", topH + "px");
+    document.documentElement.style.setProperty("--tabbar-h", tabH + "px");
+    if (panel.classList.contains("hidden") || (!full && window.innerWidth > 520)) { panel.style.top = panel.style.height = panel.style.bottom = ""; return; }
     const h = vv ? vv.height : window.innerHeight, top = vv ? vv.offsetTop : 0;
-    // like a bottom sheet: starts ~14% from the top; fills the screen when the keyboard is open
     const kb = window.innerHeight - h > 120;
+    if (full) {
+      // fills the area between the top bar and the tab bar (the tab bar sits behind the keyboard)
+      if (window.innerWidth > 520) { panel.style.top = panel.style.height = panel.style.bottom = ""; }
+      else { panel.style.top = (top + topH) + "px"; panel.style.bottom = "auto"; panel.style.height = Math.max(120, h - topH - (kb ? 0 : tabH)) + "px"; }
+      toEnd();
+      return;
+    }
+    // like a bottom sheet: starts ~14% from the top; fills the screen when the keyboard is open
     const gap = kb ? 0 : Math.round(h * 0.14);
     panel.style.top = (top + gap) + "px";
     panel.style.bottom = "auto";
