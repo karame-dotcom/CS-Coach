@@ -1224,6 +1224,7 @@
     setBack(null);
     const a = analytics();
     app.innerHTML = `
+      <h2>${profile && profile.name ? t("hi", { name: esc(profile.name) }) : ""}${window.Tone.heading()}</h2>
       <p class="sub">${t("homeSub", { n: ROUND_SIZE, p: PASSING })}</p>
       <div id="installSlot">${showInstallBanner() ? installHtml(true) : ""}</div>
       <div class="mode-chip">${profile.instant ? t("modePracticeChip") : t("modeExamChip")} · <button class="link" id="changeMode">${t("change")}</button></div>

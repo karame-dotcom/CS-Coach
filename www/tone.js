@@ -186,6 +186,11 @@
         ]
       }
     },
+    // home screen heading (replaces "What are we playing today?"); rotates, never the same twice in a row
+    heading: {
+      en: ["What challenge do you want to overcome today?", "One step closer to passing that CS exam.", "Which subject are we conquering today?", "Pick your battle. The CS exam won't pass itself.", "Ready to level up? Choose your subject.", "What's today's mission?"],
+      tg: ["Anong challenge ang gusto mong lampasan ngayon?", "One step closer sa pagpasa ng CS exam.", "Aling subject ang sisirain natin ngayon?", "Pumili ka ng laban. Hindi papasa ang CS exam nang mag-isa.", "Ready mag-level up? Pumili ng subject.", "Ano'ng mission natin ngayon?"]
+    },
     greet: {
       good: {
         en: ["You've been passing lately. I'm not saying I'm impressed, but I'm impressed 😎", "Look who's back, the one who's been acing everything 🔥", "Winning streak, huh? Let's keep it going 💚"],
@@ -255,6 +260,7 @@
       return pickFrom(key, L[key]);
     },
     pat() { const m = mood(); return pickFrom("pat." + m, L.pat[m] || L.pat.neutral); },
+    heading() { return pickFrom("heading", L.heading); },
     // tier: "good" | "mid" | "low"; prior = number of earlier rounds in a row at the same tier (0-3)
     result(tier, name, prior) {
       const again = prior >= 2 && (tier === "good" || tier === "low");
