@@ -18,8 +18,8 @@ window.CS_DONATE = {
 // (not secrets); your data is protected by the Firestore rules in firestore.rules.
 // Leave apiKey empty to run without accounts (no sign-in popup is shown).
 window.CS_FIREBASE = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  appId: ""
+  apiKey: "AIzaSyB9YGegcn10IUooekzkKk3RZg3aj1MZls8",
+  authDomain: "cs-coach-56fa1.firebaseapp.com",
+  projectId: "cs-coach-56fa1",
+  appId: "1:660323295036:web:42c30db9c008c534e20839"
 };
