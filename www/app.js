@@ -1300,18 +1300,33 @@
       w.querySelectorAll("[data-rs]").forEach(b => b.onclick = () => { close(); startReview(kind, b.dataset.rs || null); });
     });
   }
-  // Ask how many questions: 5, 10, 15 ... (increments of 5, up to max)
-  function askCount(max, def, title, cb) {
-    const opts = [];
-    for (let n = 5; n <= Math.min(max, 100); n += 5) opts.push(n);
-    if (!opts.length || (max <= 100 && max % 5)) opts.push(max);
+  // Roll-style picker: drag/swipe the wheel to choose how many questions (steps of 5, up to cap)
+  function askCount(avail, def, title, cb, cap = 30) {
+    const max = Math.min(avail, cap);
+    if (max < 5) return cb(max);
+    const vals = [];
+    for (let n = 5; n <= max; n += 5) vals.push(n);
+    if (vals[vals.length - 1] !== max) vals.push(max);
+    let start = vals.reduce((bi, v, i) => Math.abs(v - def) < Math.abs(vals[bi] - def) ? i : bi, 0);
     modal(`
       <div class="modal-title">${title}</div>
       <p class="modal-text">${t("howMany")}</p>
-      <div class="count-grid">${opts.map(n => `<button class="btn ${n === def ? "" : "secondary"}" data-n="${n}">${n}</button>`).join("")}</div>
-      <div class="actions col"><button class="link" data-x>${t("cancel")}</button></div>`, (w, close) => {
-      w.querySelector("[data-x]").onclick = close;
-      w.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { close(); cb(+b.dataset.n); });
+      <div class="roll-wrap"><div class="roll-band"></div><div class="roll" role="listbox" aria-label="${t("howMany")}"><div class="roll-pad"></div>${vals.map(v => `<div class="roll-item">${v}</div>`).join("")}<div class="roll-pad"></div></div></div>
+      <div class="actions col"><button class="btn" data-go></button><button class="link" data-x>${t("cancel")}</button></div>`, (w, close) => {
+      const roll = w.querySelector(".roll"), items = [...w.querySelectorAll(".roll-item")], H = 52, go = w.querySelector("[data-go]");
+      const cur = () => Math.min(vals.length - 1, Math.max(0, Math.round(roll.scrollTop / H)));
+      const upd = () => { const i = cur(); items.forEach((e, k) => e.classList.toggle("on", k === i)); go.textContent = t("startN", { n: vals[i] }); };
+      roll.addEventListener("scroll", upd);
+      roll.scrollTop = start * H; upd();
+      let d = null; // mouse drag (touch scrolls natively)
+      roll.addEventListener("mousedown", e => { d = [e.clientY, roll.scrollTop]; roll.style.scrollSnapType = "none"; });
+      const mv = e => { if (d) roll.scrollTop = d[1] - (e.clientY - d[0]); };
+      const up = () => { if (!d) return; d = null; roll.style.scrollSnapType = ""; roll.scrollTo({ top: cur() * H, behavior: "smooth" }); };
+      window.addEventListener("mousemove", mv); window.addEventListener("mouseup", up);
+      items.forEach((e, k) => e.addEventListener("click", () => roll.scrollTo({ top: k * H, behavior: "smooth" })));
+      const done = () => { window.removeEventListener("mousemove", mv); window.removeEventListener("mouseup", up); };
+      w.querySelector("[data-x]").onclick = () => { done(); close(); };
+      go.onclick = () => { const n = vals[cur()]; done(); close(); cb(n); };
     });
   }
   function renderPractice() {
@@ -1410,7 +1425,7 @@
     });
   }
   function startMock(n) {
-    if (!n) return askCount(allQuestions().length, MOCK_SIZE, t("mockTitle"), k => startMock(k));
+    if (!n) return askCount(allQuestions().length, MOCK_SIZE, t("mockTitle"), k => startMock(k), 150);
     return runMock(n);
   }
   async function runMock(size) {

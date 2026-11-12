@@ -1103,3 +1103,10 @@ body.chat-full .tabbar button.active:not(.tab-chat) .tab-ico { background: none;
 .cel-rank { margin-top: 4px; font-weight: 800; color: var(--blue); } .cel-rank.down { color: var(--wrong); }
 @media (max-width: 400px) { .topbar .tagline { display: none; } .rk-txt b { max-width: 64px; } }
 .set-num.plain, .set-item .set-num.plain { background: none; border-radius: 0; font-size: 1.6rem; }
+.roll-wrap { position: relative; height: 156px; margin: 8px 0 14px; }
+.roll-band { position: absolute; left: 12%; right: 12%; top: 52px; height: 52px; border-top: 2px solid var(--blue); border-bottom: 2px solid var(--blue); pointer-events: none; }
+.roll { height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; cursor: grab; text-align: center; -webkit-mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); }
+.roll::-webkit-scrollbar { display: none; }
+.roll-item { height: 52px; line-height: 52px; scroll-snap-align: center; font-size: 1.4rem; font-weight: 800; color: var(--muted); user-select: none; transition: color .12s, font-size .12s; }
+.roll-item.on { color: var(--blue); font-size: 2rem; }
+.roll-pad { height: 52px; }
