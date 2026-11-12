@@ -1285,26 +1285,48 @@
   function reviewPool(kind) {
     return kind === "starred" ? [...starred].map(i => byId.get(i)).filter(Boolean) : mistakeIds().map(i => byId.get(i));
   }
-  function reviewListHtml(kind) {
+  // Tapping Mistakes / Starred reveals the subjects (like the AI-questions picker)
+  function reviewMenu(kind) {
     const pool = reviewPool(kind);
-    if (!pool.length) return "";
     const rows = SUBJECTS.map(s => ({ s, n: pool.filter(q => q.sid === s.id).length })).filter(r => r.n);
-    const row = (sid, ico, name, n) => `<button class="set-item" data-rk="${kind}" data-rs="${sid}"><div class="set-num">${ico}</div><div class="set-info"><b>${esc(name)}</b></div><span class="badge blue">${t("items", { n })}</span></button>`;
-    return `<div class="chart-title" style="margin-top:18px">${kind === "starred" ? "⭐ " + t("starredTitle") : "❌ " + t("mistakesTitle")} (${pool.length})</div>
-      <div class="set-list">${rows.map(r => row(r.s.id, r.s.icon, sn(r.s).name, r.n)).join("")}${rows.length > 1 ? row("", "🎯", t("reviewAll"), pool.length) : ""}</div>`;
+    if (!rows.length) return;
+    const row = (sid, ico, name, n) => `<button class="set-item" data-rs="${sid}"><div class="set-num plain">${ico}</div><div class="set-info"><b>${esc(name)}</b><span>${t("items", { n })}</span></div></button>`;
+    modal(`
+      <div class="modal-title">${kind === "starred" ? "⭐ " + t("starredTitle") : "❌ " + t("mistakesTitle")}</div>
+      <p class="modal-text">${t("aiPick")}</p>
+      <div class="set-list">${rows.map(r => row(r.s.id, r.s.icon, sn(r.s).name, r.n)).join("")}${rows.length > 1 ? row("", "🎯", t("reviewAll"), pool.length) : ""}</div>
+      <div class="actions"><button class="btn secondary" data-x>${t("cancel")}</button></div>`, (w, close) => {
+      w.querySelector("[data-x]").onclick = close;
+      w.querySelectorAll("[data-rs]").forEach(b => b.onclick = () => { close(); startReview(kind, b.dataset.rs || null); });
+    });
   }
-  // Ask how many questions: 5, 10, 15 ... (increments of 5, up to max)
-  function askCount(max, def, title, cb) {
-    const opts = [];
-    for (let n = 5; n <= Math.min(max, 100); n += 5) opts.push(n);
-    if (!opts.length || (max <= 100 && max % 5)) opts.push(max);
+  // Roll-style picker: drag/swipe the wheel to choose how many questions (steps of 5, up to cap)
+  function askCount(avail, def, title, cb, cap = 30) {
+    const max = Math.min(avail, cap);
+    if (max < 5) return cb(max);
+    const vals = [];
+    for (let n = 5; n <= max; n += 5) vals.push(n);
+    if (vals[vals.length - 1] !== max) vals.push(max);
+    let start = vals.reduce((bi, v, i) => Math.abs(v - def) < Math.abs(vals[bi] - def) ? i : bi, 0);
     modal(`
       <div class="modal-title">${title}</div>
       <p class="modal-text">${t("howMany")}</p>
-      <div class="count-grid">${opts.map(n => `<button class="btn ${n === def ? "" : "secondary"}" data-n="${n}">${n}</button>`).join("")}</div>
-      <div class="actions col"><button class="link" data-x>${t("cancel")}</button></div>`, (w, close) => {
-      w.querySelector("[data-x]").onclick = close;
-      w.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { close(); cb(+b.dataset.n); });
+      <div class="roll-wrap"><div class="roll-band"></div><div class="roll" role="listbox" aria-label="${t("howMany")}"><div class="roll-pad"></div>${vals.map(v => `<div class="roll-item">${v}</div>`).join("")}<div class="roll-pad"></div></div></div>
+      <div class="actions col"><button class="btn" data-go></button><button class="link" data-x>${t("cancel")}</button></div>`, (w, close) => {
+      const roll = w.querySelector(".roll"), items = [...w.querySelectorAll(".roll-item")], H = 52, go = w.querySelector("[data-go]");
+      const cur = () => Math.min(vals.length - 1, Math.max(0, Math.round(roll.scrollTop / H)));
+      const upd = () => { const i = cur(); items.forEach((e, k) => e.classList.toggle("on", k === i)); go.textContent = t("startN", { n: vals[i] }); };
+      roll.addEventListener("scroll", upd);
+      roll.scrollTop = start * H; upd();
+      let d = null; // mouse drag (touch scrolls natively)
+      roll.addEventListener("mousedown", e => { d = [e.clientY, roll.scrollTop]; roll.style.scrollSnapType = "none"; });
+      const mv = e => { if (d) roll.scrollTop = d[1] - (e.clientY - d[0]); };
+      const up = () => { if (!d) return; d = null; roll.style.scrollSnapType = ""; roll.scrollTo({ top: cur() * H, behavior: "smooth" }); };
+      window.addEventListener("mousemove", mv); window.addEventListener("mouseup", up);
+      items.forEach((e, k) => e.addEventListener("click", () => roll.scrollTo({ top: k * H, behavior: "smooth" })));
+      const done = () => { window.removeEventListener("mousemove", mv); window.removeEventListener("mouseup", up); };
+      w.querySelector("[data-x]").onclick = () => { done(); close(); };
+      go.onclick = () => { const n = vals[cur()]; done(); close(); cb(n); };
     });
   }
   function renderPractice() {
@@ -1336,6 +1358,13 @@
           <p>${t("mockDesc", { n: MOCK_SIZE })}</p>
           <div class="meta"><span class="badge">${t("items", { n: MOCK_SIZE })}</span><span>${best.mock != null ? t("best", { p: best.mock }) : t("notTaken")}${best["mock:t"] != null ? " · ⏱ " + best["mock:t"] + "%" : ""}</span></div>
         </button>
+        ${["mistakes", "starred"].map(k => { const n = reviewPool(k).length; return n ? `
+          <button class="card starred-card" data-id="${k}">
+            <span class="ico">${k === "starred" ? "⭐" : "❌"}</span>
+            <h3>${k === "starred" ? t("starredTitle") : t("mistakesTitle")}</h3>
+            <p>${k === "starred" ? t("starredDesc") : t("mistakesDesc")}</p>
+            <div class="meta"><span class="badge blue">${t("items", { n })}</span></div>
+          </button>` : ""; }).join("")}
         ${aiReady() ? `
           <button class="card ai-card" data-id="ai">
             <span class="ico">✨</span>
@@ -1344,17 +1373,16 @@
             <div class="meta"><span class="badge">${t("aiCount", { n: aiBank.length })}</span></div>
           </button>` : ""}
       </div>
-      ${reviewListHtml("mistakes")}${reviewListHtml("starred")}
       <p class="note">🔄 ${t("rotationNote")}</p>
       <p class="note">${t("disclaimer")}</p>
     `;
-    app.querySelectorAll("[data-rk]").forEach(b => b.addEventListener("click", () => startReview(b.dataset.rk, b.dataset.rs || null)));
     document.getElementById("changeMode").addEventListener("click", () => { openSecs.add("quiz"); openTab("settings"); });
     bindInstall(app, () => openTab(HOME));
     app.querySelectorAll(".card").forEach(btn => btn.addEventListener("click", () => {
       const id = btn.dataset.id;
       if (id === "mock") return startMock();
       if (id === "ai") return pickAISubject();
+      if (id === "mistakes" || id === "starred") return reviewMenu(id);
       startSubject(id);
     }));
     window.scrollTo(0, 0);
@@ -1397,7 +1425,7 @@
     });
   }
   function startMock(n) {
-    if (!n) return askCount(allQuestions().length, MOCK_SIZE, t("mockTitle"), k => startMock(k));
+    if (!n) return askCount(allQuestions().length, MOCK_SIZE, t("mockTitle"), k => startMock(k), 150);
     return runMock(n);
   }
   async function runMock(size) {
@@ -1455,7 +1483,7 @@
     modal(`
       <div class="modal-title">${t("aiTitle")}</div>
       <p class="modal-text">${t("aiPick")}</p>
-      <div class="set-list">${SUBJECTS.map(s => `<button class="set-item" data-ai="${s.id}"><div class="set-num">${s.icon}</div><div class="set-info"><b>${esc(sn(s).name)}</b><span>${esc(t("aiTopicAuto", { t: weakestLesson(s.id).title }))}</span></div></button>`).join("")}</div>
+      <div class="set-list">${SUBJECTS.map(s => `<button class="set-item" data-ai="${s.id}"><div class="set-num plain">${s.icon}</div><div class="set-info"><b>${esc(sn(s).name)}</b><span>${esc(t("aiTopicAuto", { t: weakestLesson(s.id).title }))}</span></div></button>`).join("")}</div>
       <div class="actions"><button class="btn secondary" data-x>${t("cancel")}</button></div>
     `, (w, close) => {
       w.querySelector("[data-x]").onclick = close;
