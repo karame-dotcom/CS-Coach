@@ -54,7 +54,13 @@
     renderChips();
   }
   paintLabels();
-  document.addEventListener("cscoach:lang", () => { paintLabels(); msgs.innerHTML = ""; clearChat(); });
+  // Settings fire this event on every save; only start a fresh chat when the language really changed
+  let curLang = window.I18N && window.I18N.lang;
+  document.addEventListener("cscoach:lang", () => {
+    paintLabels();
+    const l = window.I18N && window.I18N.lang;
+    if (l !== curLang) { curLang = l; msgs.innerHTML = ""; clearChat(); }
+  });
   document.addEventListener("cscoach:pet", paintLabels);
 
   const connectAI = () => window.CSAI.get().then(s => { sample = s; paintLabels(); }).catch(() => {});
