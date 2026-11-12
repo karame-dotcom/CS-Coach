@@ -1031,3 +1031,5 @@ b, strong { font-weight: 800; }
   .coach-backdrop:not(.hidden) { display: block; background: rgba(10,42,107,.12); }
   .coach-panel, body.has-tabbar .coach-panel { left: auto; right: 0; top: 0; bottom: 0; width: 440px; height: auto; border-radius: 24px 0 0 24px; box-shadow: -8px 0 24px rgba(10,42,107,.2); z-index: 80; }
 }
+/* chat scrolling: we manage "stick to the bottom" ourselves; leave a little air under the last bubble */
+.coach-msgs { overflow-anchor: none; padding-bottom: 18px; }
