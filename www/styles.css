@@ -863,7 +863,7 @@ textarea.input { resize: vertical; font: inherit; font-size: 16px; line-height: 
 .card.ai-card { grid-column: 1 / -1; }
 
 /* ===== v33: friendly "chat with your smartest friend" look (chat first) ===== */
-:root { --chat-blue: #1f5cf5; --chat-blue-dark: #1442b8; --chat-bg: #eef4ff; --chat-line: #cfdcf7; --chat-ink: #1b2a4e; }
+:root { --chat-blue: #1f5eff; --chat-blue-dark: #1446c9; --chat-bg: #f4f8ff; --chat-line: #d6e3ff; --chat-ink: #0a2a6b; --chat-sky: #e3edff; --chat-muted: #5b6f99; --chat-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
 .coach-panel, .coach-panel button, .coach-panel textarea { font-family: "Nunito", ui-rounded, "Segoe UI", system-ui, sans-serif; }
 .coach-panel { background: var(--chat-bg); border-radius: 26px; color: var(--chat-ink); }
 .coach-head { background: var(--chat-blue); padding: 14px 16px 22px; position: relative; }
@@ -993,3 +993,41 @@ b, strong { font-weight: 800; }
 .lesson-h { color: var(--blue); }
 .install-panel { border-color: var(--blue); background: var(--blue-soft); }
 .sec-body, .sec-head { font-weight: 700; }
+
+/* ===== v36: chat box styled after the Budget Bubble chat (palette, 15px text, sheet layout) ===== */
+.coach-panel { font-size: 15px; line-height: 1.45; background: var(--chat-bg); color: var(--chat-ink); }
+.coach-head { background: var(--chat-blue); padding: 12px 14px 20px; gap: 10px; }
+.coach-head::after { bottom: 1px; background: radial-gradient(circle at 14px 0, var(--chat-blue) 13px, transparent 14px) 0 0 / 28px 14px repeat-x; height: 14px; transform: translateY(100%); }
+.coach-head b { font-family: var(--chat-display); font-weight: 700; font-size: 17px; line-height: 1.1; }
+.coach-head span { font-size: 11px; font-weight: 700; opacity: .9; }
+.coach-avatar { width: 46px; height: 46px; border-radius: 14px; box-shadow: 0 4px 0 var(--chat-blue-dark); }
+.coach-x { width: 38px; height: 38px; border-radius: 12px; background: rgba(255,255,255,.18); }
+.coach-msgs { padding: 20px 14px 12px; gap: 10px; background: var(--chat-bg); }
+.cmsg { font-size: 15px; font-weight: 500; line-height: 1.45; padding: 10px 13px; border-radius: 18px; max-width: 86%; box-shadow: none; }
+.cmsg.bot { background: #fff; border: 2px solid var(--chat-line); border-bottom-left-radius: 6px; color: var(--chat-ink); }
+.cmsg.user { background: var(--chat-blue); color: #fff; border-bottom-right-radius: 6px; font-weight: 500; box-shadow: none; }
+.chead { gap: 6px; margin-bottom: 2px; }
+.cav, .cav .kiko-mini { width: 22px; height: 22px; }
+.cname { font-size: 12px; font-weight: 800; color: var(--chat-blue); }
+.coach-chips { background: #fff; border-top: 2px solid var(--chat-line); padding: 8px 10px 0; gap: 6px; }
+.chip-q { background: var(--chat-sky); color: var(--chat-ink); font-weight: 700; font-size: 13px; padding: 6px 11px; }
+.coach-input { background: #fff; padding: 8px 10px; border-top: 0; gap: 8px; }
+.coach-chips ~ .coach-input { padding-top: 8px; }
+.coach-input textarea { background: var(--chat-bg); border: 2px solid var(--chat-line); border-radius: 16px; padding: 10px 12px; font-weight: 500; color: var(--chat-ink); }
+.coach-input textarea:focus { border-color: var(--chat-blue); }
+.coach-input button { width: 46px; height: 46px; border-radius: 15px; background: var(--chat-blue); box-shadow: 0 3px 0 var(--chat-blue-dark); }
+.cbtn { background: var(--chat-blue); box-shadow: 0 3px 0 var(--chat-blue-dark); font-family: var(--chat-display); font-weight: 700; font-size: 14px; }
+.cbtn + .cbtn { background: #fff; color: var(--chat-blue); border: 2px solid var(--chat-line); box-shadow: 0 3px 0 var(--chat-line); }
+.tabbar .tab-chat .tab-ico { background: var(--chat-blue); box-shadow: 0 4px 0 var(--chat-blue-dark); }
+.coach-backdrop { display: none; position: fixed; inset: 0; z-index: 79; background: rgba(10,42,107,.25); }
+/* phones: bottom sheet */
+@media (max-width: 520px) {
+  .coach-backdrop:not(.hidden) { display: block; }
+  .coach-panel, body.has-tabbar .coach-panel { left: 0; right: 0; width: auto; top: 14%; bottom: 0; height: auto; border-radius: 24px 24px 0 0; box-shadow: 0 -8px 24px rgba(10,42,107,.2); }
+  .coach-input { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+}
+/* laptop: side panel on the right */
+@media (min-width: 900px) {
+  .coach-backdrop:not(.hidden) { display: block; background: rgba(10,42,107,.12); }
+  .coach-panel, body.has-tabbar .coach-panel { left: auto; right: 0; top: 0; bottom: 0; width: 440px; height: auto; border-radius: 24px 0 0 24px; box-shadow: -8px 0 24px rgba(10,42,107,.2); z-index: 80; }
+}

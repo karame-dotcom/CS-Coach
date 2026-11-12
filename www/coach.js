@@ -26,7 +26,10 @@
       <textarea id="coachText" rows="1" name="kiko-chat-message" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="send" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></textarea>
       <button type="button" aria-label="Send">➤</button>
     </div>`;
-  document.body.append(fab, panel);
+  const backdrop = document.createElement("div");
+  backdrop.className = "coach-backdrop hidden";
+  document.body.append(fab, backdrop, panel);
+  backdrop.addEventListener("click", () => close());
   const msgs = panel.querySelector("#coachMsgs");
   const chips = panel.querySelector("#coachChips");
   const input = panel.querySelector("#coachText");
@@ -54,6 +57,7 @@
 
   function open(kind) {
     panel.classList.remove("hidden");
+    backdrop.classList.remove("hidden");
     fab.classList.add("open");
     if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(true);
     document.body.classList.add("chat-open");
@@ -65,7 +69,7 @@
     // On phones don't pop the keyboard right away, so the quick questions stay visible
     else if (!window.matchMedia("(pointer: coarse)").matches) setTimeout(() => input.focus(), 50);
   }
-  function close() { focus = null; document.body.classList.remove("chat-open"); panel.classList.add("hidden"); fitPanel(); fab.classList.remove("open"); if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(false); }
+  function close() { focus = null; document.body.classList.remove("chat-open"); panel.classList.add("hidden"); backdrop.classList.add("hidden"); fitPanel(); fab.classList.remove("open"); if (window.Pet && window.Pet.setChatOpen) window.Pet.setChatOpen(false); }
   const toggle = () => panel.classList.contains("hidden") ? open() : close();
   fab.addEventListener("click", toggle);
   panel.querySelector(".coach-x").addEventListener("click", close);
@@ -98,9 +102,12 @@
   function fitPanel() {
     if (panel.classList.contains("hidden") || window.innerWidth > 520) { panel.style.top = panel.style.height = panel.style.bottom = ""; return; }
     const h = vv ? vv.height : window.innerHeight, top = vv ? vv.offsetTop : 0;
-    panel.style.top = (top + 8) + "px";
+    // like a bottom sheet: starts ~14% from the top; fills the screen when the keyboard is open
+    const kb = window.innerHeight - h > 120;
+    const gap = kb ? 0 : Math.round(h * 0.14);
+    panel.style.top = (top + gap) + "px";
     panel.style.bottom = "auto";
-    panel.style.height = (h - 16) + "px";
+    panel.style.height = (h - gap) + "px";
     msgs.scrollTop = msgs.scrollHeight;
   }
   if (vv) { vv.addEventListener("resize", fitPanel); vv.addEventListener("scroll", fitPanel); }
