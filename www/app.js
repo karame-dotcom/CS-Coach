@@ -1388,10 +1388,36 @@
     if (picked.length < MOCK_SIZE) setTimeout(() => toast(t("onlyFresh", { n: picked.length })), 300);
   }
   function startStarred() { if (starred.size) startSession("starred", t("starredTitle"), [...starred].map(i => byId.get(i)).filter(Boolean), () => openTab("practice")); }
-  function startReview(exit) {
-    const qs = reviewQs();
-    if (!qs.length) return toast(t("reviewEmpty"));
-    startSession("review", t("reviewTitle"), qs.slice(0, 30), exit || (() => openTab(tab)));
+  // Mistakes & starred are grouped by subject: pick one to focus on, or take all.
+  function startReview(exit, sid) {
+    const all = reviewQs();
+    if (!all.length) return toast(t("reviewEmpty"));
+    const ex = exit || (() => openTab(tab));
+    const run = (qs, title) => startSession("review", title, qs.slice(0, 30), ex);
+    if (sid) {
+      const s = SUBJECTS.find(x => x.id === sid);
+      return run(all.filter(q => q.sid === sid), t("reviewTitle") + " · " + sn(s).name);
+    }
+    const groups = SUBJECTS.map(s => {
+      const qs = all.filter(q => q.sid === s.id);
+      const m = qs.filter(q => stats[q.id] && stats[q.id].last === 0).length;
+      return { s, n: qs.length, m, st: qs.filter(q => starred.has(q.id)).length };
+    }).filter(g => g.n);
+    if (groups.length <= 1) return run(all, t("reviewTitle"));
+    modal(`
+      <div class="modal-title">${t("reviewPick")}</div>
+      <div class="set-list">
+        ${groups.map(g => `<button class="set-item" data-sid="${g.s.id}"><div class="set-num">${g.s.icon}</div><div class="set-info"><b>${esc(sn(g.s).name)}</b><span>${t("reviewCounts", { m: g.m, s: g.st })}</span></div></button>`).join("")}
+        <button class="set-item" data-sid=""><div class="set-num">🎯</div><div class="set-info"><b>${t("reviewAll")}</b><span>${t("reviewCounts", { m: mistakeIds().length, s: starred.size })}</span></div></button>
+      </div>
+      <div class="actions col"><button class="link" data-x>${t("cancel")}</button></div>`, (w, close) => {
+      w.querySelector("[data-x]").onclick = close;
+      w.querySelectorAll("[data-sid]").forEach(b => b.onclick = () => {
+        close();
+        const id = b.dataset.sid;
+        id ? startReview(exit, id) : run(all, t("reviewTitle"));
+      });
+    });
   }
   async function startSubject(id) {
     const s = SUBJECTS.find(x => x.id === id), exit = () => openTab("practice");
