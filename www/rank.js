@@ -9,7 +9,7 @@
     { key: "stBeginner", color: "#64748b" }, { key: "stInter", color: "#16a34a" }, { key: "stAdv", color: "#2563eb" },
     { key: "stHigh", color: "#9333ea" }, { key: "stPro", color: "#d97706" }
   ];
-  const MAX = NAMES.length, GATE_FROM = 10, GATE_PCT = 80, SEC_Q = 72;
+  const MAX = NAMES.length, GATE_FROM = 10, GATE_PCT = 80, SEC_Q = 60;
 
   // XP needed to climb from rank n to n+1; grows faster than linearly so high ranks are slow
   const cost = n => Math.round(27 * Math.pow(n, 1.7));

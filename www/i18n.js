@@ -81,7 +81,7 @@
     timerQ: ["Per-question clock", "Orasan kada tanong", "Per-question clock"],
     timerQDesc: ["Target: {s} seconds per item. If time runs out the clock keeps counting and the slow items show in your results.", "Target: {s} segundo kada aytem. Kapag naubos ang oras, tuloy ang orasan at lalabas sa resulta ang mabagal na sagot.", "Target: {s} seconds per item. Kapag naubos, tuloy ang clock at lalabas sa results ang mga mabagal."],
     timerSet: ["Per-set clock", "Orasan kada set", "Per-set clock"],
-    timerSetDesc: ["Like the real exam: {s} seconds per question (3 hours for 150). When time is up, your set is submitted automatically.", "Gaya ng tunay na eksamen: {s} segundo kada tanong (3 oras sa 150). Pag naubos ang oras, awtomatikong isusumite ang set.", "Gaya ng real exam: {s} seconds per question (3 hours for 150). Pag time's up, auto-submit ang set."],
+    timerSetDesc: ["Like the real exam: {s} seconds per question (2.5 hours for 150). When time is up, your set is submitted automatically.", "Gaya ng tunay na eksamen: {s} segundo kada tanong (2.5 oras sa 150). Pag naubos ang oras, awtomatikong isusumite ang set.", "Gaya ng real exam: {s} seconds per question (2.5 hours for 150). Pag time's up, auto-submit ang set."],
     timerSumQ: ["per-question clock", "orasan kada tanong", "per-question clock"],
     timerSumSet: ["per-set clock", "orasan kada set", "per-set clock"],
     tmLeft: ["left", "natitira", "left"],

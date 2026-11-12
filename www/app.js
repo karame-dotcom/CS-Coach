@@ -3,7 +3,7 @@
 
   const PASSING = 80;          // CSC passing rate for the Professional level
   const MOCK_SIZE = 30;
-  const SEC_Q = 72;             // target seconds per question (3 hours for 150 items)
+  const SEC_Q = 60;             // target seconds per question (2.5 hours for 150 items)
   const ROUND_SIZE = 10;       // questions per subject round
   const COOLDOWN_DAYS = 30;    // an answered question won't come back for this long
   const DAY = 86400000;
@@ -1856,7 +1856,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   document.getElementById("rankChip").addEventListener("click", openRankModal);
 
   // ---------- speed timer ----------
-  // Off / per-question (72 s target, keeps counting when over) / per-set (72 s x items, auto-submits).
+  // Off / per-question (60 s target, keeps counting when over) / per-set (60 s x items, auto-submits).
   const pad2 = n => String(n).padStart(2, "0");
   const fmtClock = ms => { const s = Math.max(0, Math.round(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? h + ":" + pad2(m) + ":" + pad2(s % 60) : m + ":" + pad2(s % 60); };
   const fmtDur = sec => { sec = Math.max(0, Math.round(sec)); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? h + "h " + (m ? m + "m" : "") : m ? m + "m " + (sec % 60 ? sec % 60 + "s" : "") : sec + "s"; };
