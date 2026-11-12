@@ -1065,3 +1065,38 @@ body.chat-full .tabbar button.active:not(.tab-chat) .tab-ico { background: none;
 .slow-note .slow-time { font-size: 1.1rem; font-weight: 800; color: var(--wrong); }
 .slow-note { margin: 8px 0; padding: 10px 12px; border-radius: 10px; background: var(--amber-soft); border: 1px solid var(--amber); font-size: .88rem; }
 .cel-time { color: var(--muted); font-size: .85rem; margin-top: 4px; }
+
+/* timer tip bubble */
+.tm-tip { position: absolute; left: 16px; right: 16px; top: 52px; z-index: 6; padding: 10px 14px; border-radius: 14px; background: var(--ink); color: #fff; font-weight: 700; font-size: .9rem; box-shadow: 0 6px 18px rgba(15,42,61,.3); cursor: pointer; }
+.tm-tip::before { content: ""; position: absolute; top: -7px; left: 28px; border: 7px solid transparent; border-top: 0; border-bottom-color: var(--ink); }
+
+/* rank chip (top right) and rank card */
+.rank-chip { margin-left: auto; display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,.18); border: 0; color: #fff; border-radius: 14px; padding: 4px 10px 4px 6px; cursor: pointer; font: inherit; }
+.rank-chip + .settings { margin-left: 0; }
+.rank-chip:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+.rk-txt { display: grid; gap: 3px; text-align: left; line-height: 1; }
+.rk-txt b { font-size: .78rem; max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rk-bar { display: block; width: 100%; height: 5px; border-radius: 99px; background: rgba(255,255,255,.3); overflow: hidden; }
+.rk-bar > i { display: block; height: 100%; background: #fde68a; border-radius: 99px; }
+.rk-card { display: grid; gap: 10px; text-align: left; }
+.rk-top { display: flex; align-items: center; gap: 12px; }
+.rk-name { font-weight: 800; font-size: 1.2rem; }
+.rk-stage { font-weight: 700; font-size: .85rem; }
+.rk-xp { margin-left: auto; text-align: right; font-size: .85rem; color: var(--muted); }
+.rk-xp b { font-size: 1.15rem; color: var(--ink); }
+.rk-prog { height: 12px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.rk-prog > i { display: block; height: 100%; border-radius: 99px; transition: width .4s; }
+.rk-sub { font-size: .88rem; color: var(--muted); font-weight: 600; }
+.rk-gate { background: var(--amber-soft); border: 1px solid var(--amber); border-radius: 10px; padding: 8px 10px; font-size: .88rem; }
+.rk-ladder { display: grid; gap: 2px; max-height: 340px; overflow-y: auto; }
+.rk-stage-h { font-weight: 800; font-size: .8rem; text-transform: uppercase; letter-spacing: .5px; margin-top: 8px; }
+.rk-row { display: flex; align-items: center; gap: 10px; padding: 4px 8px; border-radius: 10px; opacity: .6; }
+.rk-row.done { opacity: .9; }
+.rk-row.me { opacity: 1; background: var(--blue-soft); font-weight: 800; }
+.rk-need { margin-left: auto; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rk-you { font-size: .7rem; background: var(--blue); color: #fff; border-radius: 99px; padding: 1px 8px; }
+.xp-line { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 6px 0; font-weight: 700; }
+.xp-line .up, .cel-xp.up { color: var(--green-dark); } .xp-line .down, .cel-xp.down { color: var(--wrong); }
+.cel-xp { font-family: var(--chat-display, inherit); font-weight: 800; font-size: 1.4rem; margin-top: 6px; }
+.cel-rank { margin-top: 4px; font-weight: 800; color: var(--blue); } .cel-rank.down { color: var(--wrong); }
+@media (max-width: 400px) { .topbar .tagline { display: none; } .rk-txt b { max-width: 64px; } }
