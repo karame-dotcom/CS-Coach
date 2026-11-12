@@ -2408,14 +2408,20 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     const timeBlock = tm ? `
         <div class="tm-result">
           <div class="chart-title">${t("tmResTitle")}${S.timedOut ? ` <span class="badge blue">${t("tmRanOut")}</span>` : ""}</div>
-          <div class="tm-grid">
-            <div><b>${fmtDur(tm.used)}</b><span>${t("tmTimeUsed")}</span></div>
-            <div><b>${fmtDur(tm.allowed)}</b><span>${t("tmAllowed")}</span></div>
-            <div class="${tm.avg > SEC_Q ? "slow" : "fast"}"><b>${tm.avg}s</b><span>${t("tmAvgL")}</span></div>
-            <div class="${counts.slow ? "slow" : "fast"}"><b>${counts.slow}</b><span>${t("tmSlowL")}</span></div>
+          <div class="tm-split">
+            <table class="tm-table">
+              <tr><th>${t("tmTimeUsed")}</th><td>${fmtDur(tm.used)}</td></tr>
+              <tr><th>${t("tmAllowed")}</th><td>${fmtDur(tm.allowed)}</td></tr>
+              <tr><th>${t("tmAvgL")}</th><td class="${tm.avg > SEC_Q ? "slow" : "fast"}">${tm.avg}s</td></tr>
+              <tr><th>${t("tmSlowL")}</th><td class="${counts.slow ? "slow" : "fast"}">${counts.slow}</td></tr>
+            </table>
+            <div class="tm-beat">
+              <div class="tm-beat-t">${t("tmToBeat")}</div>
+              <div class="tm-beat-i"><b>${bT.pct != null ? bT.pct + "%" : "—"}</b><span>${t("tmBestScoreL")}</span></div>
+              <div class="tm-beat-i"><b>${bT.spd != null ? bT.spd + "s" : "—"}</b><span>${t("tmFastAvgL")}</span></div>
+            </div>
           </div>
           ${S.timedOut ? `<p class="muted small">${t("tmTimedOut")}</p>` : ""}
-          <p class="muted small">${bT.pct != null ? t("tmBestTimed", { p: bT.pct }) : ""}${bT.pct != null && bT.spd != null ? " · " : ""}${bT.spd != null ? t("tmBestSpeed", { s: bT.spd }) : ""}</p>
         </div>` : "";
     const isSubjectRound = SUBJECTS.some(x => x.id === S.key);
 
