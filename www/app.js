@@ -27,6 +27,8 @@
   let stats = store.get("cscoach.stats", {});                  // { qid: { n, c, last } }
   let history = store.get("cscoach.history", []);              // past sessions
   let lessonsRead = new Set(store.get("cscoach.lessonsRead", []));
+  // Rank: { xp, rank, day, seen } (seen = question ids answered today, to dampen repeats). Optional; absent = starting fresh.
+  let rankState = store.get("cscoach.rank", null) || { xp: 0, rank: 1, day: "", seen: [] };
   const saveStars = () => store.set("cscoach.starred", [...starred]);
   const pet = () => window.Pet || { cheer() {}, cry() {}, say() {}, hop() {}, setVisible() {} };
   if (profile && profile.lang) I.setLang(profile.lang);
@@ -82,9 +84,9 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.30.0";
+  const APP_VERSION = "1.31.0";
   const REPORT_EMAIL = "sharematerials2026@gmail.com";
-  const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
+  const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap", "rank"];
   function snapshot(reason) {
     const data = {};
     DATA_KEYS.forEach(k => { try { const v = localStorage.getItem("cscoach." + k); if (v != null) data[k] = JSON.parse(v); } catch (_) {} });
@@ -334,6 +336,7 @@
     document.body.classList.toggle("has-tabbar", on);
   }
   function paintTabbar() {
+    paintRank();
     tabbar.querySelectorAll("[data-tab]").forEach(b => {
       b.classList.toggle("active", b.dataset.tab === (tab === "learn" ? "settings" : tab));
       b.querySelector(".tab-label").textContent = t({ learn: "tabLearn", practice: "tabPractice", chat: "tabChat", calendar: "tabCalendar", analytics: "tabAnalytics", settings: "tabSettings" }[b.dataset.tab]);
@@ -406,7 +409,7 @@
     });
   }
   const CHAR_KEYS = { sprout: "charSprout", kitty: "charKitty", bunny: "charBunny", puppy: "charPuppy", chick: "charChick" };
-  const settingsSnap = p => JSON.stringify({ name: p.name || "", instant: !!p.instant, examDate: p.examDate || "", pet: p.pet !== false, lang: p.lang || "en", dailyGoal: +p.dailyGoal || 20, timer: p.timer || "off", petChar: p.petChar || "sprout", petName: p.petName || "Kiko", petMode: p.petMode || (p.pet === false ? "home" : "still") });
+  const settingsSnap = p => JSON.stringify({ name: p.name || "", instant: !!p.instant, examDate: p.examDate || "", pet: p.pet !== false, lang: p.lang || "en", dailyGoal: +p.dailyGoal || 20, timer: p.timer || "question", petChar: p.petChar || "sprout", petName: p.petName || "Kiko", petMode: p.petMode || (p.pet === false ? "home" : "still") });
 
   // Settings sections are collapsible (tap the header). Open sections stay open on re-render.
   const openSecs = new Set();
@@ -423,7 +426,7 @@
     setBack(null);
     if (firstRun) showTabbar(false);
     else { tab = "settings"; paintTabbar(); showTabbar(true); }
-    const p = draft || profile || { name: "", instant: false, examDate: "", pet: true, lang: "en", dailyGoal: 20, petChar: "sprout", petName: "Kiko" };
+    const p = draft || profile || { name: "", timer: "question", instant: false, examDate: "", pet: true, lang: "en", dailyGoal: 20, petChar: "sprout", petName: "Kiko" };
     I.setLang(p.lang || "en");
     I.petName = (p.petName || "Kiko").trim() || "Kiko";
     if (window.Pet && Pet.setCharacter) Pet.setCharacter(p.petChar || "sprout");
@@ -447,7 +450,7 @@
           <label class="field-label" for="name" style="margin-top:18px">${t("yourName")}</label>
           <input id="name" class="input" type="text" maxlength="40" placeholder="${t("namePh")}" value="${esc(p.name || "")}" autocomplete="given-name" />`, firstRun)}
 
-        ${sec("quiz", "📝", t("secQuiz"), esc((p.instant ? t("practiceMode") : t("examMode")) + (p.examDate ? " · " + p.examDate : "") + " · " + (p.dailyGoal || 20) + "/" + t("perDay") + (p.timer === "question" ? " · ⏱ " + t("timerSumQ") : p.timer === "set" ? " · ⏱ " + t("timerSumSet") : "")), `
+        ${sec("quiz", "📝", t("secQuiz"), esc((p.instant ? t("practiceMode") : t("examMode")) + (p.examDate ? " · " + p.examDate : "") + " · " + (p.dailyGoal || 20) + "/" + t("perDay") + ((p.timer || "question") === "question" ? " · ⏱ " + t("timerSumQ") : p.timer === "set" ? " · ⏱ " + t("timerSumSet") : "")), `
           ${firstRun ? "" : `
           <button class="learn-card ${LESSONS_ON ? "" : "soon"}" id="openLearn" type="button" ${LESSONS_ON ? "" : `disabled aria-disabled="true"`}>
             <span class="lc-ico">📖</span>
@@ -472,9 +475,9 @@
           <input id="dailyGoal" class="input" type="number" min="5" max="200" step="5" value="${esc(p.dailyGoal || 20)}" />
           <div class="field-label" style="margin-top:18px">⏱ ${t("timerLabel")}</div>
           <select id="timerSel" class="input" aria-label="${t("timerLabel")}">
-            ${[["off", "timerOff"], ["question", "timerQ"], ["set", "timerSet"]].map(([v, n]) => `<option value="${v}" ${(p.timer || "off") === v ? "selected" : ""}>${t(n)}</option>`).join("")}
+            ${[["off", "timerOff"], ["question", "timerQ"], ["set", "timerSet"]].map(([v, n]) => `<option value="${v}" ${(p.timer || "question") === v ? "selected" : ""}>${t(n)}</option>`).join("")}
           </select>
-          <p class="muted small" id="timerDesc" style="margin:6px 0 0">${t({ off: "timerOffDesc", question: "timerQDesc", set: "timerSetDesc" }[p.timer || "off"], { s: SEC_Q })}</p>`, firstRun)}
+          <p class="muted small" id="timerDesc" style="margin:6px 0 0">${t({ off: "timerOffDesc", question: "timerQDesc", set: "timerSetDesc" }[p.timer || "question"], { s: SEC_Q })}</p>`, firstRun)}
 
         ${sec("buddy", "🐾", t("buddySection"), esc((p.petName || "Kiko") + " · " + t(CHAR_KEYS[p.petChar || "sprout"]) + " · " + t({ home: "petModeHome", still: "petModeStill", walk: "petModeWalk" }[p.petMode || (p.pet === false ? "home" : "still")])), `
           <div class="muted small" style="margin-bottom:8px">${t("buddyChar")}</div>
@@ -559,7 +562,7 @@
       autoBackup("before-reset");
       best = {}; starred = new Set(); stats = {}; history = []; lessonsRead = new Set();
       ["best", "stats", "history"].forEach(k => store.set("cscoach." + k, k === "history" ? [] : {}));
-      store.set("cscoach.lessonsRead", []); saveStars(); goHome();
+      store.set("cscoach.lessonsRead", []); rankState = { xp: 0, rank: 1, day: "", seen: [] }; store.set("cscoach.rank", rankState); saveStars(); goHome();
     }));
     window.scrollTo(0, 0);
   }
@@ -1602,6 +1605,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
       <h2>📊 ${t("analyticsTitle")}</h2>
       <p class="sub">${t("analyticsSub")}</p>
       <div class="tiles">${tiles.map(([v, l]) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`).join("")}</div>
+      <div class="panel rk-panel"><div class="chart-title">${t("rankTitle")}</div>${rankHtml(true)}</div>
       ${reviewQs().length ? `<button class="review-banner" id="reviewTop"><span>🎯</span><span><b>${t("reviewBtn", { n: reviewQs().length }).replace(/^🎯 /, "")}</b><small>${t("reviewCounts", { m: mistakeIds().length, s: starred.size })}</small></span><span>→</span></button>` : ""}
 
       <div class="panel chart-panel">
@@ -1734,6 +1738,54 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   // ---------- quiz session ----------
   let session = null;
 
+  // ---------- rank (XP) ----------
+  function applyRank(S, correct, total, avgSec) {
+    const today = new Date().toDateString();
+    if (rankState.day !== today) rankState = { ...rankState, day: today, seen: [] };
+    const seen = new Set(rankState.seen);
+    const repeatFrac = S.items.filter(q => seen.has(q.id)).length / (S.items.length || 1);
+    const { delta } = Rank.xpChange({ total, correct, avgSec, repeatFrac });
+    const before = { xp: rankState.xp, rank: rankState.rank };
+    const after = Rank.apply(rankState, delta, Rank.gateOk(history));
+    S.items.forEach(q => seen.add(q.id));
+    rankState = { xp: after.xp, rank: after.rank, day: today, seen: [...seen].slice(-400) };
+    store.set("cscoach.rank", rankState);
+    const h = history[history.length - 1];
+    const applied = after.xp - before.xp;   // XP can't go below 0, so show what actually changed
+    if (h) { h.xp = applied; store.set("cscoach.history", history); }
+    paintRank();
+    return { delta: applied, before, after };
+  }
+  function paintRank() {
+    const el = document.getElementById("rankChip");
+    if (!el) return;
+    el.classList.toggle("hidden", !profile);
+    if (!profile) return;
+    const r = rankState.rank, pr = Rank.progress(rankState.xp, r);
+    el.innerHTML = Rank.badge(r, 30) + `<span class="rk-txt"><b>${esc(Rank.NAMES[r - 1])}</b><i class="rk-bar"><i style="width:${pr.pct}%"></i></i></span>`;
+    el.setAttribute("aria-label", t("rankTitle") + ": " + Rank.NAMES[r - 1]);
+  }
+  function rankHtml(full) {
+    const r = rankState.rank, xp = rankState.xp, st = Rank.stageOf(r), pr = Rank.progress(xp, r);
+    const gated = Rank.rankFor(xp) > r;
+    const ladder = Rank.STAGES.map((sg, si) => `
+      <div class="rk-stage-h" style="color:${sg.color}">${t(sg.key)}</div>
+      ${[1, 2, 3, 4].map(k => { const n = si * 4 + k; return `<div class="rk-row ${n === r ? "me" : ""} ${n < r ? "done" : ""}">${Rank.badge(n, 24)}<span class="rk-rn">${esc(Rank.NAMES[n - 1])}</span><span class="rk-need">${Rank.CUM[n].toLocaleString()} XP</span>${n === r ? `<b class="rk-you">${t("rankYou")}</b>` : ""}</div>`; }).join("")}`).join("");
+    return `<div class="rk-card">
+      <div class="rk-top">${Rank.badge(r, 56)}
+        <div><div class="rk-name">${esc(Rank.NAMES[r - 1])}</div><div class="rk-stage" style="color:${st.color}">${t(st.key)} · ${t("rankN", { n: r })}</div></div>
+        <div class="rk-xp"><b>${xp.toLocaleString()}</b> ${t("rankXp")}</div></div>
+      ${r < Rank.MAX ? `<div class="rk-prog" role="progressbar" aria-valuenow="${pr.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pr.pct}%;background:${st.color}"></i></div>
+        <div class="rk-sub">${t("rankToNext", { x: pr.toNext.toLocaleString(), name: esc(Rank.NAMES[r]) })}</div>` : `<div class="rk-sub">${t("rankMax")}</div>`}
+      ${gated ? `<div class="rk-gate">${t("rankGated")}</div>` : r >= Rank.GATE_FROM - 1 && r < Rank.MAX ? `<div class="rk-sub">🔒 ${t("rankGate", { p: Rank.GATE_PCT })}</div>` : ""}
+      ${full ? `<p class="muted small">${t("rankHow")}</p><div class="rk-ladder">${ladder}</div>` : ""}
+    </div>`;
+  }
+  function openRankModal() {
+    modal(`${rankHtml(true)}<div class="actions"><button class="btn" data-close>${t("gotIt")}</button></div>`, (w, close) => { w.querySelector("[data-close]").onclick = close; });
+  }
+  document.getElementById("rankChip").addEventListener("click", openRankModal);
+
   // ---------- speed timer ----------
   // Off / per-question (72 s target, keeps counting when over) / per-set (72 s x items, auto-submits).
   const pad2 = n => String(n).padStart(2, "0");
@@ -1776,7 +1828,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
 
   function startSession(key, title, questions, exitTo, keepOrder, timerOver) {
     const list = keepOrder ? questions : shuffle(questions);
-    const timer = timerOver || (profile && profile.timer) || "off";
+    const timer = timerOver || (profile ? profile.timer || "question" : "off");   // timer is on unless the user turned it off
     session = {
       key, title, exitTo,
       timer, timerOver, qTime: new Array(list.length).fill(0), total: 0, limit: list.length * SEC_Q * 1000, lastTs: Date.now(),
@@ -1790,6 +1842,10 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     };
     showTabbar(false);
     pet().setBusy && pet().setBusy(true);
+    if (session.timer !== "off") {   // explain how to turn the timer off, during the first 3 sessions only
+      const n = store.get("cscoach.timerTips", 0);
+      if (n < 3) { session.tipUntil = Date.now() + 8000; store.set("cscoach.timerTips", n + 1); }
+    }
     renderQuestion(true);
     if (session.timer !== "off") { const S = session; S.timerId = setInterval(() => tmTick(S), 250); }
   }
@@ -1833,7 +1889,8 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
 
     app.innerHTML = `
       <div class="quiz-sticky" id="quizSticky">
-      ${S.timer !== "off" ? `<div class="tm-bar ok" id="tmBar" role="progressbar" aria-label="${t("timerLabel")}" aria-valuemin="0" aria-valuemax="100"><div class="tm-fill"></div></div>` : ""}
+      ${S.timer !== "off" ? `<div class="tm-bar ok" id="tmBar" role="progressbar" aria-label="${t("timerLabel")}" aria-valuemin="0" aria-valuemax="100"><div class="tm-fill"></div></div>
+        ${S.timer !== "off" && S.tipUntil > Date.now() ? `<div class="tm-tip" id="tmTip" role="status">${t("tmTip")}</div>` : ""}` : ""}
       <div class="quiz-head">
         <div>
           <div class="quiz-title">${esc(S.title)}</div>
@@ -1916,6 +1973,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     });
     document.getElementById("helpBtn").addEventListener("click", () => showHelp(q));
     document.getElementById("clockBtn").addEventListener("click", () => {
+      S.tipUntil = 0;
       if (S.timer === "off") {   // start the clock now, using the Settings choice (per-question if Settings says no timer)
         S.timer = (profile && profile.timer && profile.timer !== "off") ? profile.timer : "question";
         S.qTime.fill(0); S.total = 0; S.lastTs = Date.now(); S.warned = false;
@@ -1945,6 +2003,8 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
       }, { passive: true });
     });
     tmPaint();
+    const tip = document.getElementById("tmTip");
+    if (tip) { tip.onclick = () => { S.tipUntil = 0; tip.remove(); }; setTimeout(() => { const e = document.getElementById("tmTip"); if (e) e.remove(); }, Math.max(0, S.tipUntil - Date.now())); }
     fitSticky();
 
     // Keep the current number visible in the one-line overview
@@ -2093,7 +2153,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
 
   // ---------- Score celebration pop-up ----------
   // ≥ passing: fireworks + dancing buddy · 60–79: sparkles + happy bounce · < 60: hearts + encouragement
-  function celebrate(pct, correct, total, tm) {
+  function celebrate(pct, correct, total, tm, xr) {
     const tier = pct >= PASSING ? "good" : pct >= 60 ? "mid" : "low";
     const name = profile && profile.name ? ", " + esc(profile.name) : "";
     // how many rounds just before this one landed in the same tier (history already includes this round)
@@ -2111,6 +2171,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
         <div class="cel-ring" style="--p:0"><div><span class="cel-num"><span id="celPct">0</span>%</span></div></div>
         <div class="cel-count">${t("celCorrect", { c: correct, n: total })}</div>
         ${tm ? `<div class="cel-time">${t("tmUsed", { used: fmtDur(tm.used), limit: fmtDur(tm.allowed) })}<br>${t("tmAvg", { s: tm.avg, g: SEC_Q })}</div>` : ""}
+        ${xr ? xpLineHtml(xr) : ""}
         <h2 class="cel-title">${title}</h2>
         <p class="cel-text">${text}</p>
         <div class="actions"><button class="btn" data-see>${t("celSee")}</button></div>
@@ -2129,6 +2190,14 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
       if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) particles(w, tier);
       try { navigator.vibrate && navigator.vibrate(tier === "good" ? [30, 40, 30, 40, 60] : 25); } catch (_) {}
     });
+  }
+
+  function xpLineHtml(xr) {
+    const up = xr.delta >= 0, rb = xr.before.rank, ra = xr.after.rank;
+    const msg = ra > rb ? t("rankUp", { from: Rank.NAMES[rb - 1], to: Rank.NAMES[ra - 1] })
+      : ra < rb ? t("rankDown", { from: Rank.NAMES[rb - 1], to: Rank.NAMES[ra - 1] })
+      : xr.after.gated ? t("rankGated") : "";
+    return `<div class="cel-xp ${up ? "up" : "down"}">${up ? "+" : "−"}${Math.abs(xr.delta)} ${t("rankXp")}</div>${msg ? `<div class="cel-rank ${ra < rb ? "down" : ""}">${msg}</div>` : ""}`;
   }
 
   // Lightweight canvas effects: fireworks, sparkles, or floating hearts
@@ -2213,6 +2282,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     if (!S.saved) {
       S.saved = true;
       recordSession(S);
+      S.xr = applyRank(S, counts.correct, rows.length, tm ? tm.avg : null);
       const saveable = !S.key.endsWith(":retry") && !["starred", "review", "speed"].includes(S.key) && !S.key.startsWith("ai:");
       if (saveable && timed) {   // timed results keep their own bests, so a timed run never replaces the untimed best
         const kt = S.key + ":t", ks = S.key + ":spd";
@@ -2221,7 +2291,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
         store.set("cscoach.best", best);
       } else if (saveable && (best[S.key] == null || pct > best[S.key])) { best[S.key] = pct; store.set("cscoach.best", best); }
       S.bestT = timed ? { pct: best[S.key + ":t"], spd: best[S.key + ":spd"] } : null;
-      setTimeout(() => celebrate(pct, counts.correct, rows.length, tm), 250);
+      setTimeout(() => celebrate(pct, counts.correct, rows.length, tm, S.xr), 250);
     }
 
     filter = filter || "all";
@@ -2262,6 +2332,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
           <span class="no">❌ ${t("nWrong", { n: counts.wrong })}</span>
           ${counts.unanswered ? `<span>⭕ ${t("nUnanswered", { n: counts.unanswered })}</span>` : ""}
         </div>
+        ${S.xr ? `<div class="xp-line">${Rank.badge(rankState.rank, 22)} <b class="${S.xr.delta >= 0 ? "up" : "down"}">${S.xr.delta >= 0 ? "+" : "−"}${Math.abs(S.xr.delta)} ${t("rankXp")}</b> · ${esc(Rank.NAMES[rankState.rank - 1])}</div>` : ""}
         ${timeBlock}
         <div class="actions">
           ${missed.length ? `<button class="btn" id="retryWrong">${t("retryMissed", { n: missed.length })}</button>` : ""}
