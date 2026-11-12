@@ -471,8 +471,10 @@
           <label class="field-label" for="dailyGoal" style="margin-top:18px">${t("dailyGoal")}</label>
           <input id="dailyGoal" class="input" type="number" min="5" max="200" step="5" value="${esc(p.dailyGoal || 20)}" />
           <div class="field-label" style="margin-top:18px">⏱ ${t("timerLabel")}</div>
-          ${[["off", "timerOff", "timerOffDesc"], ["question", "timerQ", "timerQDesc"], ["set", "timerSet", "timerSetDesc"]].map(([v, n, d]) =>
-            `<label class="mode-opt"><input type="radio" name="timer" value="${v}" ${(p.timer || "off") === v ? "checked" : ""} /><div><b>${t(n)}</b><span>${t(d, { s: SEC_Q })}</span></div></label>`).join("")}`, firstRun)}
+          <select id="timerSel" class="input" aria-label="${t("timerLabel")}">
+            ${[["off", "timerOff"], ["question", "timerQ"], ["set", "timerSet"]].map(([v, n]) => `<option value="${v}" ${(p.timer || "off") === v ? "selected" : ""}>${t(n)}</option>`).join("")}
+          </select>
+          <p class="muted small" id="timerDesc" style="margin:6px 0 0">${t({ off: "timerOffDesc", question: "timerQDesc", set: "timerSetDesc" }[p.timer || "off"], { s: SEC_Q })}</p>`, firstRun)}
 
         ${sec("buddy", "🐾", t("buddySection"), esc((p.petName || "Kiko") + " · " + t(CHAR_KEYS[p.petChar || "sprout"]) + " · " + t({ home: "petModeHome", still: "petModeStill", walk: "petModeWalk" }[p.petMode || (p.pet === false ? "home" : "still")])), `
           <div class="muted small" style="margin-bottom:8px">${t("buddyChar")}</div>
@@ -510,7 +512,7 @@
       name: document.getElementById("name").value.trim(),
       instant: app.querySelector("input[name=mode]:checked").value === "instant",
       examDate: document.getElementById("examDate").value,
-      timer: (app.querySelector("input[name=timer]:checked") || {}).value || "off",
+      timer: (document.getElementById("timerSel") || {}).value || "off",
       petMode: (app.querySelector("input[name=petMode]:checked") || {}).value || "still",
       pet: ((app.querySelector("input[name=petMode]:checked") || {}).value || "still") !== "home",
       lang: app.querySelector("input[name=lang]:checked").value,
@@ -521,6 +523,8 @@
     });
     // Re-render immediately in the chosen language / character (live preview)
     app.querySelectorAll("input[name=lang], input[name=petChar]").forEach(r => r.addEventListener("change", () => { const y = window.scrollY; renderSettings(firstRun, read()); window.scrollTo(0, y); }));
+    const tsel = document.getElementById("timerSel");
+    tsel.addEventListener("change", () => { document.getElementById("timerDesc").textContent = t({ off: "timerOffDesc", question: "timerQDesc", set: "timerSetDesc" }[tsel.value], { s: SEC_Q }); });
     // Track unsaved changes
     const saved = settingsSnap(profile || {});
     const badge = document.getElementById("unsavedBadge");
@@ -1745,25 +1749,16 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     S.lastTs = document.hidden ? null : n;   // paused while the app is in the background
   }
   document.addEventListener("visibilitychange", () => { if (session && session.timer && !session.done) tmFlush(session); });
+  // The clock is a bar that drains (no digits, so the numbers don't distract). Empty/over turns red.
   function tmPaint() {
     const S = session, el = document.getElementById("tmBar");
     if (!el || !S || !S.timer) return;
-    const set = S.timer === "set", qms = S.qTime[S.idx];
-    let left, cls, lbl, side;
-    if (set) {
-      left = S.limit - S.total;
-      const warn = Math.min(600000, S.limit * 0.25), red = Math.min(60000, S.limit * 0.1);
-      cls = left <= red ? "bad" : left <= warn ? "warn" : "ok";
-      lbl = t("tmSetLeft"); side = t("tmQLeft") + " " + fmtClock(qms);
-    } else {
-      left = SEC_Q * 1000 - qms;
-      cls = left < 0 ? "bad" : left <= SEC_Q * 250 ? "warn" : "ok";
-      lbl = t("tmQLeft"); side = t("tmTotal") + " " + fmtClock(S.total);
-    }
-    el.className = "tm-bar " + cls;
-    el.querySelector(".tm-lbl").textContent = lbl;
-    el.querySelector(".tm-main").textContent = left >= 0 ? fmtClock(left) : "+" + fmtClock(-left) + " " + t("tmOver");
-    el.querySelector(".tm-side").textContent = side;
+    const total = S.timer === "set" ? S.limit : SEC_Q * 1000;
+    const left = total - (S.timer === "set" ? S.total : S.qTime[S.idx]);
+    const frac = Math.max(0, Math.min(1, left / total));
+    el.className = "tm-bar " + (left <= 0 ? "bad" : frac <= 0.2 ? "low" : "ok");
+    el.querySelector(".tm-fill").style.width = (left <= 0 ? 100 : frac * 100) + "%";
+    el.setAttribute("aria-valuenow", Math.round(frac * 100));
   }
   function tmTick(S) {
     if (session !== S || S.done) { clearInterval(S.timerId); return; }
@@ -1838,7 +1833,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
 
     app.innerHTML = `
       <div class="quiz-sticky" id="quizSticky">
-      ${S.timer !== "off" ? `<div class="tm-bar ok" id="tmBar" role="timer"><span class="tm-ico">⏱</span><span class="tm-lbl"></span><b class="tm-main"></b><span class="tm-side"></span></div>` : ""}
+      ${S.timer !== "off" ? `<div class="tm-bar ok" id="tmBar" role="progressbar" aria-label="${t("timerLabel")}" aria-valuemin="0" aria-valuemax="100"><div class="tm-fill"></div></div>` : ""}
       <div class="quiz-head">
         <div>
           <div class="quiz-title">${esc(S.title)}</div>
@@ -2281,7 +2276,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
             ? `<div class="row right">${t("yourAnswer")}: ${LETTERS[r.ans]}. ${esc(cText(r.q, r.ans))}</div>`
             : `<div class="row yours">${t("yourAnswer")}: ${r.ans === null ? t("noAnswer") : LETTERS[r.ans] + ". " + esc(cText(r.q, r.ans))}</div>
                <div class="row right">${t("correctAnswer")}: ${LETTERS[r.q.a]}. ${esc(cText(r.q, r.q.a))}</div>`}
-          ${r.slow ? `<div class="slow-note">🐢 ${t("tmSlowNote", { took: fmtDur(r.ms / 1000), goal: fmtDur(SEC_Q) })}<br><b>${r.status === "correct" ? t("tmSlowRight") : t("tmSlowWrong")}</b></div>` : ""}
+          ${r.slow ? `<div class="slow-note"><p class="slow-time">🐢 ${t("tmSlowTime", { took: fmtDur(r.ms / 1000), goal: fmtDur(SEC_Q) })}</p><p>${t("tmSlowNote")}</p><p><b>${r.status === "correct" ? t("tmSlowRight") : t("tmSlowWrong")}</b></p></div>` : ""}
           <div class="why">💡 ${esc(r.q.e)}</div>
           <button class="link explain-link" data-explain="${r.i}">${t("askExplain")}</button>
         </div>`).join("") : `<div class="perfect">${t("nothingHere")}</div>`}
