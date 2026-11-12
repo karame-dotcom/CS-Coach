@@ -531,6 +531,9 @@
     petModeStill: ["🧘 Stay still", "🧘 Nakatigil lang", "🧘 Stay still"],
     petModeStillDesc: ["Sits quietly in the corner and only reacts to your answers.", "Tahimik sa sulok at sumasagot lang sa iyong mga sagot.", "Tahimik lang sa corner at nagre-react lang sa answers mo."],
     petModeWalk: ["🚶 Walk around", "🚶 Naglalakad", "🚶 Walk around"],
+    voiceOn: ["Buddy voice", "Boses ng buddy", "Boses ng buddy"],
+    voiceOnDesc: ["Your buddy speaks reactions and results out loud in a cute voice.", "Magsasalita nang malakas ang buddy mo sa cute na boses para sa reaksyon at resulta.", "Magsasalita nang malakas ang buddy mo sa cute na voice para sa reactions at results."],
+    voiceTest: ["Yay! I can talk now!", "Yey! Nakakapagsalita na ako!", "Yay! Nakakapagsalita na ako!"],
     petModeWalkDesc: ["Wanders around. Always stops while you study.", "Naglalakad-lakad. Laging tumitigil habang nag-aaral ka.", "Naglalakad-lakad. Laging humihinto habang nag-aaral ka."],
     // v18: help shows a similar question; tips per subject
     similarQ: ["A similar question", "Katulad na tanong", "Similar na question"],

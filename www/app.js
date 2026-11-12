@@ -534,7 +534,8 @@
             const cur = p.petMode || (p.pet === false ? "home" : "still");
             const key = { home: "petModeHome", still: "petModeStill", walk: "petModeWalk" }[m];
             return `<label class="mode-opt"><input type="radio" name="petMode" value="${m}" ${cur === m ? "checked" : ""} /><div><b>${t(key)}</b><span>${t(key + "Desc")}</span></div></label>`;
-          }).join("")}`, firstRun)}
+          }).join("")}
+          <label class="mode-opt"><input type="checkbox" id="voiceOn" ${window.Voice && !Voice.isOn() ? "" : "checked"} /><div><b>${t("voiceOn")}</b><span>${t("voiceOnDesc")}</span></div></label>`, firstRun)}
 
         <div class="actions save-row"><span class="unsaved-badge hidden" id="unsavedBadge">● ${t("unsavedBadge")}</span><button class="btn" type="submit">${firstRun ? t("startReviewing") : t("saveSettings")}</button></div>
       </form>
@@ -564,6 +565,7 @@
       created: (profile && profile.created) || (draft && draft.created) || Date.now()
     });
     // Re-render immediately in the chosen language / character (live preview)
+    const vo = app.querySelector("#voiceOn"); if (vo) vo.onchange = () => { if (window.Voice) { Voice.setOn(vo.checked); if (vo.checked) Voice.speak(t("voiceTest")); } };
     app.querySelectorAll("input[name=lang], input[name=petChar]").forEach(r => r.addEventListener("change", () => { const y = window.scrollY; renderSettings(firstRun, read()); window.scrollTo(0, y); }));
     const tsel = document.getElementById("timerSel");
     tsel.addEventListener("change", () => { document.getElementById("timerDesc").textContent = t({ off: "timerOffDesc", question: "timerQDesc", set: "timerSetDesc" }[tsel.value], { s: SEC_Q }); });
@@ -2204,6 +2206,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     const tone = window.Tone ? Tone.result(tier, name, prior) : null;
     const title = tone ? tone.title : t({ good: "celGoodTitle", mid: "celMidTitle", low: "celLowTitle" }[tier], { name });
     const text = tone ? tone.text : t({ good: "celGoodText", mid: "celMidText", low: "celLowText" }[tier]);
+    if (window.Voice) Voice.speak(t("celCorrect", { c: correct, n: total }) + ". " + pct + "%. " + title + ". " + text);
     const charKey = (profile && profile.petChar) || "sprout";
     const kiko = window.Pet && Pet.preview ? Pet.preview(charKey) : "";
     modal(`

@@ -184,8 +184,8 @@
     setTimeout(() => tabIco.classList.remove("react-happy", "react-sad"), 1600);
   }
   window.Pet = {
-    cheer(msg) { if (!msg && window.Tone) { Tone.record(true); msg = Tone.react(true); } if (mode === "home") return homeReact("happy"); setMood("happy", 2200); say(msg || pick(msgs().cheer)); burstHearts(pick(["✨", "💚", "⭐"])); },
-    cry(msg) { if (!msg && window.Tone) { Tone.record(false); msg = Tone.react(false); } if (mode === "home") return homeReact("sad"); setMood("sad", 2800); say(msg || pick(msgs().cry), 3000); },
+    cheer(msg) { if (!msg && window.Tone) { Tone.record(true); msg = window.Voice ? Voice.correct() : Tone.react(true); } if (window.Voice && msg) Voice.speak(msg); if (mode === "home") return homeReact("happy"); setMood("happy", 2200); say(msg || pick(msgs().cheer)); burstHearts(pick(["✨", "💚", "⭐"])); },
+    cry(msg) { if (!msg && window.Tone) { Tone.record(false); msg = window.Voice ? Voice.wrong(Tone.mood() === "cold") : Tone.react(false); } if (window.Voice && msg) Voice.speak(msg); if (mode === "home") return homeReact("sad"); setMood("sad", 2800); say(msg || pick(msgs().cry), 4200); },
     say,
     hop() { setMood("hop", 600); },
     setVisible(v) { root.classList.toggle("hidden", !v); document.body.classList.toggle("no-pet", !v); },
