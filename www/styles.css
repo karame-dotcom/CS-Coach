@@ -178,6 +178,8 @@ h2 { margin: 6px 0 4px; font-size: 1.35rem; }
 
 /* sets */
 .set-list { display: grid; gap: 10px; margin-bottom: 18px; }
+.count-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 8px; margin: 12px 0 16px; }
+.set-item .badge { margin-left: auto; flex: none; }
 .set-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--white); border: 1px solid var(--line); border-radius: 14px; font: inherit; color: inherit; text-align: left; cursor: pointer; transition: border-color .12s, box-shadow .12s; }
 .set-item:hover { border-color: var(--green); box-shadow: 0 4px 14px rgba(22,163,74,.12); }
 .set-num { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; color: var(--white); background: linear-gradient(135deg, var(--green), var(--blue)); }

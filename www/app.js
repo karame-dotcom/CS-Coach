@@ -1281,6 +1281,32 @@
   }
 
   // ---------- PRACTICE tab ----------
+  // Mistakes / Starred: one list each, every subject with its question count
+  function reviewPool(kind) {
+    return kind === "starred" ? [...starred].map(i => byId.get(i)).filter(Boolean) : mistakeIds().map(i => byId.get(i));
+  }
+  function reviewListHtml(kind) {
+    const pool = reviewPool(kind);
+    if (!pool.length) return "";
+    const rows = SUBJECTS.map(s => ({ s, n: pool.filter(q => q.sid === s.id).length })).filter(r => r.n);
+    const row = (sid, ico, name, n) => `<button class="set-item" data-rk="${kind}" data-rs="${sid}"><div class="set-num">${ico}</div><div class="set-info"><b>${esc(name)}</b></div><span class="badge blue">${t("items", { n })}</span></button>`;
+    return `<div class="chart-title" style="margin-top:18px">${kind === "starred" ? "⭐ " + t("starredTitle") : "❌ " + t("mistakesTitle")} (${pool.length})</div>
+      <div class="set-list">${rows.map(r => row(r.s.id, r.s.icon, sn(r.s).name, r.n)).join("")}${rows.length > 1 ? row("", "🎯", t("reviewAll"), pool.length) : ""}</div>`;
+  }
+  // Ask how many questions: 5, 10, 15 ... (increments of 5, up to max)
+  function askCount(max, def, title, cb) {
+    const opts = [];
+    for (let n = 5; n <= Math.min(max, 100); n += 5) opts.push(n);
+    if (!opts.length || (max <= 100 && max % 5)) opts.push(max);
+    modal(`
+      <div class="modal-title">${title}</div>
+      <p class="modal-text">${t("howMany")}</p>
+      <div class="count-grid">${opts.map(n => `<button class="btn ${n === def ? "" : "secondary"}" data-n="${n}">${n}</button>`).join("")}</div>
+      <div class="actions col"><button class="link" data-x>${t("cancel")}</button></div>`, (w, close) => {
+      w.querySelector("[data-x]").onclick = close;
+      w.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { close(); cb(+b.dataset.n); });
+    });
+  }
   function renderPractice() {
     setBack(null);
     const a = analytics();
@@ -1304,13 +1330,6 @@
             </div>
           </button>`;
         }).join("")}
-        ${reviewQs().length ? `
-          <button class="card starred-card" data-id="review">
-            <span class="ico">🎯</span>
-            <h3>${t("reviewTitle")}</h3>
-            <p>${t("reviewDesc")}</p>
-            <div class="meta"><span class="badge blue">${t("reviewCounts", { m: mistakeIds().length, s: starred.size })}</span></div>
-          </button>` : ""}
         <button class="card mock" data-id="mock">
           <span class="ico">📝</span>
           <h3>${t("mockTitle")}</h3>
@@ -1325,15 +1344,16 @@
             <div class="meta"><span class="badge">${t("aiCount", { n: aiBank.length })}</span></div>
           </button>` : ""}
       </div>
+      ${reviewListHtml("mistakes")}${reviewListHtml("starred")}
       <p class="note">🔄 ${t("rotationNote")}</p>
       <p class="note">${t("disclaimer")}</p>
     `;
+    app.querySelectorAll("[data-rk]").forEach(b => b.addEventListener("click", () => startReview(b.dataset.rk, b.dataset.rs || null)));
     document.getElementById("changeMode").addEventListener("click", () => { openSecs.add("quiz"); openTab("settings"); });
     bindInstall(app, () => openTab(HOME));
     app.querySelectorAll(".card").forEach(btn => btn.addEventListener("click", () => {
       const id = btn.dataset.id;
       if (id === "mock") return startMock();
-      if (id === "review") return startReview();
       if (id === "ai") return pickAISubject();
       startSubject(id);
     }));
@@ -1373,58 +1393,42 @@
         openSecs.add("ai"); renderSettings(false);
       };
       w.querySelector("[data-older]").onclick = () => { close(); startSession(o.key + ":retry", o.title + " (" + t("reviewOlder") + ")", smartPick(o.pool, o.n || ROUND_SIZE, true), o.exit); };
-      const rv = w.querySelector("[data-rev]"); if (rv) rv.onclick = () => { close(); startReview(o.exit); };
+      const rv = w.querySelector("[data-rev]"); if (rv) rv.onclick = () => { close(); openTab("practice"); };
     });
   }
-  async function startMock() {
+  function startMock(n) {
+    if (!n) return askCount(allQuestions().length, MOCK_SIZE, t("mockTitle"), k => startMock(k));
+    return runMock(n);
+  }
+  async function runMock(size) {
     const exit = () => openTab("practice");
     // balanced: an equal share of fresh questions from each subject
-    const per = Math.ceil(MOCK_SIZE / SUBJECTS.length);
+    const per = Math.ceil(size / SUBJECTS.length);
     let picked = [];
     for (const s of SUBJECTS) picked.push(...await topUp(s.id, smartPick(s.questions, per), sampleFn ? per : 0));
-    picked = shuffle(picked).slice(0, MOCK_SIZE);
-    if (picked.length < 10) return caughtUp({ name: t("mockTitle"), pool: allQuestions(), key: "mock", title: t("mockTitle"), exit, n: MOCK_SIZE });
+    picked = shuffle(picked).slice(0, size);
+    if (picked.length < Math.min(10, size)) return caughtUp({ name: t("mockTitle"), pool: allQuestions(), key: "mock", title: t("mockTitle"), exit, n: size });
     startSession("mock", t("mockTitle"), picked, exit);
-    if (picked.length < MOCK_SIZE) setTimeout(() => toast(t("onlyFresh", { n: picked.length })), 300);
+    if (picked.length < size) setTimeout(() => toast(t("onlyFresh", { n: picked.length })), 300);
   }
-  function startStarred() { if (starred.size) startSession("starred", t("starredTitle"), [...starred].map(i => byId.get(i)).filter(Boolean), () => openTab("practice")); }
-  // Mistakes & starred are grouped by subject: pick one to focus on, or take all.
-  function startReview(exit, sid) {
-    const all = reviewQs();
-    if (!all.length) return toast(t("reviewEmpty"));
-    const ex = exit || (() => openTab(tab));
-    const run = (qs, title) => startSession("review", title, qs.slice(0, 30), ex);
-    if (sid) {
-      const s = SUBJECTS.find(x => x.id === sid);
-      return run(all.filter(q => q.sid === sid), t("reviewTitle") + " · " + sn(s).name);
-    }
-    const groups = SUBJECTS.map(s => {
-      const qs = all.filter(q => q.sid === s.id);
-      const m = qs.filter(q => stats[q.id] && stats[q.id].last === 0).length;
-      return { s, n: qs.length, m, st: qs.filter(q => starred.has(q.id)).length };
-    }).filter(g => g.n);
-    if (groups.length <= 1) return run(all, t("reviewTitle"));
-    modal(`
-      <div class="modal-title">${t("reviewPick")}</div>
-      <div class="set-list">
-        ${groups.map(g => `<button class="set-item" data-sid="${g.s.id}"><div class="set-num">${g.s.icon}</div><div class="set-info"><b>${esc(sn(g.s).name)}</b><span>${t("reviewCounts", { m: g.m, s: g.st })}</span></div></button>`).join("")}
-        <button class="set-item" data-sid=""><div class="set-num">🎯</div><div class="set-info"><b>${t("reviewAll")}</b><span>${t("reviewCounts", { m: mistakeIds().length, s: starred.size })}</span></div></button>
-      </div>
-      <div class="actions col"><button class="link" data-x>${t("cancel")}</button></div>`, (w, close) => {
-      w.querySelector("[data-x]").onclick = close;
-      w.querySelectorAll("[data-sid]").forEach(b => b.onclick = () => {
-        close();
-        const id = b.dataset.sid;
-        id ? startReview(exit, id) : run(all, t("reviewTitle"));
-      });
-    });
+  const startStarred = () => startReview("starred");
+  // kind: "mistakes" | "starred"; sid: one subject, or null for all
+  function startReview(kind, sid) {
+    const pool = reviewPool(kind).filter(q => !sid || q.sid === sid);
+    if (!pool.length) return toast(t("reviewEmpty"));
+    const title = (kind === "starred" ? t("starredTitle") : t("mistakesTitle")) + (sid ? " · " + sn(SUBJECTS.find(x => x.id === sid)).name : "");
+    askCount(pool.length, Math.min(10, pool.length), title, n => startSession(kind === "starred" ? "starred" : "review", title, shuffle(pool.slice()).slice(0, n), () => openTab("practice")));
   }
-  async function startSubject(id) {
-    const s = SUBJECTS.find(x => x.id === id), exit = () => openTab("practice");
-    const picked = await topUp(id, smartPick(s.questions, ROUND_SIZE), ROUND_SIZE);
-    if (!picked.length) return caughtUp({ name: sn(s).name, pool: s.questions, key: s.id, title: sn(s).name, exit, sid: id });
+  function startSubject(id, n, exitFn) {
+    if (!n) return askCount(SUBJECTS.find(x => x.id === id).questions.length, ROUND_SIZE, sn(SUBJECTS.find(x => x.id === id)).name, k => startSubject(id, k, exitFn));
+    return runSubject(id, n, exitFn);
+  }
+  async function runSubject(id, size, exitFn) {
+    const s = SUBJECTS.find(x => x.id === id), exit = exitFn || (() => openTab("practice"));
+    const picked = await topUp(id, smartPick(s.questions, size), size);
+    if (!picked.length) return caughtUp({ name: sn(s).name, pool: s.questions, key: s.id, title: sn(s).name, exit, sid: id, n: size });
     startSession(s.id, sn(s).name, picked, exit);
-    if (picked.length < ROUND_SIZE) setTimeout(() => toast(t("onlyFresh", { n: picked.length })), 300);
+    if (picked.length < size) setTimeout(() => toast(t("onlyFresh", { n: picked.length })), 300);
   }
 
   function toast(msg) {
@@ -1617,7 +1621,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     const ce = document.getElementById("changeExam");
     if (ce) ce.onclick = () => { ef.classList.toggle("hidden"); if (!ef.classList.contains("hidden")) document.getElementById("calExam").focus(); };
     const gs = document.getElementById("goalStart");
-    if (gs) gs.onclick = () => { const a = analytics(); const w = a.subjects.slice().sort((p, q) => (p.acc == null ? -1 : p.acc) - (q.acc == null ? -1 : q.acc))[0]; startSubject(w.id); session.exitTo = () => openTab("calendar"); };
+    if (gs) gs.onclick = () => { const a = analytics(); const w = a.subjects.slice().sort((p, q) => (p.acc == null ? -1 : p.acc) - (q.acc == null ? -1 : q.acc))[0]; startSubject(w.id, 0, () => openTab("calendar")); };
   }
 
   // ---------- ANALYTICS tab ----------
@@ -1760,8 +1764,8 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     const sd = document.getElementById("speedDrill");
     if (sd) sd.onclick = () => { const qs = slowQs(); if (qs.length) startSession("speed", t("tmDrillTitle"), qs.slice(0, 30), () => openTab("analytics"), false, "question"); };
     const rt = document.getElementById("reviewTop");
-    if (rt) rt.addEventListener("click", () => startReview(() => openTab("analytics")));
-    document.getElementById("practiceReview").addEventListener("click", () => startReview(() => openTab("analytics")));
+    if (rt) rt.addEventListener("click", () => openTab("practice"));
+    document.getElementById("practiceReview").addEventListener("click", () => openTab("practice"));
     window.scrollTo(0, 0);
   }
 
