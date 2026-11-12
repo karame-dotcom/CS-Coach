@@ -81,7 +81,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.29.4";
+  const APP_VERSION = "1.29.5";
   const REPORT_EMAIL = "sharematerials2026@gmail.com";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap"];
   function snapshot(reason) {
@@ -331,7 +331,8 @@
     });
   }
   tabbar.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
-    if (b.dataset.tab === "chat") return window.CoachUI && window.CoachUI.toggle();
+    if (b.dataset.tab === "chat") return window.CoachUI && window.CoachUI.toggleFull();
+    if (chatIsOpen()) window.CoachUI.close();   // leaving the chat tab
     if (tab === "settings" && settingsDirty()) return guardLeave(() => openTab(b.dataset.tab));
     openTab(b.dataset.tab);
   }));

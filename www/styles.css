@@ -1033,3 +1033,16 @@ b, strong { font-weight: 800; }
 }
 /* chat scrolling: we manage "stick to the bottom" ourselves; leave a little air under the last bubble */
 .coach-msgs { overflow-anchor: none; padding-bottom: 18px; }
+
+/* ===== chat opened from the center tab: full screen between the top bar and the tab bar, like the other tabs ===== */
+body .coach-panel.full, body.has-tabbar .coach-panel.full { position: fixed; left: 0; right: 0; top: var(--topbar-h, 68px); bottom: var(--tabbar-h, 64px); width: min(760px, 100%); height: auto; margin: 0 auto; border-radius: 0; box-shadow: none; z-index: 30; background: var(--chat-bg); animation: none; }
+.coach-panel.full .coach-head { background: #fff; color: var(--chat-ink); border-bottom: 2px solid var(--chat-line); padding: 10px 14px; }
+.coach-panel.full .coach-head::after { display: none; }
+.coach-panel.full .coach-head span { color: var(--chat-muted); }
+.coach-panel.full .coach-x { display: none; }
+.coach-panel.full .coach-avatar { width: 40px; height: 40px; background: var(--chat-bg); box-shadow: none; }
+.coach-panel.full .coach-msgs { padding-top: 14px; }
+body.chat-full { overflow: hidden; }
+body.chat-full .tabbar .tab-chat .tab-label { text-decoration: underline; text-underline-offset: 3px; }
+body.chat-full .tabbar button.active:not(.tab-chat) { color: var(--muted); }
+body.chat-full .tabbar button.active:not(.tab-chat) .tab-ico { background: none; transform: none; animation: none; }
