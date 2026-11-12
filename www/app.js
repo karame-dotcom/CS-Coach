@@ -1224,7 +1224,7 @@
     setBack(null);
     const a = analytics();
     app.innerHTML = `
-      <h2>${profile && profile.name ? t("hi", { name: esc(profile.name) }) : ""}${t("chooseSubject")}</h2>
+      <h2>${profile && profile.name ? t("hi", { name: esc(profile.name) }) : ""}${window.Tone ? Tone.heading() : t("chooseSubject")}</h2>
       <p class="sub">${t("homeSub", { n: ROUND_SIZE, p: PASSING })}</p>
       <div id="installSlot">${showInstallBanner() ? installHtml(true) : ""}</div>
       <div class="mode-chip">${profile.instant ? t("modePracticeChip") : t("modeExamChip")} · <button class="link" id="changeMode">${t("change")}</button></div>
@@ -1994,8 +1994,13 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
   function celebrate(pct, correct, total) {
     const tier = pct >= PASSING ? "good" : pct >= 60 ? "mid" : "low";
     const name = profile && profile.name ? ", " + esc(profile.name) : "";
-    const title = t({ good: "celGoodTitle", mid: "celMidTitle", low: "celLowTitle" }[tier], { name });
-    const text = t({ good: "celGoodText", mid: "celMidText", low: "celLowText" }[tier]);
+    // how many rounds just before this one landed in the same tier (history already includes this round)
+    const tierOf = p => p >= PASSING ? "good" : p >= 60 ? "mid" : "low";
+    let prior = 0;
+    for (let i = history.length - 2; i >= 0 && tierOf(history[i].pct) === tier && prior < 3; i--) prior++;
+    const tone = window.Tone ? Tone.result(tier, name, prior) : null;
+    const title = tone ? tone.title : t({ good: "celGoodTitle", mid: "celMidTitle", low: "celLowTitle" }[tier], { name });
+    const text = tone ? tone.text : t({ good: "celGoodText", mid: "celMidText", low: "celLowText" }[tier]);
     const charKey = (profile && profile.petChar) || "sprout";
     const kiko = window.Pet && Pet.preview ? Pet.preview(charKey) : "";
     modal(`

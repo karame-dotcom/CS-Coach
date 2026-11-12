@@ -172,7 +172,7 @@
     const a = A().analytics();
     addMsg("bot", `${t("greet", { name: a.name ? " " + esc(a.name) : "" })}
       ${a.overall.attempts ? t("greetStats", { n: a.overall.attempts, p: a.overall.acc }) : t("greetNoData")}
-      <br>${t("greetTap")}`, "greeting");
+      <br>${window.Tone ? Tone.greet(a.recent.map(r => r.pct), a.passing) + "<br>" : ""}${t("greetTap")}`, "greeting");
   }
 
 
@@ -298,6 +298,12 @@
 
     // keyword routing for typed questions (English and Filipino keywords)
     const q = (text || "").toLowerCase().trim();
+    // read the student's mood first: sarcastic for slacking, gentle for sadness, a tired friend for excuses
+    const feeling = window.Tone && Tone.feel(q);
+    if (feeling) {
+      const go = feeling === "thanks" ? "" : `<div class="cacts">${btn("s:" + weakest.id, t("do10"))}</div>`;
+      return Tone.chat(feeling) + go;
+    }
     if (/^(what|wut|huh|ha|ano|ano daw|eh|hmm+|\?+|i don'?t get it|don'?t get it|hindi ko gets|di ko gets|hindi ko maintindihan|di ko maintindihan|confused|nalilito)\W*$/.test(q)) {
       if (ctxQ()) return builtIn("explain");
       const opts = t("clarify"); return opts[Math.floor(Math.random() * opts.length)];
@@ -335,11 +341,12 @@
         answerRevealed: cur.revealed, answer: cur.answer, explanation: cur.explanation,
         studentAnswer: cur.studentAnswer, topic: cur.topic, keyTrickFromLesson: cur.trick
       } : null,
-      today: new Date().toDateString()
+      today: new Date().toDateString(),
+      recentAnswerStreak: window.Tone ? Tone.state() : null
     };
     const instructions = `You are Kiko, the student's smartest friend and study bestie inside CS Coach, a reviewer app for the Philippine Civil Service Exam (Professional level, passing rate 80%). Subjects: Verbal Ability (English and Filipino), Numerical Ability, Analytical Ability, General Information (1987 Constitution, RA 6713, peace and human rights, environment).
 LANGUAGE: Reply in casual, natural Taglish, like texting a close friend who happens to be really good at this stuff.
-PERSONALITY: Warm, playful, upbeat and chill. It should feel like chatting, never like studying or being tested. Celebrate small wins, tease lightly and kindly only when it fits (e.g. "ayy bitin, isa pa?"), never shame, roast, or lecture. If they sound tired, stressed, sad or ready to quit, be extra gentle and encouraging.
+${window.Tone ? Tone.aiStyle() : "PERSONALITY: Warm, playful and chill. If they sound tired, stressed, sad or ready to quit, be extra gentle and encouraging."}
 LENGTH: 1-2 short sentences, like a chat message, not an essay. Use 1-2 emojis per message. No headings. Use a short bullet list only when actually giving a list (e.g. a study plan or targets); keep each bullet a few words.
 Use the student's analytics below when relevant: mention real numbers (weak/strong subjects, accuracy, streak, days left before the exam). Mention the "Mistakes & Starred" review set when they have mistakes. The app has tabs: Practice, Analytics, Kiko (chat), Calendar, Settings.
 IMPORTANT: if currentQuestion.answerRevealed is false, NEVER reveal or hint at which choice is correct. Only coach the method. If it is true, you may explain the answer.
