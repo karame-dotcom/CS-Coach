@@ -84,7 +84,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.32.0";
+  const APP_VERSION = "1.33.0";
   const REPORT_EMAIL = "sharematerials2026@gmail.com";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap", "rank"];
   function snapshot(reason) {
@@ -316,6 +316,7 @@
       rec.slow = S.qTime.filter(ms => ms > SEC_Q * 1000).length; if (S.timedOut) rec.timedOut = 1;
     }
     history.push(rec);
+    if (window.CSTrack) window.CSTrack("quiz_complete", { kind: String(S.key || "").split(":")[0].slice(0, 20), total: rec.total, answered, pct: rec.pct });
     history = history.slice(-100);
     store.set("cscoach.stats", stats); store.set("cscoach.history", history);
     const b = store.get("cscoach.backups", []);
@@ -393,6 +394,7 @@
     settingsDirty = () => false;
     pet().setBusy && pet().setBusy(false);
     tab = name || tab;
+    if (window.CSTrack) window.CSTrack("tab_open", { tab });
     session = null;
     paintTabbar(); showTabbar(true);
     setTimeout(ensureGuard, 0);

@@ -21,5 +21,8 @@ window.CS_FIREBASE = {
   apiKey: "AIzaSyB9YGegcn10IUooekzkKk3RZg3aj1MZls8",
   authDomain: "cs-coach-56fa1.firebaseapp.com",
   projectId: "cs-coach-56fa1",
-  appId: "1:660323295036:web:42c30db9c008c534e20839"
+  appId: "1:660323295036:web:42c30db9c008c534e20839",
+  // Analytics: Firebase console → Project settings → Integrations → Google Analytics → enable, then paste the
+  // Measurement ID here (looks like "G-XXXXXXXXXX"). Leave empty to keep analytics off.
+  measurementId: ""
 };
