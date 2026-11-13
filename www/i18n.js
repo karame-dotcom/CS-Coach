@@ -160,6 +160,7 @@
     nUnanswered: ["{n} unanswered", "{n} walang sagot", "{n} walang sagot"],
     retryMissed: ["Retry {n} missed", "Ulitin ang {n} namali", "Retry ang {n} namali"],
     nextRound: ["Next round", "Susunod na round", "Next round"],
+    otherSubject: ["Choose another subject", "Pumili ng ibang asignatura", "Pumili ng ibang subject"],
     takeAgain: ["Take again", "Subukan ulit", "Take again"],
     done: ["Done", "Tapos na", "Done"],
     reviewAll: ["📖 Review all answers", "📖 Suriin ang lahat ng sagot", "📖 I-review lahat ng sagot"],
