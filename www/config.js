@@ -24,5 +24,5 @@ window.CS_FIREBASE = {
   appId: "1:660323295036:web:42c30db9c008c534e20839",
   // Analytics: Firebase console → Project settings → Integrations → Google Analytics → enable, then paste the
   // Measurement ID here (looks like "G-XXXXXXXXXX"). Leave empty to keep analytics off.
-  measurementId: ""
+  measurementId: "G-MT5S0422J6"
 };
