@@ -872,56 +872,34 @@
   function aiSummary() {
     if (window.CSAI.builtIn()) return t("aiBuiltInShort");
     const c = window.CSAI.current();
-    return c && c.key ? "✅ " + (c.provider === "claude" ? t("aiProvClaude") : t("aiProvGemini")) : t("aiOffShort");
+    return c && c.key && c.provider !== "claude" ? "✅ " + t("aiProvGemini") : t("aiOffShort");
   }
   function aiPanelHtml() {
     if (window.CSAI.builtIn()) return `<div class="panel ai-panel"><b>✨ ${t("aiTutorTitle")}</b><p class="muted small" style="margin:6px 0 0">${t("aiBuiltIn")}</p></div>`;
-    const cur = window.CSAI.current() || {};
-    const prov = cur.provider || "gemini";
-    const name = cur.key ? (cur.provider === "claude" ? t("aiProvClaude") : t("aiProvGemini")) : "";
+    const cur0 = window.CSAI.current() || {}, cur = cur0.provider === "claude" ? {} : cur0;   // an old Claude key is ignored (not deleted)
+    const name = cur.key ? t("aiProvGemini") : "";
     return `
       <div class="panel ai-panel" id="aiPanel">
         <b>✨ ${t("aiTutorTitle")}</b>
         <p class="muted small" style="margin:4px 0 10px">${t("aiTutorDesc")}</p>
         <div class="ai-status ${cur.key ? "on" : ""}">${cur.key ? t("aiConnected", { p: esc(name) }) : t("aiNotConnected")}</div>
-        <div class="ai-provs">
-          <label class="ai-prov"><input type="radio" name="aiProv" value="gemini" ${prov === "gemini" ? "checked" : ""} /><b>${t("aiProvGemini")}</b><span>${t("aiProvGeminiNote")}</span></label>
-          <label class="ai-prov"><input type="radio" name="aiProv" value="claude" ${prov === "claude" ? "checked" : ""} /><b>${t("aiProvClaude")}</b><span>${t("aiProvClaudeNote")}</span></label>
-        </div>
-        <a class="ai-get" id="aiGet" target="_blank" rel="noopener"></a>
+        <a class="ai-get" id="aiGet" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">🔑 ${t("aiGetGemini")} ↗</a>
         <label class="field-label" for="aiKey" style="margin-top:10px">${t("aiKeyLabel")}</label>
         <input id="aiKey" class="input" type="password" autocomplete="off" spellcheck="false" placeholder="${t("aiKeyPh")}" value="${esc(cur.key || "")}" />
-        <div id="aiModelRow" style="margin-top:10px">
-          <label class="field-label" for="aiModel">${t("aiModel")}</label>
-          <select id="aiModel" class="input">
-            <option value="claude-opus-5-5" ${cur.model !== "claude-haiku-5-5" ? "selected" : ""}>${t("aiModelOpus")}</option>
-            <option value="claude-haiku-5-5" ${cur.model === "claude-haiku-5-5" ? "selected" : ""}>${t("aiModelHaiku")}</option>
-          </select>
-        </div>
         <div class="backup-btns" style="margin-top:12px">
           <button class="btn" id="aiSave">${t("aiSaveTest")}</button>
           ${cur.key ? `<button class="btn secondary" id="aiRemove">${t("aiRemove")}</button>` : ""}
         </div>
         <p class="muted small" style="margin:6px 0 0">${t("aiPrivacy")}</p>
-        <p class="muted small" id="aiGemNote" style="margin:4px 0 0">${t("aiGeminiPrivacy")}</p>
+        <p class="muted small" style="margin:4px 0 0">${t("aiGeminiPrivacy")}</p>
       </div>`;
   }
   function bindAiPanel() {
     const panel = document.getElementById("aiPanel");
     if (!panel) return;
-    const prov = () => panel.querySelector("input[name=aiProv]:checked").value;
-    const paint = () => {
-      const g = prov() === "gemini", a = document.getElementById("aiGet");
-      a.href = g ? "https://aistudio.google.com/app/apikey" : "https://console.anthropic.com/settings/keys";
-      a.textContent = "🔑 " + (g ? t("aiGetGemini") : t("aiGetClaude")) + " ↗";
-      document.getElementById("aiModelRow").style.display = g ? "none" : "";
-      document.getElementById("aiGemNote").style.display = g ? "" : "none";
-    };
-    panel.querySelectorAll("input[name=aiProv]").forEach(r => r.addEventListener("change", paint));
-    paint();
     const rerender = () => { const y = window.scrollY; renderSettings(false); window.scrollTo(0, y); };
     document.getElementById("aiSave").onclick = async () => {
-      const cfg = { provider: prov(), key: document.getElementById("aiKey").value.trim(), model: document.getElementById("aiModel").value };
+      const cfg = { provider: "gemini", key: document.getElementById("aiKey").value.trim() };
       if (!cfg.key) return toast(t("aiBadKey"));
       const btn = document.getElementById("aiSave"); btn.disabled = true; btn.textContent = t("aiTesting");
       try {
@@ -2519,6 +2497,7 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
     profile: () => profile,
     startSubject, startMock, startStarred, startReview,
     // donation reminder for the chat (only when a GCash/Maya number is configured)
+    openAISettings() { openSecs.add("ai"); openTab("settings"); setTimeout(() => { const d = document.querySelector('details[data-sec="ai"]'); if (d) d.scrollIntoView({ block: "start", behavior: "smooth" }); }, 80); },
     donate: { enabled: () => hasDonate(), open() { openSecs.add("donate"); renderSettings(false); setTimeout(() => { const d = document.querySelector('details[data-sec="donate"]'); if (d) d.scrollIntoView({ block: "start", behavior: "smooth" }); }, 50); } },
     _similar(id) { const q = byId.get(id), r = q && similarExample(q); return r ? (r.html ? r.q.q : r.q) : null; },
     lessonsOn: LESSONS_ON,
