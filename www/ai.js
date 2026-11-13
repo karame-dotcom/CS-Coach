@@ -1,6 +1,6 @@
 // One AI connection for the whole app (tutor chat, explanations, AI questions, word lookups).
 // Order: 1) inside claude.ai: Claude via the page's "sample" capability
-//        2) the user's OWN API key (Settings → AI tutor): Google Gemini (free tier) or Claude
+//        2) the user's OWN API key (Settings → AI tutor): Google Gemini (free tier)
 //        3) the optional CS Coach server (config.js → CS_AI_ENDPOINT)
 //        4) none: the built-in tutor is used
 // The user's key is stored only on this device (localStorage "cscoach.aikey", not in
@@ -112,30 +112,6 @@ window.CSAI = (function () {
     });
   }
 
-  // ---- Claude with the user's own Anthropic key (official SDK, loaded on demand) ----
-  function viaClaude(key, model) {
-    let clientP = null;
-    const client = () => clientP || (clientP = import("https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk/+esm")
-      .then(m => new (m.default || m.Anthropic)({ apiKey: key, dangerouslyAllowBrowser: true })));
-    return wrap(async (messages) => {
-      let Anthropic, c;
-      try { c = await client(); Anthropic = c.constructor; } catch (_) { throw err("offline"); }
-      const opus = model !== "claude-haiku-5-5";
-      try {
-        const response = opus
-          ? await c.beta.messages.create({ model, max_tokens: 16000, output_config: { effort: "low" }, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default", messages })
-          : await c.messages.create({ model, max_tokens: 16000, output_config: { effort: "low" }, messages });
-        if (response.stop_reason === "refusal") throw err("refusal");
-        return response.content.filter(b => b.type === "text").map(b => b.text).join("");
-      } catch (e) {
-        if (e.code) throw e;
-        if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) throw err("bad_key");
-        if (e instanceof Anthropic.RateLimitError) throw err("rate_limited");
-        throw err("error");
-      }
-    });
-  }
-
   // ---- optional shared server ----
   function viaServer(url) {
     return wrap(async messages => {
@@ -156,7 +132,7 @@ window.CSAI = (function () {
         try { const s = await window.claude.use("sample"); if (s) return s; } catch (_) {}
       }
       const own = read();
-      if (own && own.key) return own.provider === "claude" ? viaClaude(own.key, own.model || "claude-opus-5-5") : viaGemini(own.key);
+      if (own && own.key && own.provider !== "claude") return viaGemini(own.key);
       return window.CS_AI_ENDPOINT ? viaServer(window.CS_AI_ENDPOINT) : null;
     })();
     return ready;
@@ -172,7 +148,7 @@ window.CSAI = (function () {
   }
   // quick check that a key works (one tiny request)
   async function test(cfg) {
-    const fn = cfg.provider === "claude" ? viaClaude(cfg.key, cfg.model || "claude-opus-5-5") : viaGemini(cfg.key);
+    const fn = viaGemini(cfg.key);
     const r = await fn("Reply with just the word OK.");
     return /ok/i.test(r.text);
   }

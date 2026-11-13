@@ -75,6 +75,7 @@
     if (window.CSBack) window.CSBack();   // phone Back closes the chat
     setTimeout(fitPanel, 0);
     if (!msgs.children.length) { greet(); maybeDonate(); }
+    aiNotice();
     renderChips();
     if (kind) { addMsg("user", esc(chipLabel(kind)), chipLabel(kind)); reply(builtIn(kind)); }
     // On phones don't pop the keyboard right away, so the quick questions stay visible
@@ -167,8 +168,14 @@
     try { localStorage.setItem("cscoach.donLast", String(Date.now())); } catch (_) {}
     setTimeout(() => addMsg("bot", `<div class="don-chat">${t("donChat")}</div><div class="cacts">${btn("donate", "💚 " + t("donTitle"))}</div>`, "donation note"), 900);
   }
+  function aiNotice() {
+    if (sample || window.CSAI.builtIn() || msgs.querySelector(".ai-notice")) return;
+    const d = addMsg("bot", `${t("aiChatNotice")}<div class="cacts">${btn("aisettings", t("aiChatBtn"))}</div>`);
+    d.classList.add("ai-notice");
+  }
   function act(a) {
     close();
+    if (a === "aisettings") return A().openAISettings();
     if (a === "donate") return A().donate.open();
     if (a.startsWith("lesson:")) return A().openLesson(a.slice(7));
     if (a === "mock") A().startMock();
