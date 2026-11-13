@@ -84,7 +84,7 @@
   //  3. Questions are fingerprinted by their text, so if the question bank is ever
   //     reordered or reorganized, progress (stats, stars) follows the right question.
   //  4. Users can export/import a backup file or code (Settings → Backup & restore).
-  const APP_VERSION = "1.33.1";
+  const APP_VERSION = "1.33.3";
   const REPORT_EMAIL = "sharematerials2026@gmail.com";
   const DATA_KEYS = ["profile", "best", "starred", "stats", "history", "lessonsRead", "aiq", "qmap", "rank"];
   function snapshot(reason) {
@@ -2443,9 +2443,10 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
         ${timeBlock}
         <div class="actions">
           ${missed.length ? `<button class="btn" id="retryWrong">${t("retryMissed", { n: missed.length })}</button>` : ""}
+          ${isSubjectRound ? "" : `<button class="btn secondary" id="exit">${t("done")}</button>`}
           <button class="btn blue" id="again">${isSubjectRound ? t("nextRound") : t("takeAgain")}</button>
-          <button class="btn secondary" id="exit">${t("done")}</button>
         </div>
+        ${isSubjectRound ? `<p class="center" style="margin:14px 0 0"><button class="link" id="exit">${t("otherSubject")}</button></p>` : ""}
       </div>
 
       <h3 class="review-title">${t("reviewAll")}</h3>
