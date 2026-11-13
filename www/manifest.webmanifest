@@ -3,7 +3,7 @@
   "name": "CS Coach – Civil Service Exam Reviewer",
   "short_name": "CS Coach",
   "description": "Lessons, practice questions, analytics and a tutor buddy for the Philippine Civil Service Exam (Professional).",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

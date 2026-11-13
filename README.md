@@ -39,7 +39,17 @@ Lessons are organized by the official CSC Professional exam scope of examination
 - Settings → **Backup & restore**: download a backup file, or restore from a file.
 - **Rules for developers:** only *append* new questions to a subject's list (never reorder or delete), and never rename lesson `id`s.
 
-## Website (phones: iPhone & Android)
+## Hosting on Cloudflare Pages (private repo)
+Cloudflare Pages serves `www/` for free and works with a private GitHub repo. No build step.
+1. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → choose this repo.
+2. Production branch: `main`. Framework preset: **None**. Build command: *(empty)*. Build output directory: **`www`**.
+3. Deploy. The site is at `https://<project-name>.pages.dev`.
+4. Add that domain in Firebase → Authentication → Settings → **Authorized domains**, and in Google Analytics → Admin → Data streams (site URL).
+5. If you deploy the AI proxy in `server/`, add the new site address to `ALLOWED_ORIGINS` in `server/worker.js`.
+Every push to `main` then redeploys automatically.
+
+## Website on GitHub Pages (old host)
+
 `.github/workflows/pages.yml` publishes `www/` to GitHub Pages on every push.
 One-time setup: repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 The site will be at `https://karame-dotcom.github.io/CS-Coach/`.
