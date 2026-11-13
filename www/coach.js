@@ -443,4 +443,9 @@ ${JSON.stringify(context)}`;
     const wants = !!ctxQ() && /explain|gets|maintindihan|paliwanag|bakit|paano|why|how|confus|gulo|step/i.test(text);
     if (sample) askAI(text, wants); else reply(builtIn("text", text));
   }
+  // On launch, go straight to the chat (returning users only: not during first-time setup or the tour)
+  try {
+    const done = JSON.parse(localStorage.getItem("cscoach.tourDone") || "false");
+    if (window.CSApp && window.CSApp.profile() && done) setTimeout(() => open(undefined, true), 0);
+  } catch (e) {}
 })();
