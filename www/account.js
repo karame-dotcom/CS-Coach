@@ -27,7 +27,7 @@
     create: ["Create account", "Gumawa ng account"], login: ["Log in", "Mag-log in"],
     haveAcct: ["I already have an account", "May account na ako"], needAcct: ["Create a new account instead", "Gumawa na lang ng bagong account"],
     email: ["Email", "Email"], pass: ["Password (at least 6 characters)", "Password (hindi bababa sa 6 na character)"],
-    google: ["Continue with Google", "Magpatuloy gamit ang Google"], later: ["Not now", "Mamaya na"],
+    google: ["Continue with Google", "Magpatuloy gamit ang Google"], moreEmail: ["Use email instead", "Gamitin na lang ang email"], later: ["Not now", "Mamaya na"],
     forgot: ["Forgot password?", "Nakalimutan ang password?"], resetSent: ["Password reset email sent.", "Naipadala na ang email para sa pag-reset ng password."],
     enterEmail: ["Type your email first.", "I-type muna ang email mo."],
     signOut: ["Sign out", "Mag-sign out"], syncNow: ["Sync now", "I-sync ngayon"],
@@ -146,9 +146,12 @@
   function authForm(w, mode, onDone) {
     const box = w.querySelector(".modal");
     const isNew = mode === "create";
+    const collapsed = !!onDone.popup && !onDone.expanded;   // first-run popup: Google first, email form tucked away
     box.innerHTML = `
       ${onDone.popup ? `<div class="modal-title">☁️ ${esc(tr("popTitle"))}</div><p class="modal-text">${esc(tr("popText"))}</p>` : `<div class="modal-title">${esc(isNew ? tr("create") : tr("login"))}</div>`}
       <button class="btn" data-g type="button" style="width:100%;margin:12px 0 4px">${esc(tr("google"))}</button>
+      ${collapsed ? `<div style="text-align:center;margin-top:6px"><button class="muted small" data-more type="button" style="background:none;border:0;padding:6px;text-decoration:underline;cursor:pointer;font-size:12px">${esc(tr("moreEmail"))}</button></div>` : ""}
+      <div data-form${collapsed ? ' hidden' : ""}>
       <div class="field-label" style="margin-top:12px">${esc(tr("email"))}</div>
       <input class="input" data-e type="email" autocomplete="email" />
       <div class="field-label" style="margin-top:10px">${esc(tr("pass"))}</div>
@@ -158,6 +161,9 @@
         <button class="btn" data-go type="button">${esc(isNew ? tr("create") : tr("login"))}</button>
         <button class="btn secondary" data-sw type="button">${esc(isNew ? tr("haveAcct") : tr("needAcct"))}</button>
         ${isNew ? "" : `<button class="btn secondary" data-fp type="button">${esc(tr("forgot"))}</button>`}
+      </div>
+      </div>
+      <div class="actions" style="margin-top:8px">
         ${onDone.popup ? `<button class="btn secondary" data-x type="button">${esc(tr("later"))}</button>` : `<button class="btn secondary" data-x type="button">${esc(window.CSCloud.t("cancel"))}</button>`}
       </div>`;
     const msg = box.querySelector("[data-msg]"), em = box.querySelector("[data-e]"), pw = box.querySelector("[data-p]");
@@ -165,7 +171,9 @@
     const busy = b => box.querySelectorAll("button").forEach(x => { x.disabled = b; });
     const run = async fn => { busy(true); say(""); try { await load(); await fn(); w.remove(); } catch (e) { say(errText(e)); busy(false); } };
     box.querySelector("[data-x]").onclick = () => w.remove();
-    box.querySelector("[data-sw]").onclick = () => authForm(w, isNew ? "login" : "create", onDone);
+    box.querySelector("[data-sw]").onclick = () => authForm(w, isNew ? "login" : "create", Object.assign({}, onDone, { expanded: true }));
+    const more = box.querySelector("[data-more]");
+    if (more) more.onclick = () => { more.parentNode.remove(); box.querySelector("[data-form]").hidden = false; };
     box.querySelector("[data-g]").onclick = () => run(() => A.signInWithPopup(auth, new A.GoogleAuthProvider()));
     box.querySelector("[data-go]").onclick = () => run(() => {
       const e = em.value.trim(), p = pw.value;
