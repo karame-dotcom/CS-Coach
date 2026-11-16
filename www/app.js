@@ -2040,8 +2040,9 @@ Return JSON only: {"questions":[{"q":"...","c":["...","...","...","..."],"a":0,"
         S.unsure.delete(idx);
         i === q.a ? pet().cheer() : pet().cry();
       } else if (S.answers[idx] !== null) pet().hop();
-      // Answered: go straight to the next question (stay put on the last one, where Submit is shown)
-      if (S.answers[idx] !== null && idx < items.length - 1) goTo(idx + 1);
+      // Exam mode: go straight to the next question (stay put on the last one, where Submit is shown).
+      // Practice mode: stay so the learner can read the answer; they use Next / swipe when ready.
+      if (!S.instant && S.answers[idx] !== null && idx < items.length - 1) goTo(idx + 1);
       else renderQuestion(false);
     }));
     document.getElementById("starBtn").addEventListener("click", () => {
